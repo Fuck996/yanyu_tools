@@ -106,7 +106,7 @@
 <div class="loc-grid" id="mainGrid"></div>
 
 <div class="version-footer">
-    版本号：V4.7.5 <span>修改日期：2026-02-18</span>
+    版本号：V4.7.6 <span>修改日期：2026-02-18</span>
 </div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
@@ -273,14 +273,18 @@
     function delEntry(loc, en, i) { if(confirm('确认删除？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
     
     function clearCurrent() { 
-        if(confirm('确认清空当前分类并重置次数？')) { 
-            const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}'); 
-            const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
-            delete db[curType]; 
-            localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
-            LOC_MAP[curSystem].forEach(loc => {
-                ens.forEach(en => { localStorage.removeItem(`start_at_${loc}_${en}`); });
+        if(confirm('🚨 警告：确认清空【所有装备类型】的所有记录并重置次数吗？此操作不可恢复！')) { 
+            // 1. 清空主记录数据库
+            localStorage.setItem('yanyu_v24_db', '{}'); 
+            
+            // 2. 遍历并清空所有 start_at_ 开头的次数计数器
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('start_at_')) {
+                    localStorage.removeItem(key);
+                }
             });
+            
+            // 3. 刷新页面恢复初始状态
             location.reload(); 
         } 
     }
