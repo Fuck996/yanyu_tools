@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V35</title>
+    <title>烟雨江湖 - 装备录入工具 V37</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
@@ -27,7 +27,7 @@
         .top-container { display: flex; align-items: center; background: var(--card); padding: 18px 25px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); gap: 25px; }
         .logo-img { height: 45px; }
         
-        /* 优化：增加文字与按钮的间距 */
+        /* 间距优化：文字与按钮的间距 */
         .nav-label { font-size: 12px; color: var(--nav-text); width: 50px; font-weight: bold; margin-right: 15px; display: inline-block; }
         .btn-type { background: var(--btn-idle); color: var(--nav-text); padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); margin-right: 8px; cursor: pointer; border-radius: 8px; font-weight: bold; }
         .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
@@ -107,9 +107,8 @@
     <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">烟雨江湖打造序列助手</div>
     <div style="font-size:13px; line-height:1.7; color:var(--nav-text);">
         • <b>录入逻辑</b>：点击上方品质按钮（绿/蓝/紫）记录当前序列。基础词条上限将根据品质自动设为 1/2/3 个。<br>
-        • <b>操作区说明</b>：每个条目右侧设有双功能区。左侧 <b>★</b> 用于标记“保留”，点击后整行高亮，方便定位极品位置；右侧 <b>✕</b> 点击删除记录。<br>
-        • <b>表格布局</b>：中间加粗竖线用于区分同场景下的两件不同装备序列。<br>
-        • <b>数据安全</b>：所有数据均保存在您的浏览器本地。<b>更换设备或清除浏览器缓存前，务必点击右上角【备份】导出 JSON 文件。</b>
+        • <b>操作区说明</b>：每个条目右侧设有双功能区。左侧 <b>★</b> 用于标记“保留”，点击后整行高亮；右侧 <b>✕</b> 点击删除记录。<br>
+        • <b>数据安全</b>：所有数据均保存在浏览器本地。<b>更换设备前，务必点击右上角【备份】导出 JSON 文件。</b>
     </div>
     <button onclick="closeAllModals()" style="width:100%; padding:10px; margin-top:20px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:var(--btn-idle); color:var(--text);">我知道了</button>
 </div>
@@ -117,37 +116,46 @@
 <script>
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
-    const ATTRS = { weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':['攻击','气血'], '剑':['攻击','气血'], '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] };
+    const ATTRS = { weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':[], '剑':[], '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] };
     const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
     const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
     const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
 
     let curType = '拳套', curSystem = 'forge', tempEntry = null;
 
-    function init() { if (localStorage.getItem('yanyu_theme') === 'light') toggleTheme(); renderNav(); renderMain(); }
+    function init() { 
+        if (localStorage.getItem('yanyu_theme') === 'light') toggleTheme(); 
+        renderNav(); 
+        renderMain(); 
+    }
+
     function toggleTheme() {
         const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
         document.body.setAttribute('data-theme', next);
         document.getElementById('themeToggle').innerText = next === 'light' ? '☀️ 模式' : '🌙 模式';
         localStorage.setItem('yanyu_theme', next);
     }
+
     function renderNav() {
         document.getElementById('forgeNav').innerHTML = '<span class="nav-label">铸造装备</span>';
         document.getElementById('sewNav').innerHTML = '<span class="nav-label">缝纫防具</span>';
         Object.keys(FORGE_CONFIG).forEach(t => createNavBtn(t, 'forge', 'forgeNav'));
         Object.keys(SEW_CONFIG).forEach(t => createNavBtn(t, 'sew', 'sewNav'));
     }
+
     function createNavBtn(t, sys, id) {
         const b = document.createElement('button'); b.className = `btn-type ${t===curType?'active':''}`;
         b.innerText = t; b.onclick = () => { curType = t; curSystem = sys; renderNav(); renderMain(); };
         document.getElementById(id).appendChild(b);
     }
+
     function addEntry(loc, idx, q) {
         tempEntry = { loc, equipIdx: idx, q, limit: (q==='green'?1:(q==='blue'?2:3)), baseAttrs: [], specialAttr: "" };
         document.getElementById('mask').style.display = 'block';
         document.getElementById('attrPicker').style.display = 'block';
         renderPicker();
     }
+
     function renderPicker() {
         const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
@@ -166,6 +174,7 @@
             spec.appendChild(btn);
         });
     }
+
     function saveFinal() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
@@ -175,6 +184,7 @@
         list[p] = { q:tempEntry.q, attrs:tempEntry.baseAttrs, special:tempEntry.specialAttr, k:false };
         localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); closeAllModals();
     }
+
     function renderMain() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}'); const grid = document.getElementById('mainGrid');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType]; grid.innerHTML = '';
@@ -188,6 +198,7 @@
             grid.innerHTML += h + `</tbody></table></div></div>`;
         });
     }
+
     function renderTd(it, en, loc, i) {
         if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
         const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${a}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
@@ -200,14 +211,42 @@
                 </div>
             </div></td>`;
     }
+
     function showHelp() { document.getElementById('mask').style.display='block'; document.getElementById('helpModal').style.display='block'; }
     function closeAllModals() { document.getElementById('mask').style.display='none'; document.getElementById('helpModal').style.display='none'; document.getElementById('attrPicker').style.display='none'; }
     function toggleStar(loc, en, i) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); }
-    function delEntry(loc, en, i) { if(confirm('删除记录？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
-    function clearCurrent() { if(confirm('清空？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); delete db[curType]; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
-    function exportData() { const d = localStorage.getItem('yanyu_v24_db'); if(!d) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); a.download='yanyu_backup.json'; a.click(); }
+    function delEntry(loc, en, i) { if(confirm('删除后将无法还原，是否删除记录？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
+    function clearCurrent() { if(confirm('清空后将无法还原，是否清空记录？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); delete db[curType]; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
+    
+    function exportData() { 
+        const d = localStorage.getItem('yanyu_v24_db'); 
+        if(!d || d === '{}') { alert('没有可导出的数据'); return; }
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); 
+        a.download = `yanyu_backup_${new Date().toLocaleDateString()}.json`; 
+        a.click(); 
+    }
+
     function importData() { document.getElementById('fileInput').click(); }
-    document.getElementById('fileInput').onchange = e => { const r = new FileReader(); r.onload = f => { localStorage.setItem('yanyu_v24_db', f.target.result); location.reload(); }; r.readAsText(e.target.files[0]); };
+
+    document.getElementById('fileInput').onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = f => {
+            try {
+                const content = f.target.result;
+                JSON.parse(content);
+                localStorage.setItem('yanyu_v24_db', content);
+                alert('还原成功！');
+                location.reload();
+            } catch (err) {
+                alert('非法文件格式');
+            }
+        };
+        reader.readAsText(file);
+    };
+
     init();
 </script>
 </body>
