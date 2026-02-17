@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>烟雨江湖 - 装备录入工具 V35</title>
+    <style>
+        :root {
+            --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
+            --green: #2ecc71; --blue: #3498db; --purple: #9b59b6; --accent: #f1c40f; --special: #bf00ff;
+            --btn-idle: #252525; --nav-text: #888; --title-color: #ffffff;
+            --zebra: rgba(255,255,255,0.02);
+        }
+        [data-theme="light"] {
+            --bg: #f5f6fa; --card: #ffffff; --text: #2f3542; --border: #dcdde1;
+            --btn-idle: #f1f2f6; --nav-text: #636e72; --title-color: #000000;
+            --zebra: rgba(0,0,0,0.02);
+        }
+
+        body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
+        
+        /* V30 样式悬浮面板 */
+        .control-panel { position: fixed; top: 15px; right: 15px; display: flex; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 30px; padding: 4px 8px; z-index: 1000; }
+        [data-theme="light"] .control-panel { background: rgba(255,255,255,0.8); }
+        .ctrl-btn { background: transparent; color: var(--nav-text); border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 20px; transition: 0.2s; }
+        .ctrl-btn:hover { color: var(--blue); }
+
+        .top-container { display: flex; align-items: center; background: var(--card); padding: 18px 25px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); gap: 25px; }
+        .logo-img { height: 45px; }
+        
+        /* 优化：增加文字与按钮的间距 */
+        .nav-label { font-size: 12px; color: var(--nav-text); width: 50px; font-weight: bold; margin-right: 15px; display: inline-block; }
+        .btn-type { background: var(--btn-idle); color: var(--nav-text); padding: 6px 14px; font-size: 13px; border: 1px solid var(--border); margin-right: 8px; cursor: pointer; border-radius: 8px; font-weight: bold; }
+        .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
+
+        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .loc-section { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
+        .loc-title { font-size: 1.15em; font-weight: bold; color: var(--title-color); margin-bottom: 20px; text-align: center; }
+        
+        .control-head { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+        .equip-ctrl { flex: 1; background: var(--btn-idle); padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
+        .ename { font-size: 14px; color: var(--title-color); font-weight: bold; margin-bottom: 10px; display: block; text-align: center; }
+        .btn-group { display: flex; gap: 6px; }
+        .btn-q { flex: 1; padding: 10px 0; font-size: 12px; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .bg-g { background-color: var(--green); } .bg-b { background-color: var(--blue); } .bg-p { background-color: var(--purple); }
+
+        .table-wrapper { height: 500px; overflow-y: auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+        
+        tbody tr:nth-child(even) { background-color: var(--zebra); }
+        tbody tr { border-bottom: 1px solid var(--border); }
+        
+        th { background: var(--btn-idle); padding: 12px; font-size: 11px; color: var(--nav-text); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .td-idx { font-size: 11px; color: var(--nav-text); background: var(--btn-idle) !important; width: 35px; text-align: center; border-right: 1px solid var(--border); }
+        .v-line { width: 2px; background: var(--border); }
+
+        .cell-container { display: flex; align-items: stretch; height: 100%; min-height: 65px; }
+        .data-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; }
+        .op-right-zone { display: flex; width: 60px; border-left: 1px solid var(--border); }
+        .op-btn { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+        .op-keep { font-size: 14px; color: #444; border-right: 1px solid var(--border); }
+        .op-keep.active { color: var(--accent); }
+        .op-del { font-size: 11px; color: #444; }
+        .op-del:hover { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
+
+        .attr-tag { font-size: 10px; background: rgba(52, 152, 219, 0.08); border: 1px solid var(--blue); border-radius: 4px; padding: 1px 5px; color: var(--blue); margin: 2px; }
+        .special-tag { font-size: 10px; background: rgba(191, 0, 255, 0.08); border: 1px solid var(--special); border-radius: 4px; padding: 1px 5px; color: var(--special); font-weight: bold; margin: 2px; }
+        .col-keep { background: rgba(241, 196, 15, 0.15) !important; }
+
+        .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--card); border:1px solid var(--border); border-radius:20px; padding:25px; z-index:1001; box-shadow:0 20px 60px rgba(0,0,0,0.5); width:360px; }
+        .modal-label { font-size: 12px; color: var(--nav-text); margin-bottom: 10px; margin-top: 15px; display: flex; justify-content: space-between; }
+        .mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:900; backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body data-theme="dark">
+
+<div class="control-panel">
+    <button class="ctrl-btn" onclick="showHelp()">💡 帮助</button>
+    <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
+    <button class="ctrl-btn" onclick="exportData()">📤 备份</button>
+    <button class="ctrl-btn" onclick="importData()">📥 还原</button>
+    <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
+</div>
+
+<div class="top-container">
+    <img src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png?t=2026021722&v=76" class="logo-img">
+    <div class="nav-area">
+        <div id="forgeNav" style="margin-bottom:10px;"></div>
+        <div id="sewNav"></div>
+    </div>
+</div>
+
+<input type="file" id="fileInput" style="display:none">
+<div class="loc-grid" id="mainGrid"></div>
+
+<div class="mask" id="mask" onclick="closeAllModals()"></div>
+
+<div class="modal" id="attrPicker">
+    <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
+    <div class="modal-label"><span>基础词条</span><span id="limitLabel" style="color:var(--blue)">0/0</span></div>
+    <div id="baseAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
+    <div class="modal-label"><span>额外特殊词条</span></div>
+    <div id="specAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
+    <button class="btn-q bg-g" onclick="saveFinal()" style="width:100%; margin-top:20px;">确认录入</button>
+</div>
+
+<div class="modal" id="helpModal">
+    <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">烟雨江湖打造序列助手</div>
+    <div style="font-size:13px; line-height:1.7; color:var(--nav-text);">
+        • <b>录入逻辑</b>：点击上方品质按钮（绿/蓝/紫）记录当前序列。基础词条上限将根据品质自动设为 1/2/3 个。<br>
+        • <b>操作区说明</b>：每个条目右侧设有双功能区。左侧 <b>★</b> 用于标记“保留”，点击后整行高亮，方便定位极品位置；右侧 <b>✕</b> 点击删除记录。<br>
+        • <b>表格布局</b>：中间加粗竖线用于区分同场景下的两件不同装备序列。<br>
+        • <b>数据安全</b>：所有数据均保存在您的浏览器本地。<b>更换设备或清除浏览器缓存前，务必点击右上角【备份】导出 JSON 文件。</b>
+    </div>
+    <button onclick="closeAllModals()" style="width:100%; padding:10px; margin-top:20px; border-radius:8px; border:1px solid var(--border); cursor:pointer; background:var(--btn-idle); color:var(--text);">我知道了</button>
+</div>
+
+<script>
+    const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
+    const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
+    const ATTRS = { weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':['攻击','气血'], '剑':['攻击','气血'], '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] };
+    const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
+    const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
+    const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
+
+    let curType = '拳套', curSystem = 'forge', tempEntry = null;
+
+    function init() { if (localStorage.getItem('yanyu_theme') === 'light') toggleTheme(); renderNav(); renderMain(); }
+    function toggleTheme() {
+        const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next);
+        document.getElementById('themeToggle').innerText = next === 'light' ? '☀️ 模式' : '🌙 模式';
+        localStorage.setItem('yanyu_theme', next);
+    }
+    function renderNav() {
+        document.getElementById('forgeNav').innerHTML = '<span class="nav-label">铸造装备</span>';
+        document.getElementById('sewNav').innerHTML = '<span class="nav-label">缝纫防具</span>';
+        Object.keys(FORGE_CONFIG).forEach(t => createNavBtn(t, 'forge', 'forgeNav'));
+        Object.keys(SEW_CONFIG).forEach(t => createNavBtn(t, 'sew', 'sewNav'));
+    }
+    function createNavBtn(t, sys, id) {
+        const b = document.createElement('button'); b.className = `btn-type ${t===curType?'active':''}`;
+        b.innerText = t; b.onclick = () => { curType = t; curSystem = sys; renderNav(); renderMain(); };
+        document.getElementById(id).appendChild(b);
+    }
+    function addEntry(loc, idx, q) {
+        tempEntry = { loc, equipIdx: idx, q, limit: (q==='green'?1:(q==='blue'?2:3)), baseAttrs: [], specialAttr: "" };
+        document.getElementById('mask').style.display = 'block';
+        document.getElementById('attrPicker').style.display = 'block';
+        renderPicker();
+    }
+    function renderPicker() {
+        const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
+        document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
+        base.innerHTML = ''; spec.innerHTML = '';
+        let pool = (curSystem==='sew')?ATTRS[curType]:[...ATTRS.weapon_base, ...(ATTRS[curType]||[])];
+        pool.forEach(a => {
+            const btn = document.createElement('button'); const isSel = tempEntry.baseAttrs.includes(a);
+            btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:${isSel?'white':'var(--blue)'};background:${isSel?'var(--blue)':''};`;
+            btn.innerText = a; btn.onclick = () => { if(isSel) tempEntry.baseAttrs = tempEntry.baseAttrs.filter(i=>i!==a); else if(tempEntry.baseAttrs.length < tempEntry.limit) tempEntry.baseAttrs.push(a); renderPicker(); };
+            base.appendChild(btn);
+        });
+        (LOC_SPECIAL_ATTRS[tempEntry.loc] || []).forEach(s => {
+            const btn = document.createElement('button'); const isSel = tempEntry.specialAttr === s;
+            btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:${isSel?'white':'var(--purple)'};background:${isSel?'var(--purple)':''};`;
+            btn.innerText = s; btn.onclick = () => { tempEntry.specialAttr = isSel ? "" : s; renderPicker(); };
+            spec.appendChild(btn);
+        });
+    }
+    function saveFinal() {
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
+        const en = ens[tempEntry.equipIdx];
+        if(!db[curType]) db[curType] = {}; if(!db[curType][tempEntry.loc]) db[curType][tempEntry.loc] = {}; if(!db[curType][tempEntry.loc][en]) db[curType][tempEntry.loc][en] = [];
+        let list = db[curType][tempEntry.loc][en]; let p=0; while(list[p]) p++;
+        list[p] = { q:tempEntry.q, attrs:tempEntry.baseAttrs, special:tempEntry.specialAttr, k:false };
+        localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); closeAllModals();
+    }
+    function renderMain() {
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}'); const grid = document.getElementById('mainGrid');
+        const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType]; grid.innerHTML = '';
+        LOC_MAP[curSystem].forEach(loc => {
+            const d = db[curType]?.[loc] || {}; const l1 = d[ens[0]]||[], l2 = d[ens[1]]||[]; const max = Math.max(l1.length, l2.length);
+            let h = `<div class="loc-section"><div class="loc-title">${LOC_ICONS[loc]} ${loc}</div><div class="control-head">
+                <div class="equip-ctrl"><span class="ename">${ens[0]}</span><div class="btn-group"><button class="btn-q bg-g" onclick="addEntry('${loc}',0,'green')">绿</button><button class="btn-q bg-b" onclick="addEntry('${loc}',0,'blue')">蓝</button><button class="btn-q bg-p" onclick="addEntry('${loc}',0,'purple')">紫</button></div></div>
+                <div class="equip-ctrl"><span class="ename">${ens[1]}</span><div class="btn-group"><button class="btn-q bg-g" onclick="addEntry('${loc}',1,'green')">绿</button><button class="btn-q bg-b" onclick="addEntry('${loc}',1,'blue')">蓝</button><button class="btn-q bg-p" onclick="addEntry('${loc}',1,'purple')">紫</button></div></div></div>
+                <div class="table-wrapper"><table><thead><tr><th class="td-idx">#</th><th>${ens[0]}</th><th class="v-line"></th><th>${ens[1]}</th></tr></thead><tbody>`;
+            for(let i=0; i<max; i++) { h += `<tr><td class="td-idx">${i+1}</td>${renderTd(l1[i], ens[0], loc, i)}<td class="v-line"></td>${renderTd(l2[i], ens[1], loc, i)}</tr>`; }
+            grid.innerHTML += h + `</tbody></table></div></div>`;
+        });
+    }
+    function renderTd(it, en, loc, i) {
+        if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
+        const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${a}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
+        return `<td class="${it.k?'col-keep':''}">
+            <div class="cell-container">
+                <div class="data-main"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
+                <div class="op-right-zone">
+                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i})">★</div>
+                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i})">✕</div>
+                </div>
+            </div></td>`;
+    }
+    function showHelp() { document.getElementById('mask').style.display='block'; document.getElementById('helpModal').style.display='block'; }
+    function closeAllModals() { document.getElementById('mask').style.display='none'; document.getElementById('helpModal').style.display='none'; document.getElementById('attrPicker').style.display='none'; }
+    function toggleStar(loc, en, i) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); }
+    function delEntry(loc, en, i) { if(confirm('删除记录？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
+    function clearCurrent() { if(confirm('清空？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); delete db[curType]; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
+    function exportData() { const d = localStorage.getItem('yanyu_v24_db'); if(!d) return; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); a.download='yanyu_backup.json'; a.click(); }
+    function importData() { document.getElementById('fileInput').click(); }
+    document.getElementById('fileInput').onchange = e => { const r = new FileReader(); r.onload = f => { localStorage.setItem('yanyu_v24_db', f.target.result); location.reload(); }; r.readAsText(e.target.files[0]); };
+    init();
+</script>
+</body>
+</html>
