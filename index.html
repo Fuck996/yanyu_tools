@@ -106,25 +106,29 @@
 <div class="loc-grid" id="mainGrid"></div>
 
 <div class="version-footer">
-    版本号：V4.7.6 <span>修改日期：2026-02-18</span>
+    版本号：V4.7.7 <span>修改日期：2026-02-18</span>
 </div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
 <div class="modal" id="attrPicker">
     <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
-    <div class="modal-label"><span>基础词条</span><span id="limitLabel" style="color:var(--blue)">0/0</span></div>
+    <div class="modal-label"><span>基础词条 (允许重复)</span><span id="limitLabel" style="color:var(--blue)">0/0</span></div>
     <div id="baseAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
     <div class="modal-label"><span>额外特殊词条</span></div>
     <div id="specAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
-    <button class="btn-q bg-g" onclick="saveFinal()" style="width:100%; margin-top:20px;">确认录入</button>
+    
+    <div style="display:flex; gap:10px; margin-top:20px;">
+        <button class="btn-q" style="background:#444; width:30%" onclick="resetPicker()">↺ 重置</button>
+        <button class="btn-q bg-g" style="flex:1" onclick="saveFinal()">确认录入</button>
+    </div>
 </div>
 
 <script>
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
     const ATTRS = { weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':[], '剑':[], '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] };
-    const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','平衡戒'], '项链':['青云坠','齐木格坠'] };
+    const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
     const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
     const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
 
@@ -160,23 +164,30 @@
         document.getElementById('attrPicker').style.display = 'block';
         renderPicker();
     }
+    
     function renderPicker() {
         const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
         base.innerHTML = ''; spec.innerHTML = '';
         let pool = (curSystem==='sew')?ATTRS[curType]:[...ATTRS.weapon_base, ...(ATTRS[curType]||[])];
+        
         pool.forEach(a => {
-            const btn = document.createElement('button'); const isSel = tempEntry.baseAttrs.includes(a);
+            const btn = document.createElement('button'); 
+            // 允许重复：使用 includes 仅用于视觉高亮，不再限制点击
+            const isSel = tempEntry.baseAttrs.includes(a);
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:${isSel?'white':'var(--blue)'};background:${isSel?'var(--blue)':''};`;
             btn.innerText = a; 
             btn.onclick = () => { 
-                if(isSel) tempEntry.baseAttrs = tempEntry.baseAttrs.filter(i=>i!==a); 
-                else if(tempEntry.baseAttrs.length < tempEntry.limit) tempEntry.baseAttrs.push(a); 
-                checkAutoSave();
-                renderPicker(); 
+                // 修改：点击总是添加，直到达到上限，不提供点击删除（需用重置）
+                if(tempEntry.baseAttrs.length < tempEntry.limit) {
+                    tempEntry.baseAttrs.push(a); 
+                    checkAutoSave();
+                    renderPicker(); 
+                }
             };
             base.appendChild(btn);
         });
+        
         (LOC_SPECIAL_ATTRS[tempEntry.loc] || []).forEach(s => {
             const btn = document.createElement('button'); const isSel = tempEntry.specialAttr === s;
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:${isSel?'white':'var(--purple)'};background:${isSel?'var(--purple)':''};`;
@@ -188,6 +199,12 @@
             };
             spec.appendChild(btn);
         });
+    }
+
+    function resetPicker() {
+        tempEntry.baseAttrs = [];
+        tempEntry.specialAttr = "";
+        renderPicker();
     }
 
     function checkAutoSave() {
@@ -274,17 +291,12 @@
     
     function clearCurrent() { 
         if(confirm('🚨 警告：确认清空【所有装备类型】的所有记录并重置次数吗？此操作不可恢复！')) { 
-            // 1. 清空主记录数据库
             localStorage.setItem('yanyu_v24_db', '{}'); 
-            
-            // 2. 遍历并清空所有 start_at_ 开头的次数计数器
             Object.keys(localStorage).forEach(key => {
                 if (key.startsWith('start_at_')) {
                     localStorage.removeItem(key);
                 }
             });
-            
-            // 3. 刷新页面恢复初始状态
             location.reload(); 
         } 
     }
