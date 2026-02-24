@@ -414,6 +414,7 @@
 
     /**
      * 处理导入文件，支持新旧版本兼容与数据校验
+     * 针对旧版备份，尝试智能推断并恢复起始录入次数。
      */
     document.getElementById('fileInput').onchange = e => { 
         const reader = new FileReader(); 
@@ -433,11 +434,38 @@
 
                 if (dbObj) {
                     localStorage.setItem('yanyu_v24_db', JSON.stringify(dbObj));
-                    if (settingsObj) {
+                    
+                    if (settingsObj) { // 新版格式：直接恢复显式配置
                         Object.entries(settingsObj).forEach(([k, v]) => {
                             localStorage.setItem(k, v);
                         });
+                    } else { // 旧版格式：尝试推断起始次数
+                        const allConfigs = { ...FORGE_CONFIG, ...SEW_CONFIG };
+                        Object.entries(allConfigs).forEach(([type, equips]) => {
+                            const system = Object.keys(FORGE_CONFIG).includes(type) ? 'forge' : 'sew';
+                            const locations = LOC_MAP[system];
+                            locations.forEach(loc => {
+                                equips.forEach(en => { // en 是装备名
+                                    const equipList = dbObj[type]?.[loc]?.[en];
+                                    if (equipList && equipList.length > 0) {
+                                        // 查找第一个非 null 的索引
+                                        let firstNonNullIndex = equipList.findIndex(item => item !== null);
+                                        if (firstNonNullIndex !== -1) {
+                                            // 将起始次数设置为实际数据点 + 1
+                                            localStorage.setItem(`start_at_${loc}_${en}`, firstNonNullIndex + 1);
+                                        } else {
+                                            // 如果列表全为 null，则起始次数设为 1
+                                            localStorage.setItem(`start_at_${loc}_${en}`, 1);
+                                        }
+                                    } else {
+                                        // 如果没有列表或列表为空，则起始次数设为 1
+                                        localStorage.setItem(`start_at_${loc}_${en}`, 1);
+                                    }
+                                });
+                            });
+                        });
                     }
+                    
                     alert('数据还原成功！');
                     location.reload(); 
                 } else {
