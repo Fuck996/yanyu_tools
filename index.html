@@ -171,20 +171,41 @@
     function toggleTheme() { const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem('yanyu_theme', next); }
     function applyTheme(t) { document.body.setAttribute('data-theme', t); }
 
+    /**
+     * 渲染顶部统计区域
+     * @param {string} sys - 系统类型 ('forge' 或 'sew')
+     * @param {string} targetId - 渲染目标容器 ID
+     */
     function renderStats(sys, targetId) {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const config = sys === 'forge' ? FORGE_CONFIG : SEW_CONFIG;
-        const counts = {};
+        const counts = {}; // 存储各地点的收藏统计
+        let totalStarred = 0; // 该系统的总收藏数
+
         Object.keys(config).forEach(type => {
-            Object.values(db[type] || {}).forEach(locData => {
-                Object.entries(locData).forEach(([en, list]) => {
+            // 遍历数据库，统计该系统下各装备的收藏数
+            Object.entries(db[type] || {}).forEach(([loc, locData]) => {
+                Object.values(locData).forEach(list => {
                     const k = (list || []).filter(it => it && it.k).length;
-                    if(k > 0) counts[en] = (counts[en] || 0) + k;
+                    if (k > 0) {
+                        counts[loc] = (counts[loc] || 0) + k;
+                        totalStarred += k;
+                    }
                 });
             });
         });
-        const html = Object.entries(counts).map(([name, num]) => `<div class="stat-item">${name} · ${num}</div>`).join('');
-        document.getElementById(targetId).innerHTML = html;
+
+        // 拼接统计条目 HTML
+        const itemsHtml = Object.entries(counts).map(([name, num]) => 
+            `<div class="stat-item">📍 ${name} 收藏: ${num}</div>`
+        ).join('');
+
+        // 生成总计标签（若有收藏则显示）
+        const totalHtml = totalStarred > 0 
+            ? `<div class="stat-item" style="color:var(--accent); border-color:var(--accent); font-weight:bold;">⭐ ${sys === 'forge' ? '铸造' : '缝纫'}总计: ${totalStarred}</div>` 
+            : '';
+
+        document.getElementById(targetId).innerHTML = totalHtml + itemsHtml;
     }
 
     function getDataStats() {
@@ -362,20 +383,72 @@
     function clearCurrent() { if(confirm('确认清空所有？')) { localStorage.clear(); location.reload(); } }
     
     function exportData() {
-        const d = localStorage.getItem('yanyu_v24_db');
-        if(!d) return;
+        const dbStr = localStorage.getItem('yanyu_v24_db');
+        const fullData = {
+            db: JSON.parse(dbStr || '{}'),
+            settings: {}
+        };
+        
+        // 遍历提取所有起始次数配置项
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('start_at_')) {
+                fullData.settings[key] = localStorage.getItem(key);
+            }
+        }
+
         const now = new Date();
         const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
         const timeStr = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-        const fileName = `烟雨江湖_备份_${curType}_${dateStr}_${timeStr}.json`;
+        // 修正文件名，明确为全量备份
+        const fileName = `烟雨江湖_全量备份_${dateStr}_${timeStr}.json`;
+        
+        const blob = new Blob([JSON.stringify(fullData)], {type: 'application/json'});
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([d],{type:'application/json'}));
+        a.href = URL.createObjectURL(blob);
         a.download = fileName;
         a.click();
     }
     
     function importData() { document.getElementById('fileInput').click(); }
-    document.getElementById('fileInput').onchange = e => { const reader = new FileReader(); reader.onload = f => { localStorage.setItem('yanyu_v24_db', f.target.result); location.reload(); }; reader.readAsText(e.target.files[0]); };
+
+    /**
+     * 处理导入文件，支持新旧版本兼容与数据校验
+     */
+    document.getElementById('fileInput').onchange = e => { 
+        const reader = new FileReader(); 
+        reader.onload = f => { 
+            try {
+                const data = JSON.parse(f.target.result);
+                let dbObj = null;
+                let settingsObj = null;
+
+                // 识别导入格式：新版全量格式 vs 旧版纯数据库格式
+                if (data.db && typeof data.db === 'object') {
+                    dbObj = data.db;
+                    settingsObj = data.settings;
+                } else if (typeof data === 'object') {
+                    dbObj = data;
+                }
+
+                if (dbObj) {
+                    localStorage.setItem('yanyu_v24_db', JSON.stringify(dbObj));
+                    if (settingsObj) {
+                        Object.entries(settingsObj).forEach(([k, v]) => {
+                            localStorage.setItem(k, v);
+                        });
+                    }
+                    alert('数据还原成功！');
+                    location.reload(); 
+                } else {
+                    throw new Error('无效的 JSON 结构');
+                }
+            } catch (err) {
+                alert('导入失败：' + err.message);
+            }
+        }; 
+        reader.readAsText(e.target.files[0]); 
+    };
     init();
 </script>
 </body>
