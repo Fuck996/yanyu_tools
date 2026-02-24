@@ -403,7 +403,7 @@
         // 修正文件名，明确为全量备份
         const fileName = `烟雨江湖_全量备份_${dateStr}_${timeStr}.json`;
         
-        const blob = new Blob([JSON.stringify(fullData)], {type: 'application/json'});
+        const blob = new Blob([JSON.stringify(fullData, null, 2)], {type: 'application/json'});
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = fileName;
