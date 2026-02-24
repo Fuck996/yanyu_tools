@@ -110,7 +110,7 @@
 <div class="loc-grid" id="mainGrid"></div>
 
 <div class="version-footer">
-    版本号：V4.7.11 <span>修改日期：2026-02-18</span>
+    版本号：V4.7.12 <span>修改日期：2026-02-18</span>
 </div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
@@ -135,24 +135,8 @@
 <script>
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
-    
-    // 属性池
-    const ATTRS = { 
-        weapon_base:['穿甲','速度','闪避','招架','气血','防御','破招架','破闪避'], 
-        '棍':['溅伤','防御'], 
-        '拳套':['免伤','防御'], 
-        '刀':[], 
-        '剑':[], 
-        '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], 
-        '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], 
-        '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], 
-        '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], 
-        '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] 
-    };
-
-    const FORGE_CONFIG = { 
-        '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] 
-    };
+    const ATTRS = { weapon_base:['穿甲','速度','闪避','招架','气血','防御','破招架','破闪避'], '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':[], '剑':[], '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], '项链':['攻击','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] };
+    const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
     const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
     const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
 
@@ -180,11 +164,7 @@
     function createNavBtn(t, sys, id) {
         const b = document.createElement('button'); b.className = `btn-type ${t===curType?'active':''}`;
         b.innerText = t; 
-        b.onclick = () => { 
-            curType = t; curSystem = sys; 
-            focusScroll = { loc: null, row: 0 }; 
-            renderNav(); renderMain(); 
-        };
+        b.onclick = () => { curType = t; curSystem = sys; focusScroll = { loc: null, row: 0 }; renderNav(); renderMain(); };
         document.getElementById(id).appendChild(b);
     }
 
@@ -198,62 +178,33 @@
     function renderPicker() {
         const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         const preview = document.getElementById('selectionPreview');
-        
         let previewHtml = tempEntry.baseAttrs.map(a => `<span class="attr-tag">${a}</span>`).join('');
-        if (tempEntry.specialAttr) {
-            previewHtml += `<span class="special-tag">${tempEntry.specialAttr}</span>`;
-        }
+        if (tempEntry.specialAttr) previewHtml += `<span class="special-tag">${tempEntry.specialAttr}</span>`;
         preview.innerHTML = previewHtml || '<span style="color:#555; font-size:12px;">(未选择)</span>';
-
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
-        
         base.innerHTML = ''; spec.innerHTML = '';
-        
-        // 修正逻辑：只有武器（拳刀剑棍）才会合并 weapon_base，防具和饰品只显示自身属性
         let isWeapon = ['拳套','刀','剑','棍'].includes(curType);
         let pool = isWeapon ? [...ATTRS.weapon_base, ...(ATTRS[curType]||[])] : (ATTRS[curType]||[]);
-        // 去重处理
         pool = [...new Set(pool)];
-
         pool.forEach(a => {
             const btn = document.createElement('button'); 
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--blue);`;
             btn.innerText = a; 
-            btn.onclick = () => { 
-                if(tempEntry.baseAttrs.length < tempEntry.limit) {
-                    tempEntry.baseAttrs.push(a); 
-                    checkAutoSave();
-                    renderPicker(); 
-                }
-            };
+            btn.onclick = () => { if(tempEntry.baseAttrs.length < tempEntry.limit) { tempEntry.baseAttrs.push(a); checkAutoSave(); renderPicker(); } };
             base.appendChild(btn);
         });
-        
         (LOC_SPECIAL_ATTRS[tempEntry.loc] || []).forEach(s => {
             const btn = document.createElement('button'); 
             const isSel = tempEntry.specialAttr === s;
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:${isSel?'white':'var(--purple)'};background:${isSel?'var(--purple)':''};`;
             btn.innerText = s; 
-            btn.onclick = () => { 
-                tempEntry.specialAttr = isSel ? "" : s; 
-                checkAutoSave();
-                renderPicker(); 
-            };
+            btn.onclick = () => { tempEntry.specialAttr = isSel ? "" : s; checkAutoSave(); renderPicker(); };
             spec.appendChild(btn);
         });
     }
 
-    function resetPicker() {
-        tempEntry.baseAttrs = [];
-        tempEntry.specialAttr = "";
-        renderPicker();
-    }
-
-    function checkAutoSave() {
-        if (tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") {
-            saveFinal();
-        }
-    }
+    function resetPicker() { tempEntry.baseAttrs = []; tempEntry.specialAttr = ""; renderPicker(); }
+    function checkAutoSave() { if (tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") saveFinal(); }
 
     function saveFinal() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
@@ -266,9 +217,8 @@
         if(!db[curType][tempEntry.loc][en]) db[curType][tempEntry.loc][en] = [];
         let list = db[curType][tempEntry.loc][en];
         let targetIdx = startVal - 1;
-        while(list.length <= targetIdx) { list.push(null); }
+        while(list.length <= targetIdx) list.push(null);
         list[targetIdx] = { q:tempEntry.q, attrs:tempEntry.baseAttrs, special:tempEntry.specialAttr, k:false };
-        
         localStorage.setItem(countKey, startVal + 1);
         focusScroll = { loc: tempEntry.loc, row: startVal + 1 }; 
         localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
@@ -286,20 +236,17 @@
     function renderMain() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}'); const grid = document.getElementById('mainGrid');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType]; 
-        
         const oldScrolls = {};
         LOC_MAP[curSystem].forEach((loc, locIdx) => {
             const w = document.getElementById(`scroll-${locIdx}`);
             if (w) oldScrolls[locIdx] = w.scrollTop;
         });
-
         grid.innerHTML = '';
         LOC_MAP[curSystem].forEach((loc, locIdx) => {
             const s1 = parseInt(localStorage.getItem(`start_at_${loc}_${ens[0]}`)) || 1;
             const s2 = parseInt(localStorage.getItem(`start_at_${loc}_${ens[1]}`)) || 1;
             const d = db[curType]?.[loc] || {}; const l1 = d[ens[0]]||[], l2 = d[ens[1]]||[]; 
             const max = Math.max(l1.length, l2.length, s1, s2);
-            
             let h = `<div class="loc-section"><div class="loc-title">${LOC_ICONS[loc]} ${loc}</div><div class="control-head">
                 <div class="equip-ctrl">
                     <div class="ename-box"><span class="ename">${ens[0]}</span><span class="start-label">第</span><input type="number" class="start-input" value="${s1}" onchange="updateEquipStart('${loc}','${ens[0]}',this.value)"><span class="start-label">次</span></div>
@@ -310,66 +257,65 @@
                     <div class="btn-group"><button class="btn-q bg-g" onclick="addEntry('${loc}',1,'green')">绿</button><button class="btn-q bg-b" onclick="addEntry('${loc}',1,'blue')">蓝</button><button class="btn-q bg-p" onclick="addEntry('${loc}',1,'purple')">紫</button></div>
                 </div></div>
                 <div class="table-wrapper" id="scroll-${locIdx}"><table><thead><tr><th class="td-idx">#</th><th>${ens[0]}</th><th class="v-line"></th><th>${ens[1]}</th></tr></thead><tbody>`;
-            for(let i=0; i<max; i++) { h += `<tr><td class="td-idx">${i+1}</td>${renderTd(l1[i], ens[0], loc, i)}<td class="v-line"></td>${renderTd(l2[i], ens[1], loc, i)}</tr>`; }
+            for(let i=0; i<max; i++) { h += `<tr><td class="td-idx">${i+1}</td>${renderTd(l1[i], ens[0], loc, i, locIdx)}<td class="v-line"></td>${renderTd(l2[i], ens[1], loc, i, locIdx)}</tr>`; }
             grid.innerHTML += h + `</tbody></table></div></div>`;
-            
             setTimeout(() => {
                 const wrapper = document.getElementById(`scroll-${locIdx}`);
                 if (wrapper) {
-                    if (focusScroll.loc === loc) {
-                        wrapper.scrollTop = focusScroll.row > 2 ? (focusScroll.row - 3) * 65 : 0;
-                    } else if (oldScrolls[locIdx] !== undefined) {
-                        wrapper.scrollTop = oldScrolls[locIdx]; 
-                    } else {
-                        let r = Math.min(s1, s2);
-                        wrapper.scrollTop = r > 2 ? (r - 3) * 65 : 0;
-                    }
+                    if (focusScroll.loc === loc) wrapper.scrollTop = focusScroll.row > 2 ? (focusScroll.row - 3) * 65 : 0;
+                    else if (oldScrolls[locIdx] !== undefined) wrapper.scrollTop = oldScrolls[locIdx]; 
+                    else wrapper.scrollTop = Math.min(s1, s2) > 2 ? (Math.min(s1, s2) - 3) * 65 : 0;
                 }
             }, 0);
         });
     }
 
-    function renderTd(it, en, loc, i) {
+    function renderTd(it, en, loc, i, locIdx) {
         if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
         const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${a}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
         return `<td class="${it.k?'col-keep':''}">
             <div class="cell-container">
                 <div class="data-main"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
                 <div class="op-right-zone">
-                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i})">★</div>
-                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i})">✕</div>
+                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i}, ${locIdx})">★</div>
+                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i}, ${locIdx})">✕</div>
                 </div>
             </div></td>`;
     }
 
-    function closeAllModals() { 
-        document.getElementById('mask').style.display='none'; 
-        document.getElementById('attrPicker').style.display='none'; 
+    function closeAllModals() { document.getElementById('mask').style.display='none'; document.getElementById('attrPicker').style.display='none'; }
+    
+    // 修复BUG：收藏或删除时，手动维持当前滚动条高度，不触发焦点重定位
+    function toggleStar(loc, en, i, locIdx) { 
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); 
+        db[curType][loc][en][i].k = !db[curType][loc][en][i].k; 
+        localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
+        focusScroll = { loc: null, row: 0 }; // 清空焦点逻辑，让其走“恢复旧高度”的分支
+        renderMain(); 
     }
-    function toggleStar(loc, en, i) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); }
-    function delEntry(loc, en, i) { if(confirm('确认删除？')) { const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderMain(); } }
+    
+    function delEntry(loc, en, i, locIdx) { 
+        if(confirm('确认删除？')) { 
+            const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); 
+            db[curType][loc][en][i] = null; 
+            localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
+            focusScroll = { loc: null, row: 0 };
+            renderMain(); 
+        } 
+    }
     
     function clearCurrent() { 
         if(confirm('🚨 警告：确认清空【所有装备类型】的所有记录并重置次数吗？此操作不可恢复！')) { 
             localStorage.setItem('yanyu_v24_db', '{}'); 
-            Object.keys(localStorage).forEach(key => {
-                if (key.startsWith('start_at_')) {
-                    localStorage.removeItem(key);
-                }
-            });
+            Object.keys(localStorage).forEach(key => { if (key.startsWith('start_at_')) localStorage.removeItem(key); });
             location.reload(); 
         } 
     }
-    
     function exportData() { 
-        const d = localStorage.getItem('yanyu_v24_db'); 
-        if(!d) return; 
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); 
-        a.download = `yanyu_backup_${new Date().toLocaleDateString()}.json`; 
-        a.click(); 
+        const d = localStorage.getItem('yanyu_v24_db'); if(!d) return; 
+        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); 
+        a.download = `yanyu_backup_${new Date().toLocaleDateString()}.json`; a.click(); 
     }
-    
     function importData() { document.getElementById('fileInput').click(); }
     document.getElementById('fileInput').onchange = e => {
         const file = e.target.files[0]; if (!file) return;
