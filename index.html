@@ -2,18 +2,20 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V4.7.23</title>
+    <title>烟雨江湖 - 装备录入工具 V4.7.24</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
             --green: #2ecc71; --blue: #3498db; --purple: #9b59b6; --accent: #f1c40f; --special: #bf00ff;
             --btn-idle: #252525; --nav-text: #888; --title-color: #ffffff;
             --zebra: rgba(255,255,255,0.02);
+            --stat-bg: rgba(0,0,0,0.2);
         }
         [data-theme="light"] {
             --bg: #f5f6fa; --card: #ffffff; --text: #2f3542; --border: #dcdde1;
             --btn-idle: #f1f2f6; --nav-text: #636e72; --title-color: #000000;
             --zebra: rgba(0,0,0,0.04);
+            --stat-bg: rgba(0,0,0,0.05);
         }
 
         body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
@@ -26,12 +28,13 @@
         .logo-img { height: 45px; }
         
         .nav-area { flex: 1; }
-        .nav-row { display: flex; align-items: center; }
+        .nav-row { display: flex; align-items: center; justify-content: space-between; }
 
-        .keep-stats { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--nav-text); border-left: 2px solid var(--border); padding-left: 15px; margin-left: 10px; max-height: 80px; overflow-y: auto; }
-        .stat-item { background: rgba(241, 196, 15, 0.15); border: 1px solid rgba(241, 196, 15, 0.3); padding: 2px 8px; border-radius: 4px; color: #d4af37; font-weight: bold; }
+        /* 统计分区独立样式 */
+        .stats-zone { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 12px; background: var(--stat-bg); border-radius: 8px; min-width: 150px; justify-content: flex-end; border: 1px solid var(--border); }
+        .stat-item { font-size: 11px; padding: 2px 8px; border-radius: 4px; color: #d4af37; background: rgba(212, 175, 55, 0.1); border: 1px solid rgba(212, 175, 55, 0.2); white-space: nowrap; }
 
-        .nav-label { font-size: 12px; color: var(--nav-text); width: 50px; font-weight: bold; margin-right: 15px; flex-shrink: 0; }
+        .nav-label { font-size: 12px; color: var(--nav-text); width: 45px; font-weight: bold; flex-shrink: 0; }
         .btn-type { position: relative; background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); margin-right: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; }
         .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
 
@@ -96,13 +99,13 @@
 <div class="top-container">
     <img src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png?t=2026021722&v=76" class="logo-img">
     <div class="nav-area">
-        <div class="nav-row" style="margin-bottom:10px;">
+        <div class="nav-row" style="margin-bottom:12px;">
             <div id="forgeNav" style="display:flex; align-items:center;"></div>
-            <div id="forgeStats" class="keep-stats"></div>
+            <div id="forgeStats" class="stats-zone"></div>
         </div>
         <div class="nav-row">
             <div id="sewNav" style="display:flex; align-items:center;"></div>
-            <div id="sewStats" class="keep-stats"></div>
+            <div id="sewStats" class="stats-zone"></div>
         </div>
     </div>
 </div>
@@ -110,7 +113,7 @@
 <input type="file" id="fileInput" style="display:none">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">版本号：V4.7.23 <span>修改日期：2026-02-24</span></div>
+<div class="version-footer">版本号：V4.7.24 <span>修改日期：2026-02-24</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
@@ -167,7 +170,7 @@
                 });
             });
         });
-        const html = Object.entries(counts).map(([name, num]) => `<div class="stat-item">${name}: ${num}</div>`).join('');
+        const html = Object.entries(counts).map(([name, num]) => `<div class="stat-item"><b>${name}</b> · ${num}</div>`).join('');
         document.getElementById(targetId).innerHTML = html;
     }
 
