@@ -110,7 +110,7 @@
 <div class="loc-grid" id="mainGrid"></div>
 
 <div class="version-footer">
-    版本号：V4.7.10 <span>修改日期：2026-02-18</span>
+    版本号：V4.7.11 <span>修改日期：2026-02-18</span>
 </div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
@@ -136,7 +136,7 @@
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
     
-    // 修正：武器基础属性补全了“防御”
+    // 属性池
     const ATTRS = { 
         weapon_base:['穿甲','速度','闪避','招架','气血','防御','破招架','破闪避'], 
         '棍':['溅伤','防御'], 
@@ -150,14 +150,8 @@
         '戒指':['攻击','吸血','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','聚气','破招架'] 
     };
 
-    // 修正：戒指名称更正为“苏布宝戒”
     const FORGE_CONFIG = { 
-        '拳套':['破军指套','撼岳拳套'], 
-        '刀':['掠影刀','碎月重刀'], 
-        '剑':['巽风剑','万仞重剑'], 
-        '棍':['碎虚枪','贪狼棍'], 
-        '戒指':['青云戒','苏布宝戒'], 
-        '项链':['青云坠','齐木格坠'] 
+        '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] 
     };
     const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
     const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
@@ -202,8 +196,7 @@
     }
     
     function renderPicker() {
-        const base = document.getElementById('baseAttrGrid'); 
-        const spec = document.getElementById('specAttrGrid');
+        const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         const preview = document.getElementById('selectionPreview');
         
         let previewHtml = tempEntry.baseAttrs.map(a => `<span class="attr-tag">${a}</span>`).join('');
@@ -215,8 +208,13 @@
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
         
         base.innerHTML = ''; spec.innerHTML = '';
-        let pool = (curSystem==='sew')?ATTRS[curType]:[...ATTRS.weapon_base, ...(ATTRS[curType]||[])];
         
+        // 修正逻辑：只有武器（拳刀剑棍）才会合并 weapon_base，防具和饰品只显示自身属性
+        let isWeapon = ['拳套','刀','剑','棍'].includes(curType);
+        let pool = isWeapon ? [...ATTRS.weapon_base, ...(ATTRS[curType]||[])] : (ATTRS[curType]||[]);
+        // 去重处理
+        pool = [...new Set(pool)];
+
         pool.forEach(a => {
             const btn = document.createElement('button'); 
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--blue);`;
