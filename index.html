@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V4.7.30</title>
+    <title>烟雨江湖 - 装备录入工具 V4.7.31</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
@@ -126,7 +126,7 @@
 <input type="file" id="fileInput" style="display:none">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">版本号：V4.7.30 <span>修改日期：2026-02-24</span></div>
+<div class="version-footer">版本号：V4.7.31 <span>修改日期：2026-02-24</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
@@ -172,37 +172,38 @@
     function applyTheme(t) { document.body.setAttribute('data-theme', t); }
 
     /**
-     * 渲染顶部统计区域
+     * 渲染顶部统计区域（按装备名称统计收藏）
      * @param {string} sys - 系统类型 ('forge' 或 'sew')
      * @param {string} targetId - 渲染目标容器 ID
      */
     function renderStats(sys, targetId) {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const config = sys === 'forge' ? FORGE_CONFIG : SEW_CONFIG;
-        const counts = {}; // 存储各地点的收藏统计
+        const counts = {}; // 存储各装备名称的收藏统计
         let totalStarred = 0; // 该系统的总收藏数
 
         Object.keys(config).forEach(type => {
             // 遍历数据库，统计该系统下各装备的收藏数
             Object.entries(db[type] || {}).forEach(([loc, locData]) => {
-                Object.values(locData).forEach(list => {
+                // 按装备名称统计，而不是地点
+                Object.entries(locData).forEach(([equipName, list]) => {
                     const k = (list || []).filter(it => it && it.k).length;
                     if (k > 0) {
-                        counts[loc] = (counts[loc] || 0) + k;
+                        counts[equipName] = (counts[equipName] || 0) + k;
                         totalStarred += k;
                     }
                 });
             });
         });
 
-        // 拼接统计条目 HTML
+        // 拼接统计条目 HTML（按装备名称显示）
         const itemsHtml = Object.entries(counts).map(([name, num]) => 
-            `<div class="stat-item">📍 ${name} 收藏: ${num}</div>`
+            `<div class="stat-item">⭐ ${name} 收藏: ${num}</div>`
         ).join('');
 
         // 生成总计标签（若有收藏则显示）
         const totalHtml = totalStarred > 0 
-            ? `<div class="stat-item" style="color:var(--accent); border-color:var(--accent); font-weight:bold;">⭐ ${sys === 'forge' ? '铸造' : '缝纫'}总计: ${totalStarred}</div>` 
+            ? `<div class="stat-item" style="color:var(--accent); border-color:var(--accent); font-weight:bold; margin-right:10px;">📊 ${sys === 'forge' ? '铸造' : '缝纫'}总计: ${totalStarred}</div>` 
             : '';
 
         document.getElementById(targetId).innerHTML = totalHtml + itemsHtml;
