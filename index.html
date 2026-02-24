@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V47</title>
+    <title>烟雨江湖 - 装备录入工具 V4.7.18</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
@@ -109,7 +109,7 @@
 <div class="loc-grid" id="mainGrid"></div>
 
 <div class="version-footer">
-    版本号：V4.7.15 <span>修改日期：2026-02-18</span>
+    版本号：V4.7.18 <span>修改日期：2026-02-18</span>
 </div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
@@ -135,7 +135,7 @@
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
     
-    // 按需求修正后的属性池
+    // 词条池更新：拳法改为拳脚，棍法改为枪棍
     const ATTRS = { 
         weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], 
         '棍':['溅伤','防御'], 
@@ -144,9 +144,9 @@
         '剑':[], 
         '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], 
         '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], 
-        '护腕':['免伤','反伤','剑伤','刀伤','拳伤','棍伤','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], 
-        '项链':['攻击','速度','免伤','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','闪避','防御','反伤','韧性','回血'], 
-        '戒指':['攻击','吸血','聚气','剑伤','刀伤','拳伤','棍伤','气血','命中','招架','速度','闪避','防御','韧性','破招架'] 
+        '护腕':['免伤','反伤','剑法','刀法','拳脚','枪棍','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], 
+        '项链':['攻击','速度','免伤','剑法','刀法','拳脚','枪棍','气血','命中','招架','闪避','防御','反伤','韧性','回血'], 
+        '戒指':['攻击','吸血','聚气','剑法','刀法','拳脚','枪棍','气血','命中','招架','速度','闪避','防御','韧性','破招架'] 
     };
 
     const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
@@ -181,6 +181,14 @@
         document.getElementById(id).appendChild(b);
     }
 
+    // 兼容逻辑：处理所有老数据词条转换
+    function fixOldData(attr) {
+        if (!attr) return "";
+        return attr.replace('剑伤','剑法').replace('刀伤','刀法')
+                   .replace('拳伤','拳脚').replace('拳法','拳脚')
+                   .replace('棍伤','枪棍').replace('棍法','枪棍');
+    }
+
     function addEntry(loc, idx, q) {
         tempEntry = { loc, equipIdx: idx, q, limit: (q==='green'?1:(q==='blue'?2:3)), baseAttrs: [], specialAttr: "" };
         document.getElementById('mask').style.display = 'block';
@@ -191,7 +199,7 @@
     function renderPicker() {
         const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         const preview = document.getElementById('selectionPreview');
-        let previewHtml = tempEntry.baseAttrs.map(a => `<span class="attr-tag">${a}</span>`).join('');
+        let previewHtml = tempEntry.baseAttrs.map(a => `<span class="attr-tag">${fixOldData(a)}</span>`).join('');
         if (tempEntry.specialAttr) previewHtml += `<span class="special-tag">${tempEntry.specialAttr}</span>`;
         preview.innerHTML = previewHtml || '<span style="color:#555; font-size:12px;">(未选择)</span>';
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
@@ -202,7 +210,7 @@
         pool.forEach(a => {
             const btn = document.createElement('button'); 
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--blue);`;
-            btn.innerText = a; 
+            btn.innerText = fixOldData(a); 
             btn.onclick = () => { if(tempEntry.baseAttrs.length < tempEntry.limit) { tempEntry.baseAttrs.push(a); checkAutoSave(); renderPicker(); } };
             base.appendChild(btn);
         });
@@ -285,7 +293,7 @@
 
     function renderTd(it, en, loc, i, locIdx) {
         if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
-        const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${a}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
+        const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${fixOldData(a)}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
         return `<td class="${it.k?'col-keep':''}">
             <div class="cell-container">
                 <div class="data-main"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
