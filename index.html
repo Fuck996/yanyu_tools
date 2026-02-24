@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V4.7.19</title>
+    <title>烟雨江湖 - 装备录入工具 V4.7.23</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
@@ -13,39 +13,29 @@
         [data-theme="light"] {
             --bg: #f5f6fa; --card: #ffffff; --text: #2f3542; --border: #dcdde1;
             --btn-idle: #f1f2f6; --nav-text: #636e72; --title-color: #000000;
-            --zebra: rgba(0,0,0,0.02);
+            --zebra: rgba(0,0,0,0.04);
         }
 
         body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
         
-        .control-panel { position: fixed; top: 15px; right: 15px; display: flex; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 30px; padding: 4px 8px; z-index: 1000; }
+        .control-panel { position: fixed; top: 15px; right: 15px; display: flex; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 30px; padding: 4px 8px; z-index: 1000; }
         [data-theme="light"] .control-panel { background: rgba(255,255,255,0.8); }
         .ctrl-btn { background: transparent; color: var(--nav-text); border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 20px; transition: 0.2s; }
-        .ctrl-btn:hover { color: var(--blue); }
 
         .top-container { display: flex; align-items: center; background: var(--card); padding: 18px 25px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); gap: 25px; }
         .logo-img { height: 45px; }
         
-        .nav-label { font-size: 12px; color: var(--nav-text); width: 50px; font-weight: bold; margin-right: 15px; display: inline-block; }
-        
-        /* 导航按钮容器 */
-        .btn-type { 
-            position: relative; /* 为角标定位 */
-            background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); 
-            margin-right: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; transition: 0.2s;
-        }
+        .nav-area { flex: 1; }
+        .nav-row { display: flex; align-items: center; }
+
+        .keep-stats { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--nav-text); border-left: 2px solid var(--border); padding-left: 15px; margin-left: 10px; max-height: 80px; overflow-y: auto; }
+        .stat-item { background: rgba(241, 196, 15, 0.15); border: 1px solid rgba(241, 196, 15, 0.3); padding: 2px 8px; border-radius: 4px; color: #d4af37; font-weight: bold; }
+
+        .nav-label { font-size: 12px; color: var(--nav-text); width: 50px; font-weight: bold; margin-right: 15px; flex-shrink: 0; }
+        .btn-type { position: relative; background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); margin-right: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; }
         .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
 
-        /* 角标样式 */
-        .badge {
-            position: absolute; top: -6px; right: -8px;
-            background: var(--accent); color: #000;
-            font-size: 10px; padding: 1px 5px; border-radius: 10px;
-            min-width: 12px; text-align: center; font-weight: 800;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            pointer-events: none; /* 防止遮挡按钮点击 */
-        }
-        [data-theme="light"] .badge { background: #f39c12; color: #fff; }
+        .badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 10px; min-width: 12px; text-align: center; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
         .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 220px); min-height: 500px; }
         .loc-section { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
@@ -56,16 +46,9 @@
         
         .ename-box { display: flex; align-items: center; justify-content: center; gap: 4px; margin-bottom: 12px; }
         .ename { font-size: 14px; color: var(--title-color); font-weight: bold; margin-right: 8px; }
-        .start-label { font-size: 12px; color: var(--nav-text); font-weight: bold; }
-        
-        .start-input { 
-            background: transparent; border: 1.5px solid #444; border-radius: 4px; color: #ffffff; 
-            width: 32px; height: 22px; text-align: center; font-size: 13px; font-weight: bold; outline: none; margin: 0 8px; 
-            -moz-appearance: textfield; 
-        }
-        .start-input::-webkit-outer-spin-button, .start-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .start-input:focus { border-color: var(--blue); color: var(--blue); }
+        .start-input { background: transparent; border: 1.5px solid #444; border-radius: 4px; color: #ffffff; width: 32px; height: 22px; text-align: center; font-size: 13px; font-weight: bold; outline: none; margin: 0 8px; }
         [data-theme="light"] .start-input { color: #000; border-color: #ccc; }
+        .start-input:focus { border-color: var(--blue); color: var(--blue); }
 
         .btn-group { display: flex; gap: 6px; }
         .btn-q { flex: 1; padding: 10px 0; font-size: 12px; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
@@ -73,21 +56,20 @@
 
         .table-wrapper { flex: 1; overflow-y: auto; background: var(--card); border-radius: 12px; border: 1px solid var(--border); position: relative; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-        
         tbody tr:nth-child(even) { background-color: var(--zebra); }
         tbody tr { border-bottom: 1px solid var(--border); height: 65px; } 
-        
         th { background: var(--btn-idle); padding: 12px; font-size: 11px; color: var(--nav-text); border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
         .td-idx { font-size: 11px; color: var(--nav-text); background: var(--btn-idle) !important; width: 40px; text-align: center; border-right: 1px solid var(--border); }
         .v-line { width: 2px; background: var(--border); }
 
         .cell-container { display: flex; align-items: stretch; height: 100%; min-height: 65px; }
         .data-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; }
-        .op-right-zone { display: flex; width: 60px; border-left: 1px solid var(--border); }
-        .op-btn { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
-        .op-keep { font-size: 14px; color: #444; border-right: 1px solid var(--border); }
+        .op-right-zone { display: flex; width: 85px; border-left: 1px solid var(--border); }
+        .op-btn { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .op-edit { color: var(--blue); border-right: 1px solid var(--border); }
+        .op-keep { color: #555; border-right: 1px solid var(--border); font-size: 14px; }
         .op-keep.active { color: var(--accent); }
-        .op-del { font-size: 11px; color: #444; }
+        .op-del { color: #555; }
         .op-del:hover { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
 
         .attr-tag { font-size: 10px; background: rgba(52, 152, 219, 0.08); border: 1px solid var(--blue); border-radius: 4px; padding: 1px 5px; color: var(--blue); margin: 2px; }
@@ -96,13 +78,10 @@
 
         .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--card); border:1px solid var(--border); border-radius:20px; padding:25px; z-index:1001; box-shadow:0 20px 60px rgba(0,0,0,0.5); width:360px; }
         .mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:900; backdrop-filter: blur(4px); }
-        
-        .modal-label { font-size: 12px; color: var(--nav-text); margin-bottom: 10px; margin-top: 15px; display: flex; justify-content: space-between; }
         .selection-preview { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; min-height: 40px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 10px; }
         [data-theme="light"] .selection-preview { background: #f9f9f9; }
-
-        .version-footer { text-align: center; padding: 15px 0 5px 0; font-size: 12px; color: var(--nav-text); letter-spacing: 1px; }
-        .version-footer span { margin-left: 15px; }
+        .modal-label { font-size: 12px; color: var(--nav-text); margin-bottom: 10px; margin-top: 15px; display: flex; justify-content: space-between; }
+        .version-footer { text-align: center; padding: 15px 0 5px 0; font-size: 12px; color: var(--nav-text); }
     </style>
 </head>
 <body data-theme="dark">
@@ -117,54 +96,54 @@
 <div class="top-container">
     <img src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png?t=2026021722&v=76" class="logo-img">
     <div class="nav-area">
-        <div id="forgeNav" style="margin-bottom:10px;"></div>
-        <div id="sewNav"></div>
+        <div class="nav-row" style="margin-bottom:10px;">
+            <div id="forgeNav" style="display:flex; align-items:center;"></div>
+            <div id="forgeStats" class="keep-stats"></div>
+        </div>
+        <div class="nav-row">
+            <div id="sewNav" style="display:flex; align-items:center;"></div>
+            <div id="sewStats" class="keep-stats"></div>
+        </div>
     </div>
 </div>
 
 <input type="file" id="fileInput" style="display:none">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">
-    版本号：V4.7.19 <span>修改日期：2026-02-18</span>
-</div>
+<div class="version-footer">版本号：V4.7.23 <span>修改日期：2026-02-24</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
 <div class="modal" id="attrPicker">
-    <div style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
-    
-    <div class="modal-label"><span>当前已选：</span></div>
+    <div id="modalTitle" style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
+    <div id="seqAdjustRow" style="display:none; margin-bottom:15px; background:rgba(128,128,128,0.1); padding:10px; border-radius:10px;">
+        <span style="font-size:12px; color:var(--nav-text)">调整到第几列：</span>
+        <input type="number" id="editSeqInput" class="start-input" style="width:60px">
+    </div>
+    <div class="modal-label"><span>已选词条：</span></div>
     <div id="selectionPreview" class="selection-preview"></div>
-
-    <div class="modal-label"><span>基础词条 (允许重复)</span><span id="limitLabel" style="color:var(--blue)">0/0</span></div>
+    <div class="modal-label"><span>属性池</span><span id="limitLabel" style="color:var(--blue)">0/0</span></div>
     <div id="baseAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
-    <div class="modal-label"><span>额外特殊词条</span></div>
+    <div class="modal-label"><span>特殊属性</span></div>
     <div id="specAttrGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px;"></div>
-    
     <div style="display:flex; gap:10px; margin-top:20px;">
         <button class="btn-q" style="background:#444; width:30%" onclick="resetPicker()">↺ 重置</button>
-        <button class="btn-q bg-g" style="flex:1" onclick="saveFinal()">确认录入</button>
+        <button class="btn-q bg-g" style="flex:1" onclick="saveFinal()">确认提交</button>
     </div>
 </div>
 
 <script>
     const LOC_ICONS = { '剑王阁':'⚔️', '铸剑山庄':'🔥', '塞北':'❄️', '明月峰':'🌙' };
     const LOC_SPECIAL_ATTRS = { '剑王阁':['命中+110','攻击+50','臂力+5'], '铸剑山庄':['臂力+12','攻击+69','真元+10'], '塞北':['防御+290','气血+380','免伤+1'], '明月峰':['身法+5','免伤+2'] };
-    
     const ATTRS = { 
         weapon_base:['穿甲','速度','闪避','招架','气血','破招架','破闪避'], 
-        '棍':['溅伤','防御'], 
-        '拳套':['免伤','防御'], 
-        '刀':[], 
-        '剑':[], 
+        '棍':['溅伤','防御'], '拳套':['免伤','防御'], '刀':[], '剑':[], 
         '甲':['免伤','反伤','攻击','气血','速度','防御','韧性','命中','闪避','招架'], 
         '腰带':['免伤','命中','回血','招架','攻击','速度','闪避','韧性'], 
         '护腕':['免伤','反伤','剑法','刀法','拳脚','枪棍','气血','速度','攻击','闪避','防御','韧性','破招架','破闪避'], 
         '项链':['攻击','速度','免伤','剑法','刀法','拳脚','枪棍','气血','命中','招架','闪避','防御','反伤','韧性','回血'], 
         '戒指':['攻击','吸血','聚气','剑法','刀法','拳脚','枪棍','气血','命中','招架','速度','闪避','防御','韧性','破招架'] 
     };
-
     const FORGE_CONFIG = { '拳套':['破军指套','撼岳拳套'], '刀':['掠影刀','碎月重刀'], '剑':['巽风剑','万仞重剑'], '棍':['碎虚枪','贪狼棍'], '戒指':['青云戒','苏布宝戒'], '项链':['青云坠','齐木格坠'] };
     const SEW_CONFIG = { '甲':['呼如木甲','乌蚕宝甲'], '护腕':['紫薇护腕','乌斯护腕'], '腰带':['玉衡护腰','吉达护腰'] };
     const LOC_MAP = { 'forge':['剑王阁', '铸剑山庄'], 'sew':['塞北', '明月峰'] };
@@ -173,30 +152,32 @@
     let focusScroll = { loc: null, row: 0 }; 
 
     function init() { if (localStorage.getItem('yanyu_theme') === 'light') applyTheme('light'); renderNav(); renderMain(); }
-    
-    function toggleTheme() {
-        const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-        applyTheme(next);
-        localStorage.setItem('yanyu_theme', next);
-    }
-    function applyTheme(t) {
-        document.body.setAttribute('data-theme', t);
-        document.getElementById('themeToggle').innerText = t === 'light' ? '☀️ 模式' : '🌙 模式';
+    function toggleTheme() { const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem('yanyu_theme', next); }
+    function applyTheme(t) { document.body.setAttribute('data-theme', t); }
+
+    function renderStats(sys, targetId) {
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const config = sys === 'forge' ? FORGE_CONFIG : SEW_CONFIG;
+        const counts = {};
+        Object.keys(config).forEach(type => {
+            Object.values(db[type] || {}).forEach(locData => {
+                Object.entries(locData).forEach(([en, list]) => {
+                    const k = list.filter(it => it && it.k).length;
+                    if(k > 0) counts[en] = (counts[en] || 0) + k;
+                });
+            });
+        });
+        const html = Object.entries(counts).map(([name, num]) => `<div class="stat-item">${name}: ${num}</div>`).join('');
+        document.getElementById(targetId).innerHTML = html;
     }
 
-    // 统计各类型下有效数据总数
     function getDataStats() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const stats = {};
         Object.keys(db).forEach(type => {
             let total = 0;
-            const typeData = db[type] || {};
-            Object.keys(typeData).forEach(loc => {
-                const locData = typeData[loc] || {};
-                Object.keys(locData).forEach(en => {
-                    const list = locData[en] || [];
-                    total += list.filter(item => item !== null).length;
-                });
+            Object.values(db[type] || {}).forEach(locData => {
+                Object.values(locData).forEach(list => { total += (list || []).filter(it => it !== null).length; });
             });
             stats[type] = total;
         });
@@ -205,55 +186,59 @@
 
     function renderNav() {
         const stats = getDataStats();
-        document.getElementById('forgeNav').innerHTML = '<span class="nav-label">铸造装备</span>';
-        document.getElementById('sewNav').innerHTML = '<span class="nav-label">缝纫防具</span>';
+        document.getElementById('forgeNav').innerHTML = '<span class="nav-label">铸造</span>';
+        document.getElementById('sewNav').innerHTML = '<span class="nav-label">缝纫</span>';
         Object.keys(FORGE_CONFIG).forEach(t => createNavBtn(t, 'forge', 'forgeNav', stats[t]));
         Object.keys(SEW_CONFIG).forEach(t => createNavBtn(t, 'sew', 'sewNav', stats[t]));
+        renderStats('forge', 'forgeStats'); renderStats('sew', 'sewStats');
     }
     
     function createNavBtn(t, sys, id, count) {
-        const b = document.createElement('button'); 
-        b.className = `btn-type ${t===curType?'active':''}`;
+        const b = document.createElement('button'); b.className = `btn-type ${t===curType?'active':''}`;
         b.innerText = t; 
-        
-        // 如果有数据，增加角标
         if(count > 0) {
-            const badge = document.createElement('span');
-            badge.className = 'badge';
-            badge.innerText = count > 999 ? '99+' : count;
-            b.appendChild(badge);
+            const badge = document.createElement('span'); badge.className = 'badge';
+            badge.innerText = count > 999 ? '99+' : count; b.appendChild(badge);
         }
-
         b.onclick = () => { curType = t; curSystem = sys; focusScroll = { loc: null, row: 0 }; renderNav(); renderMain(); };
         document.getElementById(id).appendChild(b);
     }
 
     function fixOldData(attr) {
         if (!attr) return "";
-        return attr.replace('剑伤','剑法').replace('刀伤','刀法')
-                   .replace('拳伤','拳脚').replace('拳法','拳脚')
-                   .replace('棍伤','枪棍').replace('棍法','枪棍');
+        return attr.replace('剑伤','剑法').replace('刀伤','刀法').replace('拳伤','拳脚').replace('拳法','拳脚').replace('棍伤','枪棍').replace('棍法','枪棍');
     }
 
-    function addEntry(loc, idx, q) {
-        tempEntry = { loc, equipIdx: idx, q, limit: (q==='green'?1:(q==='blue'?2:3)), baseAttrs: [], specialAttr: "" };
+    function openPicker(loc, idx, q, mode = 'add', rowIdx = null) {
+        const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
+        const en = ens[idx];
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const existing = (mode === 'edit') ? db[curType][loc][en][rowIdx] : null;
+        tempEntry = { 
+            loc, equipIdx: idx, q, mode, oldRow: rowIdx,
+            limit: (q==='green'?1:(q==='blue'?2:3)), 
+            baseAttrs: existing ? [...existing.attrs] : [], 
+            specialAttr: existing ? existing.special : "",
+            isKeep: existing ? existing.k : false
+        };
+        document.getElementById('modalTitle').innerText = mode === 'edit' ? `修改：${en}` : `录入序列`;
+        document.getElementById('seqAdjustRow').style.display = mode === 'edit' ? 'block' : 'none';
+        if(mode === 'edit') document.getElementById('editSeqInput').value = rowIdx + 1;
         document.getElementById('mask').style.display = 'block';
         document.getElementById('attrPicker').style.display = 'block';
         renderPicker();
     }
-    
+
     function renderPicker() {
         const base = document.getElementById('baseAttrGrid'); const spec = document.getElementById('specAttrGrid');
         const preview = document.getElementById('selectionPreview');
         let previewHtml = tempEntry.baseAttrs.map(a => `<span class="attr-tag">${fixOldData(a)}</span>`).join('');
         if (tempEntry.specialAttr) previewHtml += `<span class="special-tag">${tempEntry.specialAttr}</span>`;
-        preview.innerHTML = previewHtml || '<span style="color:#555; font-size:12px;">(未选择)</span>';
+        preview.innerHTML = previewHtml || '<span style="color:#888; font-size:12px;">(未选择)</span>';
         document.getElementById('limitLabel').innerText = `${tempEntry.baseAttrs.length} / ${tempEntry.limit}`;
         base.innerHTML = ''; spec.innerHTML = '';
-        let isWeapon = ['拳套','刀','剑','棍'].includes(curType);
-        let pool = isWeapon ? [...ATTRS.weapon_base, ...(ATTRS[curType]||[])] : (ATTRS[curType]||[]);
-        pool = [...new Set(pool)];
-        pool.forEach(a => {
+        let pool = ['拳套','刀','剑','棍'].includes(curType) ? [...ATTRS.weapon_base, ...(ATTRS[curType]||[])] : (ATTRS[curType]||[]);
+        [...new Set(pool)].forEach(a => {
             const btn = document.createElement('button'); 
             btn.style.cssText = `background:var(--btn-idle);padding:10px 2px;font-size:12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--blue);`;
             btn.innerText = fixOldData(a); 
@@ -270,45 +255,39 @@
         });
     }
 
-    function resetPicker() { tempEntry.baseAttrs = []; tempEntry.specialAttr = ""; renderPicker(); }
     function checkAutoSave() { if (tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") saveFinal(); }
+    function resetPicker() { tempEntry.baseAttrs = []; tempEntry.specialAttr = ""; renderPicker(); }
 
     function saveFinal() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
         const en = ens[tempEntry.equipIdx];
         const countKey = `start_at_${tempEntry.loc}_${en}`;
-        const startVal = parseInt(localStorage.getItem(countKey)) || 1;
-        if(!db[curType]) db[curType] = {}; 
-        if(!db[curType][tempEntry.loc]) db[curType][tempEntry.loc] = {}; 
-        if(!db[curType][tempEntry.loc][en]) db[curType][tempEntry.loc][en] = [];
-        let list = db[curType][tempEntry.loc][en];
-        let targetIdx = startVal - 1;
-        while(list.length <= targetIdx) list.push(null);
-        list[targetIdx] = { q:tempEntry.q, attrs:tempEntry.baseAttrs, special:tempEntry.specialAttr, k:false };
-        localStorage.setItem(countKey, startVal + 1);
-        focusScroll = { loc: tempEntry.loc, row: startVal + 1 }; 
+        let targetIdx;
+        if (tempEntry.mode === 'edit') {
+            targetIdx = parseInt(document.getElementById('editSeqInput').value) - 1;
+            if (targetIdx < 0) return;
+            if (targetIdx !== tempEntry.oldRow && db[curType][tempEntry.loc][en]?.[targetIdx]) {
+                if (!confirm(`第 ${targetIdx+1} 列已有数据，确认覆盖？`)) return;
+            }
+            db[curType][tempEntry.loc][en][tempEntry.oldRow] = null;
+        } else {
+            targetIdx = (parseInt(localStorage.getItem(countKey)) || 1) - 1;
+            localStorage.setItem(countKey, targetIdx + 2);
+        }
+        if(!db[curType]) db[curType] = {}; if(!db[curType][tempEntry.loc]) db[curType][tempEntry.loc] = {}; if(!db[curType][tempEntry.loc][en]) db[curType][tempEntry.loc][en] = [];
+        while(db[curType][tempEntry.loc][en].length <= targetIdx) db[curType][tempEntry.loc][en].push(null);
+        db[curType][tempEntry.loc][en][targetIdx] = { q: tempEntry.q, attrs: tempEntry.baseAttrs, special: tempEntry.specialAttr, k: tempEntry.isKeep };
         localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
-        renderNav(); // 保存后刷新导航显示最新角标
-        renderMain(); 
-        closeAllModals();
-    }
-
-    function updateEquipStart(loc, en, val) {
-        let n = parseInt(val); if(isNaN(n) || n < 1) n = 1; if(n > 99) n = 99;
-        localStorage.setItem(`start_at_${loc}_${en}`, n); 
-        focusScroll = { loc: loc, row: n }; 
-        renderMain();
+        focusScroll = { loc: tempEntry.loc, row: targetIdx + 1 }; 
+        renderNav(); renderMain(); closeAllModals();
     }
 
     function renderMain() {
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}'); const grid = document.getElementById('mainGrid');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType]; 
         const oldScrolls = {};
-        LOC_MAP[curSystem].forEach((loc, locIdx) => {
-            const w = document.getElementById(`scroll-${locIdx}`);
-            if (w) oldScrolls[locIdx] = w.scrollTop;
-        });
+        LOC_MAP[curSystem].forEach((loc, idx) => { const w = document.getElementById(`scroll-${idx}`); if (w) oldScrolls[idx] = w.scrollTop; });
         grid.innerHTML = '';
         LOC_MAP[curSystem].forEach((loc, locIdx) => {
             const s1 = parseInt(localStorage.getItem(`start_at_${loc}_${ens[0]}`)) || 1;
@@ -317,78 +296,69 @@
             const max = Math.max(l1.length, l2.length, s1, s2);
             let h = `<div class="loc-section"><div class="loc-title">${LOC_ICONS[loc]} ${loc}</div><div class="control-head">
                 <div class="equip-ctrl">
-                    <div class="ename-box"><span class="ename">${ens[0]}</span><span class="start-label">第</span><input type="number" class="start-input" value="${s1}" onchange="updateEquipStart('${loc}','${ens[0]}',this.value)"><span class="start-label">次</span></div>
-                    <div class="btn-group"><button class="btn-q bg-g" onclick="addEntry('${loc}',0,'green')">绿</button><button class="btn-q bg-b" onclick="addEntry('${loc}',0,'blue')">蓝</button><button class="btn-q bg-p" onclick="addEntry('${loc}',0,'purple')">紫</button></div>
+                    <div class="ename-box"><span class="ename">${ens[0]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s1}" onchange="updateEquipStart('${loc}','${ens[0]}',this.value)"><span>次</span></div>
+                    <div class="btn-group"><button class="btn-q bg-g" onclick="openPicker('${loc}',0,'green')">绿</button><button class="btn-q bg-b" onclick="openPicker('${loc}',0,'blue')">蓝</button><button class="btn-q bg-p" onclick="openPicker('${loc}',0,'purple')">紫</button></div>
                 </div>
                 <div class="equip-ctrl">
-                    <div class="ename-box"><span class="ename">${ens[1]}</span><span class="start-label">第</span><input type="number" class="start-input" value="${s2}" onchange="updateEquipStart('${loc}','${ens[1]}',this.value)"><span class="start-label">次</span></div>
-                    <div class="btn-group"><button class="btn-q bg-g" onclick="addEntry('${loc}',1,'green')">绿</button><button class="btn-q bg-b" onclick="addEntry('${loc}',1,'blue')">蓝</button><button class="btn-q bg-p" onclick="addEntry('${loc}',1,'purple')">紫</button></div>
+                    <div class="ename-box"><span class="ename">${ens[1]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s2}" onchange="updateEquipStart('${loc}','${ens[1]}',this.value)"><span>次</span></div>
+                    <div class="btn-group"><button class="btn-q bg-g" onclick="openPicker('${loc}',1,'green')">绿</button><button class="btn-q bg-b" onclick="openPicker('${loc}',1,'blue')">蓝</button><button class="btn-q bg-p" onclick="openPicker('${loc}',1,'purple')">紫</button></div>
                 </div></div>
                 <div class="table-wrapper" id="scroll-${locIdx}"><table><thead><tr><th class="td-idx">#</th><th>${ens[0]}</th><th class="v-line"></th><th>${ens[1]}</th></tr></thead><tbody>`;
-            for(let i=0; i<max; i++) { h += `<tr><td class="td-idx">${i+1}</td>${renderTd(l1[i], ens[0], loc, i, locIdx)}<td class="v-line"></td>${renderTd(l2[i], ens[1], loc, i, locIdx)}</tr>`; }
+            for(let i=0; i<max; i++) { h += `<tr><td class="td-idx">${i+1}</td>${renderTd(l1[i], ens[0], loc, i, 0)}<td class="v-line"></td>${renderTd(l2[i], ens[1], loc, i, 1)}</tr>`; }
             grid.innerHTML += h + `</tbody></table></div></div>`;
             setTimeout(() => {
                 const wrapper = document.getElementById(`scroll-${locIdx}`);
                 if (wrapper) {
                     if (focusScroll.loc === loc) wrapper.scrollTop = focusScroll.row > 2 ? (focusScroll.row - 3) * 65 : 0;
-                    else if (oldScrolls[locIdx] !== undefined) wrapper.scrollTop = oldScrolls[locIdx]; 
-                    else wrapper.scrollTop = Math.min(s1, s2) > 2 ? (Math.min(s1, s2) - 3) * 65 : 0;
+                    else if (oldScrolls[locIdx] !== undefined) wrapper.scrollTop = oldScrolls[locIdx];
                 }
             }, 0);
         });
     }
 
-    function renderTd(it, en, loc, i, locIdx) {
+    function renderTd(it, en, loc, i, equipIdx) {
         if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
         const attrs = (it.attrs.length||it.special)?(it.attrs.map(a=>`<span class="attr-tag">${fixOldData(a)}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
         return `<td class="${it.k?'col-keep':''}">
             <div class="cell-container">
                 <div class="data-main"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
                 <div class="op-right-zone">
-                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i}, ${locIdx})">★</div>
-                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i}, ${locIdx})">✕</div>
+                    <div class="op-btn op-edit" onclick="openPicker('${loc}',${equipIdx},'${it.q}','edit',${i})">✎</div>
+                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i})">★</div>
+                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i})">✕</div>
                 </div>
             </div></td>`;
     }
 
+    function updateEquipStart(loc, en, val) { localStorage.setItem(`start_at_${loc}_${en}`, Math.max(1, parseInt(val))); renderMain(); }
     function closeAllModals() { document.getElementById('mask').style.display='none'; document.getElementById('attrPicker').style.display='none'; }
-    
-    function toggleStar(loc, en, i, locIdx) { 
-        const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); 
-        db[curType][loc][en][i].k = !db[curType][loc][en][i].k; 
-        localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
-        focusScroll = { loc: null, row: 0 }; 
-        renderMain(); 
+    function toggleStar(loc, en, i) { 
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; 
+        localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderNav(); renderMain(); 
     }
-    
-    function delEntry(loc, en, i, locIdx) { 
+    function delEntry(loc, en, i) { 
         if(confirm('确认删除？')) { 
-            const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); 
-            db[curType][loc][en][i] = null; 
-            localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); 
-            focusScroll = { loc: null, row: 0 };
-            renderNav(); // 删除后刷新导航显示
-            renderMain(); 
+            const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i] = null; 
+            localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderNav(); renderMain(); 
         } 
+    }
+    function clearCurrent() { if(confirm('确认清空所有？')) { localStorage.clear(); location.reload(); } }
+    
+    function exportData() {
+        const d = localStorage.getItem('yanyu_v24_db');
+        if(!d) return;
+        const now = new Date();
+        const dateStr = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+        const fileName = `烟雨江湖_备份_${curType}_${dateStr}_${timeStr}.json`;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([d],{type:'application/json'}));
+        a.download = fileName;
+        a.click();
     }
     
-    function clearCurrent() { 
-        if(confirm('🚨 警告：确认清空【所有装备类型】的所有记录并重置次数吗？此操作不可恢复！')) { 
-            localStorage.setItem('yanyu_v24_db', '{}'); 
-            Object.keys(localStorage).forEach(key => { if (key.startsWith('start_at_')) localStorage.removeItem(key); });
-            location.reload(); 
-        } 
-    }
-    function exportData() { 
-        const d = localStorage.getItem('yanyu_v24_db'); if(!d) return; 
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([d],{type:'application/json'})); 
-        a.download = `yanyu_backup_${new Date().toLocaleDateString()}.json`; a.click(); 
-    }
     function importData() { document.getElementById('fileInput').click(); }
-    document.getElementById('fileInput').onchange = e => {
-        const file = e.target.files[0]; if (!file) return;
-        const reader = new FileReader(); reader.onload = f => { localStorage.setItem('yanyu_v24_db', f.target.result); location.reload(); }; reader.readAsText(file);
-    };
+    document.getElementById('fileInput').onchange = e => { const reader = new FileReader(); reader.onload = f => { localStorage.setItem('yanyu_v24_db', f.target.result); location.reload(); }; reader.readAsText(e.target.files[0]); };
     init();
 </script>
 </body>
