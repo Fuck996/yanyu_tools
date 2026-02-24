@@ -2,20 +2,18 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V4.7.25</title>
+    <title>烟雨江湖 - 装备录入工具 V4.7.30</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
             --green: #2ecc71; --blue: #3498db; --purple: #9b59b6; --accent: #f1c40f; --special: #bf00ff;
             --btn-idle: #252525; --nav-text: #888; --title-color: #ffffff;
             --zebra: rgba(255,255,255,0.02);
-            --stat-bg: rgba(255,255,255,0.03);
         }
         [data-theme="light"] {
             --bg: #f5f6fa; --card: #ffffff; --text: #2f3542; --border: #dcdde1;
             --btn-idle: #f1f2f6; --nav-text: #636e72; --title-color: #000000;
             --zebra: rgba(0,0,0,0.04);
-            --stat-bg: rgba(0,0,0,0.03);
         }
 
         body { font-family: "PingFang SC", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
@@ -24,41 +22,35 @@
         [data-theme="light"] .control-panel { background: rgba(255,255,255,0.8); }
         .ctrl-btn { background: transparent; color: var(--nav-text); border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; border-radius: 20px; transition: 0.2s; }
 
-        .top-container { display: flex; align-items: center; background: var(--card); padding: 18px 25px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); gap: 25px; position: relative; }
+        .top-container { display: flex; align-items: center; background: var(--card); padding: 18px 25px; border-radius: 16px; margin-bottom: 20px; border: 1px solid var(--border); gap: 25px; }
         .logo-img { height: 45px; }
         
         .nav-area { flex: 1; }
-        .nav-row { display: flex; align-items: center; }
+        .nav-row { display: flex; align-items: center; margin-bottom: 12px; }
 
-        /* 统计分区：紧跟装备区域 */
+        /* 统计与整体区分对齐逻辑 */
+        .nav-btns-wrapper { 
+            display: flex; 
+            align-items: center; 
+            width: 500px; 
+            flex-shrink: 0; 
+        }
         .stats-zone { 
             display: flex; 
             flex-wrap: wrap; 
             gap: 6px; 
-            padding: 4px 12px; 
-            background: var(--stat-bg); 
-            border-radius: 6px; 
-            margin-left: 15px; 
-            position: relative; 
-            align-items: center;
+            padding-left: 15px; 
+            border-left: 1px solid var(--border); 
+            margin-left: 5px;
+            flex: 1;
         }
-        /* 细细的分割线 */
-        .stats-zone::before {
-            content: "";
-            position: absolute;
-            left: -8px;
-            top: 20%;
-            height: 60%;
-            width: 1px;
-            background: var(--border);
-        }
-
         .stat-item { font-size: 11px; padding: 1px 6px; border-radius: 4px; color: #d4af37; border: 1px solid rgba(212, 175, 55, 0.2); white-space: nowrap; }
 
         .nav-label { font-size: 12px; color: var(--nav-text); width: 45px; font-weight: bold; flex-shrink: 0; }
-        .btn-type { position: relative; background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); margin-right: 8px; cursor: pointer; border-radius: 8px; font-weight: bold; }
+        .btn-type { position: relative; background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); margin-right: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; }
         .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
 
+        /* 恢复原始角标样式与偏移量 */
         .badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 10px; min-width: 12px; text-align: center; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
         .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 220px); min-height: 500px; }
@@ -120,12 +112,12 @@
 <div class="top-container">
     <img src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png?t=2026021722&v=76" class="logo-img">
     <div class="nav-area">
-        <div class="nav-row" style="margin-bottom:12px;">
-            <div id="forgeNav" style="display:flex; align-items:center;"></div>
+        <div class="nav-row">
+            <div class="nav-btns-wrapper" id="forgeNav"></div>
             <div id="forgeStats" class="stats-zone"></div>
         </div>
         <div class="nav-row">
-            <div id="sewNav" style="display:flex; align-items:center;"></div>
+            <div class="nav-btns-wrapper" id="sewNav"></div>
             <div id="sewStats" class="stats-zone"></div>
         </div>
     </div>
@@ -134,7 +126,7 @@
 <input type="file" id="fileInput" style="display:none">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">版本号：V4.7.25 <span>修改日期：2026-02-24</span></div>
+<div class="version-footer">版本号：V4.7.30 <span>修改日期：2026-02-24</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
@@ -186,13 +178,13 @@
         Object.keys(config).forEach(type => {
             Object.values(db[type] || {}).forEach(locData => {
                 Object.entries(locData).forEach(([en, list]) => {
-                    const k = list.filter(it => it && it.k).length;
+                    const k = (list || []).filter(it => it && it.k).length;
                     if(k > 0) counts[en] = (counts[en] || 0) + k;
                 });
             });
         });
         const html = Object.entries(counts).map(([name, num]) => `<div class="stat-item">${name} · ${num}</div>`).join('');
-        document.getElementById(targetId).innerHTML = html || '<span style="font-size:10px; color:#555">无收藏</span>';
+        document.getElementById(targetId).innerHTML = html;
     }
 
     function getDataStats() {
@@ -222,7 +214,8 @@
         b.innerText = t; 
         if(count > 0) {
             const badge = document.createElement('span'); badge.className = 'badge';
-            badge.innerText = count > 999 ? '99+' : count; b.appendChild(badge);
+            badge.innerText = count; // 恢复不限位数显示
+            b.appendChild(badge);
         }
         b.onclick = () => { curType = t; curSystem = sys; focusScroll = { loc: null, row: 0 }; renderNav(); renderMain(); };
         document.getElementById(id).appendChild(b);
@@ -237,7 +230,7 @@
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
         const en = ens[idx];
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
-        const existing = (mode === 'edit') ? db[curType][loc][en][rowIdx] : null;
+        const existing = (mode === 'edit') ? (db[curType]?.[loc]?.[en]?.[rowIdx]) : null;
         tempEntry = { 
             loc, equipIdx: idx, q, mode, oldRow: rowIdx,
             limit: (q==='green'?1:(q==='blue'?2:3)), 
@@ -291,10 +284,10 @@
         if (tempEntry.mode === 'edit') {
             targetIdx = parseInt(document.getElementById('editSeqInput').value) - 1;
             if (targetIdx < 0) return;
-            if (targetIdx !== tempEntry.oldRow && db[curType][tempEntry.loc][en]?.[targetIdx]) {
+            if (targetIdx !== tempEntry.oldRow && db[curType]?.[tempEntry.loc]?.[en]?.[targetIdx]) {
                 if (!confirm(`第 ${targetIdx+1} 列已有数据，确认覆盖？`)) return;
             }
-            db[curType][tempEntry.loc][en][tempEntry.oldRow] = null;
+            if(db[curType]?.[tempEntry.loc]?.[en]) db[curType][tempEntry.loc][en][tempEntry.oldRow] = null;
         } else {
             targetIdx = (parseInt(localStorage.getItem(countKey)) || 1) - 1;
             localStorage.setItem(countKey, targetIdx + 2);
