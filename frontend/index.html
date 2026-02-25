@@ -1288,10 +1288,18 @@
         const locs = LOC_MAP[curSystem];
         const seg = document.getElementById('mLocSeg');
         if (!seg) return;
-        seg.innerHTML = locs.map(loc =>
-            `<button class="m-loc-btn ${loc === curMobileLoc ? 'active' : ''}"
-                     onclick="switchMobileLoc('${loc}')">${LOC_ICONS[loc]} ${loc}</button>`
-        ).join('');
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const config = curSystem === 'forge' ? FORGE_CONFIG : SEW_CONFIG;
+        const equips = config[curType] || [];
+        seg.innerHTML = locs.map(loc => {
+            let cnt = 0;
+            equips.forEach(en => {
+                const list = db[curType]?.[loc]?.[en] || [];
+                cnt += (list || []).filter(it => it !== null).length;
+            });
+            return `<button class="m-loc-btn ${loc === curMobileLoc ? 'active' : ''}"
+                     onclick="switchMobileLoc('${loc}')">${LOC_ICONS[loc]} ${loc}（${cnt}）</button>`;
+        }).join('');
     }
 
     /** 切换当前显示地点 */
