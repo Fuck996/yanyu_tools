@@ -7,6 +7,7 @@
 import { AuthHandler } from './auth-handler.js'
 import { DataSync } from './data-sync.js'
 import { LocalStorageManager } from './local-storage-manager.js'
+import { ApiClient } from './api-client.js'
 
 const PANEL_ID = 'yanyu-auth-panel'
 const STATUS_ID = 'yanyu-status-message'
@@ -411,6 +412,26 @@ export const UIManager = {
       indicator.classList.add('error')
     } else if (syncState === 'offline') {
       indicator.classList.add('offline')
+    }
+
+    // 额外检测后端可用性：若已认证但后端不可用，则强制显示红点（error）
+    try {
+      ApiClient.isBackendEnabled().then((available) => {
+        if (!available && AuthHandler.isAuthenticated()) {
+          indicator.classList.remove('syncing', 'synced', 'offline')
+          indicator.classList.add('error')
+        }
+      }).catch((err) => {
+        if (AuthHandler.isAuthenticated()) {
+          indicator.classList.remove('syncing', 'synced', 'offline')
+          indicator.classList.add('error')
+        }
+      })
+    } catch (e) {
+      if (AuthHandler.isAuthenticated()) {
+        indicator.classList.remove('syncing', 'synced', 'offline')
+        indicator.classList.add('error')
+      }
     }
   },
 
