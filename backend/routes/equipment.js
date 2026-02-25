@@ -255,20 +255,19 @@ router.post('/save-backup', requireAuth, async (req, res) => {
   const type = backupType || 'manual'  // 默认为手动备份
   
   try {
-    // 如果是手动备份，先删除用户的旧手动备份（只保留最新一份）
-    if (type === 'manual') {
-      await new Promise((resolve, reject) => {
-        db.run(
-          'DELETE FROM export_history WHERE user_id = ? AND backup_type = ?',
-          [userId, 'manual'],
-          (err) => {
-            if (err) reject(err)
-            else resolve()
-          }
-        )
-      })
-      console.log('✅ Deleted old manual backup for user:', userId)
-    }
+    // 删除用户对应类型的旧备份（只保留最新一份）
+    // 无论是手动还是自动备份都只保留一份
+    await new Promise((resolve, reject) => {
+      db.run(
+        'DELETE FROM export_history WHERE user_id = ? AND backup_type = ?',
+        [userId, type],
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+    console.log(`✅ Deleted old ${type} backup for user: ${userId}`)
 
     // 获取用户当前的所有数据
     const records = await new Promise((resolve, reject) => {
@@ -383,10 +382,10 @@ router.get('/backups', requireAuth, (req, res) => {
               console.log(`  ✅ Added manual backup`)
             }
           } else {
-            // 自动备份保留最新10条
-            if (autoBackups.length < 10) {
+            // 自动备份也只保留第一条（最新）
+            if (autoBackups.length === 0) {
               autoBackups.push(backup)
-              console.log(`  ✅ Added auto backup (${autoBackups.length}/10)`)
+              console.log(`  ✅ Added auto backup`)
             }
           }
         } catch (e) {

@@ -600,7 +600,7 @@ Object.assign(window.YanyuApp, {
   },
 
   /**
-   * 恢复手动备份（从服务器获取备份列表）
+   * 恢复手动备份（直接恢复最新的手动备份，不需要选择）
    */
   async restoreManualBackup() {
     // 从服务器获取备份列表
@@ -611,31 +611,18 @@ Object.assign(window.YanyuApp, {
       return { success: false, error: '没有备份' }
     }
     
-    const backups = backupListResult.backups
-    let message = '选择要恢复的备份：\n\n'
-    const backupOptions = {}
+    // 查找最新的手动备份
+    const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
     
-    backups.forEach((backup, index) => {
-      const date = new Date(backup.timestamp).toLocaleString('zh-CN')
-      const typeLabel = backup.backupType === 'manual' ? '📪 手动' : '⏱️ 自动'
-      const option = `${index + 1}. [${typeLabel}] ${date} (${backup.recordCount} 条)`
-      message += option + '\n'
-      backupOptions[index + 1] = backup.id
-    })
-    
-    message += '\n输入索引号选择'
-    
-    const choice = prompt(message)
-    if (!choice || !(choice in backupOptions)) {
-      return { success: false, error: '用户取消' }
+    if (!manualBackup) {
+      UIManager.showMessage('⚠️ 没有手动备份', 'warning', 2000)
+      return { success: false, error: '没有手动备份' }
     }
-    
-    const selectedBackupId = backupOptions[choice]
-    const selectedBackup = backups.find(b => b.id === selectedBackupId)
-    const typeLabel = selectedBackup.backupType === 'manual' ? '手动备份' : '自动备份'
-    
-    if (confirm(`确认恢复此${typeLabel}吗？\n时间: ${new Date(selectedBackup.timestamp).toLocaleString('zh-CN')}\n记录数: ${selectedBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
-      const result = await ApiClient.restoreBackup(selectedBackupId)
+
+    // 显示确认对话框
+    const backupDate = new Date(manualBackup.timestamp).toLocaleString('zh-CN')
+    if (confirm(`确认恢复手动备份吗？\n时间: ${backupDate}\n记录数: ${manualBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
+      const result = await ApiClient.restoreBackup(manualBackup.id)
       if (result.success) {
         UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
         setTimeout(() => location.reload(), 1500)
