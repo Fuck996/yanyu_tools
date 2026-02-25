@@ -802,7 +802,7 @@
     <div id="modalTitle" style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
     <div id="seqAdjustRow" style="display:none; margin-bottom:15px; background:rgba(128,128,128,0.1); padding:10px; border-radius:10px;">
         <span style="font-size:12px; color:var(--nav-text)">调整到第几列：</span>
-        <input type="number" id="editSeqInput" class="start-input" style="width:60px">
+        <input type="number" id="editSeqInput" class="start-input" style="width:60px" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done">
     </div>
     <div class="modal-label"><span>已选词条：</span></div>
     <div id="selectionPreview" class="selection-preview"></div>
@@ -1035,11 +1035,11 @@
             const max = Math.max(l1.length, l2.length, s1, s2);
             let h = `<div class="loc-section"><div class="loc-title">${LOC_ICONS[loc]} ${loc}</div><div class="control-head">
                 <div class="equip-ctrl">
-                    <div class="ename-box"><span class="ename">${ens[0]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s1}" onchange="updateEquipStart('${loc}','${ens[0]}',this.value)"><span>次</span></div>
+                    <div class="ename-box"><span class="ename">${ens[0]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s1}" onchange="updateEquipStart('${loc}','${ens[0]}',this.value)" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done"><span>次</span></div>
                     <div class="btn-group"><button class="btn-q bg-g" onclick="openPicker('${loc}',0,'green')">绿</button><button class="btn-q bg-b" onclick="openPicker('${loc}',0,'blue')">蓝</button><button class="btn-q bg-p" onclick="openPicker('${loc}',0,'purple')">紫</button></div>
                 </div>
                 <div class="equip-ctrl">
-                    <div class="ename-box"><span class="ename">${ens[1]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s2}" onchange="updateEquipStart('${loc}','${ens[1]}',this.value)"><span>次</span></div>
+                    <div class="ename-box"><span class="ename">${ens[1]}</span><span style="font-size:12px">第</span><input type="number" class="start-input" value="${s2}" onchange="updateEquipStart('${loc}','${ens[1]}',this.value)" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done"><span>次</span></div>
                     <div class="btn-group"><button class="btn-q bg-g" onclick="openPicker('${loc}',1,'green')">绿</button><button class="btn-q bg-b" onclick="openPicker('${loc}',1,'blue')">蓝</button><button class="btn-q bg-p" onclick="openPicker('${loc}',1,'purple')">紫</button></div>
                 </div></div>
                 <div class="table-wrapper" id="scroll-${locIdx}"><table><thead><tr><th class="td-idx">#</th><th>${ens[0]}</th><th class="v-line"></th><th>${ens[1]}</th></tr></thead><tbody>`;
@@ -1323,7 +1323,7 @@
                 <div class="m-start-row">
                     <span style="font-size:11px;">第</span>
                     <input type="number" class="start-input" value="${s[idx]}" style="width:34px;"
-                           onchange="updateEquipStart('${loc}','${ens[idx]}',this.value)">
+                               onchange="updateEquipStart('${loc}','${ens[idx]}',this.value)" inputmode="numeric" pattern="[0-9]*" enterkeyhint="done">
                     <span style="font-size:11px;">次</span>
                 </div>
                 <button class="m-add-btn" onclick="openMobileAddPicker(${idx})">＋ 新增</button>
