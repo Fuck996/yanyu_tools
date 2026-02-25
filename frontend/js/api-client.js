@@ -11,17 +11,41 @@ if (!window.__API_URL__) {
   console.warn('⚠️ window.__API_URL__ not set, using production backend fallback')
 }
 
-// 检查后端是否可用（每次都重新检查，不缓存结果）
+// 检查后端是否可用
+// 缓存 30 秒，避免每次 API 调用都重复检查
+let healthCacheTime = 0
+let healthCacheResult = null
+const HEALTH_CACHE_TTL = 30 * 1000  // 30 秒
+
 async function checkBackendAvailability() {
+  // 如果缓存未过期，直接返回缓存结果
+  if (healthCacheResult !== null && Date.now() - healthCacheTime < HEALTH_CACHE_TTL) {
+    return healthCacheResult
+  }
+
+  // 使用 AbortController 实现真正的 3 秒超时
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 3000)
+
   try {
+    // /health 是公共端点，不需要 credentials
     const response = await fetch(`${API_URL}/health`, {
       method: 'GET',
-      timeout: 2000,
-      credentials: 'include',
+      signal: controller.signal,
     })
-    return response.ok
+    clearTimeout(timer)
+    healthCacheResult = response.ok
+    healthCacheTime = Date.now()
+    return healthCacheResult
   } catch (err) {
-    console.warn('后端不可用:', err.message)
+    clearTimeout(timer)
+    if (err.name === 'AbortError') {
+      console.warn('后端健康检查超时(3s)')
+    } else {
+      console.warn('后端不可用:', err.message)
+    }
+    healthCacheResult = false
+    healthCacheTime = Date.now()
     return false
   }
 }

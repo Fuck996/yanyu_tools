@@ -363,119 +363,94 @@ const AuthUI = {
       headerStatusCard.style.display = 'flex'
     }
     
-    // 首先更新连接状态
+    // 正在同步时只更新顶部状态栏
     if (status.isSyncing) {
-      // 正在同步
       if (headerStatusIcon) headerStatusIcon.textContent = '⏳'
       if (headerStatusText) headerStatusText.textContent = '正在同步中'
       if (headerStatusExtra) headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
-    } else {
-      // 检查后端在线状态
-      // 已认证用户：通过真实 API 调用验证（避免 health check 通过但 API 实际失败的假阳性）
-      // 未认证用户：使用 health check
-      let backendOnline = false
-      if (status.authenticated) {
-        try {
-          const result = await ApiClient.getBackupList()
-          backendOnline = result.success !== false && !result.offline
-        } catch (err) {
-          backendOnline = false
-        }
-      } else {
-        backendOnline = await this.checkBackendHealth()
-      }
-      window.YanyuApp.backendStatus = backendOnline
-
-      if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
-      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
-      if (headerStatusExtra) headerStatusExtra.textContent = ''
+      return
     }
 
-    // 只有在认证时才显示备份信息
     if (status.authenticated) {
-      // 获取并显示备份状态
+      // 已认证：先显示"获取中"，然后用一次 getBackupList() 同时判断连接状态和备份信息
+      if (loadingIndicator) loadingIndicator.style.display = 'flex'
+      if (failureIndicator) failureIndicator.style.display = 'none'
+      if (manualBackupItem) manualBackupItem.style.display = 'none'
+      if (autoBackupItem) autoBackupItem.style.display = 'none'
+      // 顶部先显示"检查中"
+      if (headerStatusIcon) headerStatusIcon.textContent = '⏳'
+      if (headerStatusText) headerStatusText.textContent = '连接中'
+      if (headerStatusExtra) headerStatusExtra.textContent = ''
+
       try {
-        // 先显示"获取中"
-        if (loadingIndicator) loadingIndicator.style.display = 'flex'
-        if (failureIndicator) failureIndicator.style.display = 'none'
-        if (manualBackupItem) manualBackupItem.style.display = 'none'
-        if (autoBackupItem) autoBackupItem.style.display = 'none'
-        
         const backupListResult = await ApiClient.getBackupList()
-        
+        const backendOnline = backupListResult.success !== false && !backupListResult.offline
+        window.YanyuApp.backendStatus = backendOnline
+
+        // 更新顶部连接状态
+        if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
+        if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
+
         if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-          // 成功获取备份数据，启动轮询
           this.startPolling()
-          
+          if (loadingIndicator) loadingIndicator.style.display = 'none'
+
           const formatTime = (date) => {
             if (!date) return '未知'
             return new Date(date).toLocaleString('zh-CN')
           }
-          
-          // 隐藏"获取中"提示，显示真实备份信息
-          if (loadingIndicator) loadingIndicator.style.display = 'none'
-          if (failureIndicator) failureIndicator.style.display = 'none'
-          
-          // 显示自动备份（在上）
+
           const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
-          if (autoBackup) {
-            if (autoBackupItem) {
-              autoBackupItem.style.display = 'flex'
-              const autoCountEl = document.getElementById('autoBackupCount')
-              if (autoCountEl) autoCountEl.style.display = 'none'
-              const autoHeaderEl = document.querySelector('#autoBackupItem .backup-item-header')
-              if (autoHeaderEl) autoHeaderEl.textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
-              const autoTimeEl = document.getElementById('autoBackupTime')
-              if (autoTimeEl) autoTimeEl.textContent = `${formatTime(autoBackup.timestamp)}`
-            }
+          if (autoBackup && autoBackupItem) {
+            autoBackupItem.style.display = 'flex'
+            const autoCountEl = document.getElementById('autoBackupCount')
+            if (autoCountEl) autoCountEl.style.display = 'none'
+            const autoHeaderEl = document.querySelector('#autoBackupItem .backup-item-header')
+            if (autoHeaderEl) autoHeaderEl.textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
+            const autoTimeEl = document.getElementById('autoBackupTime')
+            if (autoTimeEl) autoTimeEl.textContent = formatTime(autoBackup.timestamp)
           } else {
             if (autoBackupItem) autoBackupItem.style.display = 'none'
           }
-          
-          // 显示手动备份（在下）
+
           const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-          if (manualBackup) {
-            if (manualBackupItem) {
-              manualBackupItem.style.display = 'flex'
-              const manualCountEl = document.getElementById('manualBackupCount')
-              if (manualCountEl) manualCountEl.style.display = 'none'
-              const manualHeaderEl = document.querySelector('#manualBackupItem .backup-item-header')
-              if (manualHeaderEl) manualHeaderEl.textContent = `📪 手动备份(${manualBackup.recordCount}条)`
-              const manualTimeEl = document.getElementById('manualBackupTime')
-              if (manualTimeEl) manualTimeEl.textContent = `${formatTime(manualBackup.timestamp)}`
-            }
+          if (manualBackup && manualBackupItem) {
+            manualBackupItem.style.display = 'flex'
+            const manualCountEl = document.getElementById('manualBackupCount')
+            if (manualCountEl) manualCountEl.style.display = 'none'
+            const manualHeaderEl = document.querySelector('#manualBackupItem .backup-item-header')
+            if (manualHeaderEl) manualHeaderEl.textContent = `📪 手动备份(${manualBackup.recordCount}条)`
+            const manualTimeEl = document.getElementById('manualBackupTime')
+            if (manualTimeEl) manualTimeEl.textContent = formatTime(manualBackup.timestamp)
           } else {
             if (manualBackupItem) manualBackupItem.style.display = 'none'
           }
         } else {
-          // 获取成功但没有备份数据
+          // 连接成功但无备份，或连接失败
           if (loadingIndicator) loadingIndicator.style.display = 'none'
-          if (failureIndicator) failureIndicator.style.display = 'none'
-          if (manualBackupItem) manualBackupItem.style.display = 'none'
-          if (autoBackupItem) autoBackupItem.style.display = 'none'
+          if (!backendOnline) {
+            if (failureIndicator) failureIndicator.style.display = 'flex'
+          }
         }
       } catch (err) {
         console.warn('获取备份列表失败:', err.message)
-        // 显示失败状态
-        if (manualBackupItem) manualBackupItem.style.display = 'none'
-        if (autoBackupItem) autoBackupItem.style.display = 'none'
+        window.YanyuApp.backendStatus = false
+        if (headerStatusIcon) headerStatusIcon.textContent = '✖'
+        if (headerStatusText) headerStatusText.textContent = '连接失败'
         if (loadingIndicator) loadingIndicator.style.display = 'none'
         if (failureIndicator) failureIndicator.style.display = 'flex'
       }
     } else {
-      // 未认证状态：先显示"获取中"，如果连接失败则显示失败
+      // 未认证：health check 判断连接状态
+      const backendOnline = await this.checkBackendHealth()
+      window.YanyuApp.backendStatus = backendOnline
+      if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
+      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
+      if (headerStatusExtra) headerStatusExtra.textContent = ''
       if (manualBackupItem) manualBackupItem.style.display = 'none'
       if (autoBackupItem) autoBackupItem.style.display = 'none'
-      
-      // 检查是否连接失败
-      const backendOnline = await this.checkBackendHealth()
-      if (!backendOnline) {
-        if (loadingIndicator) loadingIndicator.style.display = 'none'
-        if (failureIndicator) failureIndicator.style.display = 'flex'
-      } else {
-        if (loadingIndicator) loadingIndicator.style.display = 'flex'
-        if (failureIndicator) failureIndicator.style.display = 'none'
-      }
+      if (loadingIndicator) loadingIndicator.style.display = backendOnline ? 'flex' : 'none'
+      if (failureIndicator) failureIndicator.style.display = backendOnline ? 'none' : 'flex'
     }    } finally {
       this.isUpdatingStatus = false
     }  }
