@@ -12,22 +12,22 @@ if (!window.__API_URL__) {
 }
 
 // 检查后端是否可用
-let backendAvailable = null
-
 async function checkBackendAvailability() {
-  if (backendAvailable !== null) return backendAvailable
-
   try {
     const response = await fetch(`${API_URL}/health`, {
       method: 'GET',
       timeout: 2000,
       credentials: 'include',
     })
-    backendAvailable = response.ok
-    return backendAvailable
+    const isAvailable = response.ok
+    if (isAvailable) {
+      console.log('✔️ 后端连接正常')
+    } else {
+      console.warn('❌ 后端健康检查失败，状态码:', response.status)
+    }
+    return isAvailable
   } catch (err) {
-    console.warn('后端不可用:', err.message)
-    backendAvailable = false
+    console.warn('❌ 后端连接失败:', err.message)
     return false
   }
 }

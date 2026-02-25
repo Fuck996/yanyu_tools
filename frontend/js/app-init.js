@@ -370,14 +370,33 @@ const AuthUI = {
       if (headerStatusText) headerStatusText.textContent = '正在同步中'
       if (headerStatusExtra) headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
     } else {
-      // 检查后端在线状态
-      const backendOnline = await this.checkBackendHealth()
+      // 检查后端在线状态 - 基于实际的认证API调用
+      // 不依赖单独的 health check，而是通过尝试真实的 API 调用来验证
+      let backendOnline = false
+      
+      // 先做一个快速的连接检查
+      if (AuthHandler.isAuthenticated()) {
+        // 已认证时，尝试获取备份列表来验证连接
+        try {
+          const result = await ApiClient.getBackupList()
+          backendOnline = result.success !== false && !result.offline
+          if (!backendOnline) {
+            console.warn('❌ 备份列表查询失败，后端不可用')
+          }
+        } catch (err) {
+          backendOnline = false
+          console.warn('❌ 连接检查异常:', err.message)
+        }
+      } else {
+        // 未认证时，进行 health check
+        backendOnline = await this.checkBackendHealth()
+      }
+      
       window.YanyuApp.backendStatus = backendOnline
       
       if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
       if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
       if (headerStatusExtra) headerStatusExtra.textContent = ''
-    }
 
     // 只有在认证时才显示备份信息
     if (status.authenticated) {
