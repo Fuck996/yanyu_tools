@@ -325,14 +325,30 @@ const AuthUI = {
       
       // 更新同步状态显示
       const syncStatusExtra = document.getElementById('syncStatusExtra')
+      const headerStatusCard = document.getElementById('headerStatusCard')
+      const headerStatusIcon = document.getElementById('headerStatusIcon')
+      const headerStatusText = document.getElementById('headerStatusText')
+      const headerStatusExtra = document.getElementById('headerStatusExtra')
       if (status.isSyncing) {
         syncStatusIcon.textContent = '⏳'
         syncStatusText.textContent = '正在同步中'
         syncStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
+        if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
+          headerStatusCard.style.display = 'flex'
+          headerStatusIcon.textContent = '⏳'
+          headerStatusText.textContent = '正在同步中'
+          headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
+        }
       } else {
         syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
         syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
         syncStatusExtra.textContent = ''
+        if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
+          headerStatusCard.style.display = 'flex'
+          headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
+          headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
+          headerStatusExtra.textContent = ''
+        }
       }
 
       // 获取并显示备份状态
