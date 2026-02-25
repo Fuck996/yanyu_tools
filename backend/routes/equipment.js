@@ -7,6 +7,12 @@ const router = express.Router()
 // 中间件：检查认证
 const requireAuth = (req, res, next) => {
   if (!req.user) {
+    // 调试信息：当认证失败时打印 cookie，便于定位移动端/跨站 cookie 问题
+    try {
+      console.warn('Authentication failed. request cookies:', req.headers.cookie)
+    } catch (e) {
+      console.warn('Authentication failed. (no cookie header)')
+    }
     return res.status(401).json({ error: 'Not authenticated' })
   }
   next()

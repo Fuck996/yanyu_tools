@@ -15,7 +15,8 @@ export const sessionConfig = {
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    // 生产环境下需要允许跨站点 cookie（SameSite=None）并启用 Secure
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   },
 }

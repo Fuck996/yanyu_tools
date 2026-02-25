@@ -20,6 +20,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // 中间件
 app.use(express.json())
 app.use(cors(corsConfig))
+// 在生产环境下启用 trust proxy（必要时让 secure cookie 正确工作）
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1)
+}
 app.use(session(sessionConfig))
 
 // Passport 配置
