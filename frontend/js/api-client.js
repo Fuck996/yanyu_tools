@@ -117,6 +117,41 @@ export const ApiClient = {
   },
 
   /**
+   * 获取用户的统计信息（记录数等）
+   * @returns {Promise<Object>}
+   */
+  async getStats() {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, recordCount: 0 }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证', recordCount: 0 }
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/equipment/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期', recordCount: 0 }
+      } else {
+        return { success: false, error: '获取失败', recordCount: 0 }
+      }
+    } catch (err) {
+      return { success: false, offline: true, error: err.message, recordCount: 0 }
+    }
+  },
+
+  /**
    * 更新装备记录
    * @param {string} recordId - 记录 ID
    * @param {Object} updateData - 更新数据

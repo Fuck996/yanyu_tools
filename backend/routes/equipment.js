@@ -63,6 +63,29 @@ router.post('/records', requireAuth, (req, res) => {
   )
 })
 
+// 获取用户的统计信息（记录数、最后同步时间等）
+router.get('/stats', requireAuth, (req, res) => {
+  const userId = req.user.id
+
+  db.get(
+    'SELECT COUNT(*) as count FROM equipment_records WHERE user_id = ?',
+    [userId],
+    (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to fetch stats' })
+      }
+
+      const recordCount = row?.count || 0
+
+      res.json({
+        success: true,
+        recordCount,
+        timestamp: new Date().toISOString(),
+      })
+    }
+  )
+})
+
 // 获取用户的所有装备记录
 router.get('/records', requireAuth, (req, res) => {
   console.log('GET /api/equipment/records called. user:', req.user ? { id: req.user.id, username: req.user.username } : null)

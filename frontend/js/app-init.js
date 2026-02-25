@@ -315,7 +315,21 @@ const AuthUI = {
       } else {
         syncStatus.className = 'sync-status'
         const statusIndicator = backendOnline ? '🟢 已连接' : '🔴 连接失败'
-        let html = `<div class="sync-status-text">${statusIndicator} | 共 ${status.syncedRecords} 条记录</div>`
+        
+        // 从服务器获取最新的记录数（而不仅依赖本地缓存）
+        let recordCount = status.syncedRecords // 默认使用本地缓存
+        try {
+          if (backendOnline) {
+            const statsResult = await ApiClient.getStats()
+            if (statsResult.success) {
+              recordCount = statsResult.recordCount
+            }
+          }
+        } catch (err) {
+          console.warn('获取服务器统计信息失败，使用本地数据:', err)
+        }
+        
+        let html = `<div class="sync-status-text">${statusIndicator} | 共 ${recordCount} 条记录</div>`
         if (status.lastSyncTime) {
           const syncDate = new Date(status.lastSyncTime)
           const dateStr = syncDate.toLocaleDateString('zh-CN')
