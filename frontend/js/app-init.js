@@ -676,7 +676,7 @@ Object.assign(window.YanyuApp, {
           timestamp: result.timestamp
         })
         // 自动更新同步状态显示
-        AuthUI.updateSyncStatus()
+        await AuthUI.updateSyncStatus()
         return result
       } else {
         console.warn('⚠️ [autoBackup] 自动备份失败:', result.error)
@@ -705,7 +705,7 @@ async function initializeApp() {
     // 1. 注册同步状态回调
     console.log('📝 [initializeApp] 注册同步状态回调...')
     DataSync.setSyncStatusCallback(() => {
-      AuthUI.updateSyncStatus()
+      AuthUI.updateSyncStatus().catch(err => console.warn('更新同步状态失败:', err))
     })
     console.log('✅ [initializeApp] 同步回调已注册')
 
@@ -722,7 +722,7 @@ async function initializeApp() {
     // 3.5 定期检查后端状态（每10秒检查一次，仅在已认证时）
     setInterval(() => {
       if (AuthHandler.isAuthenticated()) {
-        AuthUI.updateSyncStatus()
+        AuthUI.updateSyncStatus().catch(err => console.warn('定期更新同步状态失败:', err))
       }
     }, 10000)
 
