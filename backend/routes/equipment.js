@@ -40,6 +40,9 @@ const requireAuth = (req, res, next) => {
 
 // 保存装备记录
 router.post('/records', requireAuth, (req, res) => {
+  console.log('POST /api/equipment/records called. user:', req.user ? { id: req.user.id, username: req.user.username } : null)
+  console.log('Request headers:', { cookie: req.headers.cookie, authorization: req.headers.authorization })
+  console.log('Request body preview:', JSON.stringify(req.body).slice(0, 1000))
   const { equipmentType, location, equipmentName, quality, attributes, specialAttr } = req.body
   const recordId = uuidv4()
   const userId = req.user.id
@@ -60,6 +63,8 @@ router.post('/records', requireAuth, (req, res) => {
 
 // 获取用户的所有装备记录
 router.get('/records', requireAuth, (req, res) => {
+  console.log('GET /api/equipment/records called. user:', req.user ? { id: req.user.id, username: req.user.username } : null)
+  console.log('Request headers:', { cookie: req.headers.cookie, authorization: req.headers.authorization })
   const userId = req.user.id
 
   db.all(
