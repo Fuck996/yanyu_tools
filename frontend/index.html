@@ -319,46 +319,49 @@
                 </div>
             </div>
         </div>
-    <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
-    <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 在线保存</button>
-    <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 在线恢复</button>
-    <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
-    <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
-    <div class="auth-container">
-        <button class="login-btn" id="loginBtn">🔑 登录 GitHub</button>
-        <div class="user-panel" id="userPanel" style="display:none;" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">
-            <div class="user-panel-header">
-                <img class="user-avatar" id="userAvatar" alt="avatar">
-                <div class="user-name" id="userName"></div>
-                <div class="user-status" id="userStatus"></div>
-            </div>
-            <div class="auth-dropdown" id="authDropdown">
-                <div class="dropdown-header">
-                    <img class="dropdown-avatar" id="dropdownAvatar" alt="avatar">
-                    <div class="dropdown-user-info">
-                        <div class="dropdown-username" id="dropdownUsername"></div>
-                    </div>
+        <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
+        <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 在线保存</button>
+        <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 在线恢复</button>
+        <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
+        <button class="ctrl-btn" id="menuToggleBtn" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">⋯ 菜单</button>
+        <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
+        <div class="auth-container">
+            <button class="login-btn" id="loginBtn">🔑 登录 GitHub</button>
+            <div class="user-panel" id="userPanel" style="display:none;" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">
+                <div class="user-panel-header">
+                    <img class="user-avatar" id="userAvatar" alt="avatar">
+                    <div class="user-name" id="userName"></div>
+                    <div class="user-status" id="userStatus"></div>
                 </div>
-                <div class="dropdown-menu">
-                    <div class="dropdown-item" onclick="exportData()">
-                        📤 备份
-                    </div>
-                    <div class="dropdown-item" onclick="importData()">
-                        📥 还原
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">
-                        🔗 访问项目
-                    </div>
-                    <div class="dropdown-divider"></div>
-                    <div class="dropdown-item danger" onclick="window.YanyuApp?.AuthUI?.logout()">
-                        🚪 退出登录
-                    </div>
+            </div>
+        </div>
+
+        <!-- 将下拉菜单移出 user-panel，放在 control-panel 内，保证未登录时也能访问 -->
+        <div class="auth-dropdown" id="authDropdown">
+            <div class="dropdown-header">
+                <img class="dropdown-avatar" id="dropdownAvatar" alt="avatar">
+                <div class="dropdown-user-info">
+                    <div class="dropdown-username" id="dropdownUsername"></div>
+                </div>
+            </div>
+            <div class="dropdown-menu">
+                <div class="dropdown-item" onclick="exportData()">
+                    📤 备份
+                </div>
+                <div class="dropdown-item" onclick="importData()">
+                    📥 还原
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">
+                    🔗 访问项目
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item danger" onclick="window.YanyuApp?.AuthUI?.logout()">
+                    🚪 退出登录
                 </div>
             </div>
         </div>
     </div>
-</div>
 
 <div class="top-container">
     <img src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png?t=2026021722&v=76" class="logo-img">

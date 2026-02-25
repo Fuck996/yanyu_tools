@@ -797,9 +797,9 @@ async function initializeApp() {
     console.log('=' .repeat(50))
     console.log('💡 使用 window.YanyuApp 访问所有 API')
 
-    // 6. 设置全局事件监听：点击其他地方关闭下拉菜单
+    // 6. 设置全局事件监听：点击其他地方关闭下拉菜单（考虑 control-panel）
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.user-panel') && !e.target.closest('.auth-dropdown')) {
+      if (!e.target.closest('.user-panel') && !e.target.closest('.auth-dropdown') && !e.target.closest('.control-panel')) {
         AuthUI.closeDropdown()
       }
     })
