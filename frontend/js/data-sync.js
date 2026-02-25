@@ -115,8 +115,8 @@ export const DataSync = {
       LocalStorageManager.clearConflictCheckFlag()
       console.log('🔄 新登录，已清除冲突检测标志')
       
-      // 登录后自动从云端同步数据
-      setTimeout(() => this.syncFromCloud(), 500)
+      // 登录后自动从云端同步数据 - 等待同步完成
+      await this.syncFromCloud()
     }
 
     // 检查是否已认证
@@ -181,7 +181,7 @@ export const DataSync = {
           records.length > 0 &&
           this.detectDataConflict(localData, records)
         ) {
-          console.warn('⚠️ 首次登录时检测到数据冲突，等待用户选择...')
+          console.warn(`⚠️ 检测到数据冲突! 本地: ${localRecordCount} 条, 云端: ${records.length} 条`)
 
           // 标记已检测过冲突（本次会话中只检测一次）
           LocalStorageManager.setConflictCheckFlag()
@@ -199,12 +199,12 @@ export const DataSync = {
           )
 
           if (choice === 'keep-local') {
-            console.log('👤 用户选择保留本地数据，准备上传...')
+            console.log('👤 用户选择: 保留本地数据，上传到云端')
             this.syncInProgress = false
             this.notifySyncStatusUpdate()
             return await this.syncToCloud()
           } else {
-            console.log('☁️ 用户选择使用云端数据')
+            console.log('☁️ 用户选择: 使用云端数据替换本地')
             // 继续使用云端数据覆盖本地
           }
         }

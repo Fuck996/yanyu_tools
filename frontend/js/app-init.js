@@ -775,13 +775,11 @@ async function initializeApp() {
     console.log('📦 初始化数据同步...')
     await DataSync.initialize()
 
-    // 3.6 启动自动备份机制
-    console.log('📦 启动自动备份机制...')
-    // 页面加载时立即进行一次自动备份
+    // 3.5 初始同步完成后再自动备份
+    // 这确保冲突检测和用户选择已经完成，同步数据已经落定
     if (AuthHandler.isAuthenticated()) {
-      setTimeout(() => {
-        window.YanyuApp.autoBackup()
-      }, 1000)
+      console.log('📦 初始同步完成，进行首次自动备份...')
+      await window.YanyuApp.autoBackup().catch(err => console.warn('首次自动备份失败:', err))
     }
     // 设置定时自动备份（每10分钟）
     setInterval(() => {
