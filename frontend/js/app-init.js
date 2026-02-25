@@ -595,18 +595,22 @@ Object.assign(window.YanyuApp, {
    */
   clearEquipmentDataOnly() {
     if (confirm('确认清空所有装备数据？登录信息将保留。')) {
+      // 清空本地存储
       LocalStorageManager.clearEquipmentData()
       UIManager.showMessage('✅ 装备数据已清空', 'success', 1000)
       
-      // 清空后立即进行一次自动备份
+      // 清空后同时清空后端数据
       if (AuthHandler.isAuthenticated()) {
-        window.YanyuApp.autoBackup().then(() => {
-          console.log('✅ 清空后已自动备份')
+        window.YanyuApp.clearAllData().then(() => {
+          console.log('✅ 本地和后端数据都已清空')
           // 更新状态显示
           AuthUI.updateSyncStatus().then(() => {
-            UIManager.showMessage('✅ 已保存备份，页面将刷新', 'success', 1500)
+            UIManager.showMessage('✅ 数据清空完成，页面将刷新', 'success', 1500)
             setTimeout(() => location.reload(), 1500)
           })
+        }).catch((err) => {
+          console.error('❌ 清空操作失败:', err)
+          UIManager.showMessage(`❌ 清空失败: ${err.message}`, 'error', 2000)
         })
       } else {
         setTimeout(() => location.reload(), 1500)
@@ -715,6 +719,30 @@ Object.assign(window.YanyuApp, {
     } catch (err) {
       console.error('❌ [autoBackup] 自动备份异常:', err.message)
       return { success: false, error: err.message }
+    }
+  },
+
+  /**
+   * 清空所有数据（本地 + 后端）
+   * 用于数据清空操作
+   */
+  async clearAllData() {
+    try {
+      if (!AuthHandler.isAuthenticated()) {
+        throw new Error('未认证')
+      }
+
+      // 清空后端数据
+      const backendResult = await ApiClient.clearBackendData()
+      if (!backendResult.success) {
+        throw new Error(backendResult.error || '清空后端数据失败')
+      }
+
+      console.log('✅ 后端数据已清空')
+      return { success: true }
+    } catch (err) {
+      console.error('❌ [clearAllData] 清空操作异常:', err.message)
+      throw err
     }
   },
 })

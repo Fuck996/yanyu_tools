@@ -368,19 +368,11 @@ export const DataSync = {
    * @returns {Object} 合并后的数据
    */
   mergeCloudData(cloudRecords) {
-    const localData = LocalStorageManager.getEquipmentData()
-
-    // 如果本地为空，直接返回云端数据
-    if (Object.keys(localData).length === 0) {
-      return this.convertCloudRecordsToLocal(cloudRecords)
-    }
-
-    // 简单合并策略：云端数据覆盖本地
-    // TODO: 实现更智能的合并逻辑（比如时间戳比较）
-    return {
-      ...localData,
-      ...this.convertCloudRecordsToLocal(cloudRecords),
-    }
+    // 全量替换策略：用云端数据完全替换本地数据
+    // 这确保了本地与后端数据的一致性
+    // 不使用增量合并，避免因合并逻辑导致的数据不一致问题
+    const cloudData = this.convertCloudRecordsToLocal(cloudRecords)
+    return cloudData
   },
 
   /**

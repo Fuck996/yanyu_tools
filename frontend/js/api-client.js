@@ -369,6 +369,43 @@ export const ApiClient = {
   },
 
   /**
+   * 清空后端的所有装备数据
+   */
+  async clearBackendData() {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, error: '后端未运行' }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证' }
+    }
+
+    try {
+      const url = `${API_URL}/equipment/clear-data`
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期，请重新登录' }
+      } else {
+        return { success: false, error: '清空失败' }
+      }
+    } catch (err) {
+      console.error('❌ 清空后端数据异常:', err.message)
+      return { success: false, offline: true, error: err.message }
+    }
+  },
+
+  /**
    * 获取备份列表
    * @returns {Promise<Object>}
    */

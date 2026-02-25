@@ -481,4 +481,28 @@ router.post('/restore-backup/:backupId', requireAuth, async (req, res) => {
   }
 })
 
+// 清空用户的所有装备数据
+router.post('/clear-data', requireAuth, async (req, res) => {
+  const userId = req.user.id
+
+  try {
+    // 删除用户的所有装备记录
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM equipment_records WHERE user_id = ?', [userId], (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+
+    console.log(`✅ Cleared all equipment data for user: ${userId}`)
+    res.json({
+      success: true,
+      message: 'All equipment data cleared successfully',
+    })
+  } catch (err) {
+    console.error('Clear data error:', err)
+    res.status(500).json({ error: 'Failed to clear data', detail: err.message })
+  }
+})
+
 export default router
