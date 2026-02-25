@@ -225,4 +225,161 @@ router.get('/export', requireAuth, (req, res) => {
   )
 })
 
+// 保存手动备份到服务器
+router.post('/save-backup', requireAuth, async (req, res) => {
+  const userId = req.user.id
+  
+  try {
+    // 获取用户当前的所有数据
+    const records = await new Promise((resolve, reject) => {
+      db.all(
+        'SELECT * FROM equipment_records WHERE user_id = ? ORDER BY created_at DESC',
+        [userId],
+        (err, rows) => {
+          if (err) reject(err)
+          else resolve(rows || [])
+        }
+      )
+    })
+
+    const backupData = records.map(row => ({
+      ...row,
+      attributes: JSON.parse(row.attributes || '{}'),
+    }))
+
+    const backupId = uuidv4()
+    const timestamp = new Date().toISOString()
+
+    // 保存到 export_history 表
+    await new Promise((resolve, reject) => {
+      db.run(
+        `INSERT INTO export_history (id, user_id, export_data, created_at)
+         VALUES (?, ?, ?, ?)`,
+        [backupId, userId, JSON.stringify(backupData), timestamp],
+        (err) => {
+          if (err) reject(err)
+          else resolve()
+        }
+      )
+    })
+
+    res.json({
+      success: true,
+      backupId,
+      timestamp,
+      recordCount: records.length,
+    })
+  } catch (err) {
+    console.error('Save backup error:', err)
+    res.status(500).json({ error: 'Failed to save backup', detail: err.message })
+  }
+})
+
+// 获取用户的所有备份列表
+router.get('/backups', requireAuth, (req, res) => {
+  const userId = req.user.id
+
+  db.all(
+    'SELECT id, created_at FROM export_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
+    [userId],
+    (err, rows) => {
+      if (err) {
+        return res.status(500).json({ error: 'Failed to fetch backups' })
+      }
+
+      const backups = (rows || []).map(row => {
+        const recordCount = (() => {
+          try {
+            const data = JSON.parse(row.export_data || '[]')
+            return Array.isArray(data) ? data.length : 0
+          } catch {
+            return 0
+          }
+        })()
+
+        return {
+          id: row.id,
+          timestamp: row.created_at,
+          recordCount,
+        }
+      })
+
+      res.json({ success: true, backups })
+    }
+  )
+})
+
+// 恢复指定备份
+router.post('/restore-backup/:backupId', requireAuth, async (req, res) => {
+  const userId = req.user.id
+  const { backupId } = req.params
+
+  try {
+    // 获取备份数据
+    const backup = await new Promise((resolve, reject) => {
+      db.get(
+        'SELECT export_data FROM export_history WHERE id = ? AND user_id = ?',
+        [backupId, userId],
+        (err, row) => {
+          if (err) reject(err)
+          else resolve(row)
+        }
+      )
+    })
+
+    if (!backup) {
+      return res.status(404).json({ error: 'Backup not found' })
+    }
+
+    const backupRecords = JSON.parse(backup.export_data)
+
+    // 清空现有数据并恢复备份
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM equipment_records WHERE user_id = ?', [userId], (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+
+    // 插入备份数据
+    let restoredCount = 0
+    for (const record of backupRecords) {
+      await new Promise((resolve, reject) => {
+        db.run(
+          `INSERT INTO equipment_records 
+           (id, user_id, equipment_type, location, equipment_name, quality, attributes, special_attr, is_favorite)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            record.id,
+            userId,
+            record.equipment_type,
+            record.location,
+            record.equipment_name,
+            record.quality,
+            JSON.stringify(record.attributes || {}),
+            record.special_attr || '',
+            record.is_favorite ? 1 : 0,
+          ],
+          (err) => {
+            if (err) reject(err)
+            else {
+              restoredCount++
+              resolve()
+            }
+          }
+        )
+      })
+    }
+
+    res.json({
+      success: true,
+      message: 'Backup restored successfully',
+      restoredRecords: restoredCount,
+    })
+  } catch (err) {
+    console.error('Restore backup error:', err)
+    res.status(500).json({ error: 'Failed to restore backup', detail: err.message })
+  }
+})
+
 export default router

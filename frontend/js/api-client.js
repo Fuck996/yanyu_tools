@@ -290,6 +290,115 @@ export const ApiClient = {
       return { success: false, offline: true, error: err.message }
     }
   },
+
+  /**
+   * 保存手动备份到服务器
+   * @returns {Promise<Object>}
+   */
+  async saveBackup() {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, error: '后端未运行' }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证' }
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/equipment/save-backup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期，请重新登录' }
+      } else {
+        return { success: false, error: '备份失败' }
+      }
+    } catch (err) {
+      return { success: false, offline: true, error: err.message }
+    }
+  },
+
+  /**
+   * 获取备份列表
+   * @returns {Promise<Object>}
+   */
+  async getBackupList() {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, error: '后端未运行', backups: [] }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证', backups: [] }
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/equipment/backups`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期', backups: [] }
+      } else {
+        return { success: false, error: '获取备份列表失败', backups: [] }
+      }
+    } catch (err) {
+      return { success: false, offline: true, error: err.message, backups: [] }
+    }
+  },
+
+  /**
+   * 恢复指定备份
+   * @param {string} backupId - 备份 ID
+   * @returns {Promise<Object>}
+   */
+  async restoreBackup(backupId) {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, error: '后端未运行' }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证' }
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/equipment/restore-backup/${backupId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期' }
+      } else {
+        return { success: false, error: '恢复失败' }
+      }
+    } catch (err) {
+      return { success: false, offline: true, error: err.message }
+    }
+  },
 }
 
 export default ApiClient
