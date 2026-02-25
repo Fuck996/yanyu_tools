@@ -1253,19 +1253,35 @@
     /** 判断是否为移动端布局 */
     function isMobileLayout() { return window.innerHeight / window.innerWidth > 1.5; }
 
+    // 防抖定时器，避免键盘弹起导致的短时 resize 触发频繁重绘
+    let _checkLayoutTimer = null;
+
     /**
      * 检测并切换布局，在 init() 和 resize 事件中调用
      * 规范参见 doc/code_requirements.md § 6.1
      */
     function checkLayout() {
-        const mobile = isMobileLayout();
-        document.body.classList.toggle('mobile-view', mobile);
-        if (mobile) {
-            if (!curMobileLoc || !LOC_MAP[curSystem].includes(curMobileLoc)) {
-                curMobileLoc = LOC_MAP[curSystem][0];
+        // 如果当前有输入框获得焦点（正在输入），不要调整布局，避免打断输入法
+        const active = document.activeElement;
+        if (active && active.tagName === 'INPUT') return;
+
+        if (_checkLayoutTimer) clearTimeout(_checkLayoutTimer);
+        _checkLayoutTimer = setTimeout(() => {
+            // 使用 visualViewport（若可用）可以更稳定地区分键盘导致的高度变化
+            const vw = window.visualViewport;
+            const h = vw ? vw.height : window.innerHeight;
+            const w = vw ? vw.width : window.innerWidth;
+            const mobile = h / w > 1.5;
+            const hadMobile = document.body.classList.contains('mobile-view');
+            document.body.classList.toggle('mobile-view', mobile);
+            if (mobile) {
+                if (!curMobileLoc || !LOC_MAP[curSystem].includes(curMobileLoc)) {
+                    curMobileLoc = LOC_MAP[curSystem][0];
+                }
+                // 仅在从非移动到移动或第一次进入移动时渲染全部移动视图，避免在键盘弹起时重绘
+                if (!hadMobile) renderMobileAll();
             }
-            renderMobileAll();
-        }
+        }, 180);
     }
 
     /** 重渲染所有移动端视图元素 */
