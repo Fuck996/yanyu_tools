@@ -332,18 +332,24 @@ export const ApiClient = {
    * @returns {Promise<Object>}
    */
   async saveBackup(backupType = 'manual') {
+    console.log('📝 [saveBackup] 开始保存备份，类型:', backupType)
     const available = await this.isBackendEnabled()
     if (!available) {
+      console.warn('❌ [saveBackup] 后端未运行')
       return { success: false, offline: true, error: '后端未运行' }
     }
 
     const token = AuthHandler.getToken()
+    console.log('📝 [saveBackup] Token:', token ? `已设置 (${token.slice(0, 20)}...)` : '未设置')
     if (!token) {
+      console.warn('❌ [saveBackup] 未认证，无token')
       return { success: false, error: '未认证' }
     }
 
     try {
-      const response = await fetch(`${API_URL}/equipment/save-backup`, {
+      const url = `${API_URL}/equipment/save-backup`
+      console.log('📝 [saveBackup] 请求URL:', url)
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -353,14 +359,21 @@ export const ApiClient = {
         body: JSON.stringify({ backupType }),
       })
 
+      console.log('📥 [saveBackup] 响应状态:', response.status, response.statusText)
       if (response.ok) {
-        return await response.json()
+        const result = await response.json()
+        console.log('✅ [saveBackup] 备份成功:', result)
+        return result
       } else if (response.status === 401) {
+        console.warn('⚠️ [saveBackup] 认证已过期 (401)')
         return { success: false, error: '认证已过期，请重新登录' }
       } else {
+        const errorText = await response.text()
+        console.error(`❌ [saveBackup] 备份失败 (${response.status}):`, errorText)
         return { success: false, error: '备份失败' }
       }
     } catch (err) {
+      console.error('❌ [saveBackup] 请求异常:', err.message, err)
       return { success: false, offline: true, error: err.message }
     }
   },
@@ -370,32 +383,49 @@ export const ApiClient = {
    * @returns {Promise<Object>}
    */
   async getBackupList() {
+    console.log('📝 [getBackupList] 检查后端是否可用...')
     const available = await this.isBackendEnabled()
     if (!available) {
+      console.warn('❌ [getBackupList] 后端未运行，返回空列表')
       return { success: false, offline: true, error: '后端未运行', backups: [] }
     }
 
     const token = AuthHandler.getToken()
+    console.log('📝 [getBackupList] Token:', token ? `已设置 (${token.slice(0, 20)}...)` : '未设置')
     if (!token) {
+      console.warn('❌ [getBackupList] 未认证，无token')
       return { success: false, error: '未认证', backups: [] }
     }
 
     try {
-      const response = await fetch(`${API_URL}/equipment/backups`, {
+      const url = `${API_URL}/equipment/backups`
+      console.log('📝 [getBackupList] 请求URL:', url)
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
         credentials: 'include',
       })
 
+      console.log('📥 [getBackupList] 响应状态:', response.status, response.statusText)
       if (response.ok) {
-        return await response.json()
+        const result = await response.json()
+        console.log('✅ [getBackupList] 成功获取备份列表:', {
+          success: result.success,
+          backupCount: result.backups?.length,
+          backups: result.backups
+        })
+        return result
       } else if (response.status === 401) {
+        console.warn('⚠️ [getBackupList] 认证已过期 (401)')
         return { success: false, error: '认证已过期', backups: [] }
       } else {
+        const errorText = await response.text()
+        console.error(`❌ [getBackupList] 获取备份列表失败 (${response.status}):`, errorText)
         return { success: false, error: '获取备份列表失败', backups: [] }
       }
     } catch (err) {
+      console.error('❌ [getBackupList] 请求异常:', err.message, err)
       return { success: false, offline: true, error: err.message, backups: [] }
     }
   },

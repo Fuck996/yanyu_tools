@@ -342,12 +342,20 @@ const AuthUI = {
       // 更新手动备份状态显示（从服务器获取手动备份信息）
       if (manualBackupStatus) {
         try {
+          console.log('📝 [updateSyncStatus] 开始获取备份列表...')
           // 从服务器获取备份列表
           const backupListResult = await ApiClient.getBackupList()
+          console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
+            success: backupListResult.success,
+            backupCount: backupListResult.backups?.length,
+            backups: backupListResult.backups
+          })
           
           if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
+            console.log('✅ [updateSyncStatus] 找到备份')
             // 显示手动备份（优先显示，因为保政策限制只有一个手动备份）
             const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+            console.log('🔍 [updateSyncStatus] 查找手动备份:', manualBackup)
             
             if (manualBackup) {
               const formatTime = (date) => {
@@ -355,6 +363,7 @@ const AuthUI = {
                 return new Date(date).toLocaleString('zh-CN')
               }
               
+              console.log('✅ [updateSyncStatus] 显示手动备份信息')
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
@@ -363,10 +372,12 @@ const AuthUI = {
                 </div>
               `
               if (restoreBtn) {
+                console.log('✅ [updateSyncStatus] 显示还原按钮')
                 restoreBtn.style.display = 'flex'
               }
             } else {
               // 没有手动备份，显示无备份
+              console.log('📭 [updateSyncStatus] 未找到手动备份（虽然有其他备份）')
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
@@ -379,6 +390,7 @@ const AuthUI = {
             }
           } else {
             // 没有任何备份
+            console.log('📭 [updateSyncStatus] 没有任何备份:', backupListResult)
             manualBackupStatus.className = 'manual-backup-status'
             manualBackupStatus.innerHTML = `
               <div class="manual-backup-status-text">
@@ -390,7 +402,7 @@ const AuthUI = {
             }
           }
         } catch (err) {
-          console.warn('获取备份列表失败:', err)
+          console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message, err)
           // 如果服务器请求失败，显示无备份
           manualBackupStatus.className = 'manual-backup-status'
           manualBackupStatus.innerHTML = `
@@ -550,18 +562,23 @@ Object.assign(window.YanyuApp, {
    * 保存手动备份（同时保存到本地和服务器）
    */
   async saveManualBackup() {
+    console.log('📝 [saveManualBackup] 开始保存手动备份...')
     // 直接保存到后端服务器（不保存本地副本）
     try {
       const result = await ApiClient.saveBackup('manual')
+      console.log('📥 [saveManualBackup] 收到结果:', result)
       if (result.success) {
+        console.log('✅ [saveManualBackup] 备份成功，更新同步状态')
         UIManager.showMessage(`✅ 备份已保存到服务器 (${result.recordCount} 条记录)`, 'success', 2000)
         AuthUI.updateSyncStatus()
         return result
       } else {
+        console.warn('⚠️ [saveManualBackup] 备份失败:', result.error)
         UIManager.showMessage(`❌ 备份保存失败: ${result.error}`, 'error', 3000)
         return { success: false, error: result.error }
       }
     } catch (err) {
+      console.error('❌ [saveManualBackup] 异常:', err.message, err)
       UIManager.showMessage(`❌ 备份保存失败: ${err.message}`, 'error', 3000)
       return { success: false, error: err.message }
     }
