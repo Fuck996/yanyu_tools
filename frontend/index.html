@@ -452,9 +452,10 @@
             transform: translate(-50%,-50%);
             background: var(--card); border: 1px solid var(--border);
             border-radius: 18px; width: calc(100vw - 32px); max-width: 360px;
-            padding: 20px 16px 16px; animation: mModalPop 0.25s ease-out;
+            padding: 20px 16px 16px; animation: mFadeIn 0.18s ease-out;
         }
-        .m-sys-modal.closing { animation: none; opacity: 0; }
+        /* 关闭操作现在立即隐藏元素，不再使用单独的 closing 动画类 */
+        .m-sys-modal.closing { /* reserved - no visual effect */ }
         .m-modal-title { font-size: 15px; font-weight: bold; color: var(--title-color); margin-bottom: 14px; text-align: center; }
         .m-sys-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
         .m-sys-tab {
@@ -1391,13 +1392,10 @@
         const overlay = document.getElementById('mSysOverlay');
         const modal = document.getElementById('mSysModal');
         if (!overlay) return;
-        modal.classList.add('closing');
-        overlay.classList.add('closing');
-        setTimeout(() => {
-            overlay.style.display = 'none';
-            overlay.classList.remove('closing');
-            modal.classList.remove('closing');
-        }, 220);
+        // 立即隐藏遮罩与弹窗（不做淡出动画）
+        overlay.style.display = 'none';
+        overlay.classList.remove('closing');
+        modal.classList.remove('closing');
     }
 
     /** 渲染系统弹窗（选项卡 + 装备 Chip 网格），previewSys 控制当前预览哪个系统 */
