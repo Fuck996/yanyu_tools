@@ -11,7 +11,7 @@ if (!window.__API_URL__) {
   console.warn('⚠️ window.__API_URL__ not set, using production backend fallback')
 }
 
-// 检查后端是否可用
+// 检查后端是否可用（每次都重新检查，不缓存结果）
 async function checkBackendAvailability() {
   try {
     const response = await fetch(`${API_URL}/health`, {
@@ -19,15 +19,9 @@ async function checkBackendAvailability() {
       timeout: 2000,
       credentials: 'include',
     })
-    const isAvailable = response.ok
-    if (isAvailable) {
-      console.log('✔️ 后端连接正常')
-    } else {
-      console.warn('❌ 后端健康检查失败，状态码:', response.status)
-    }
-    return isAvailable
+    return response.ok
   } catch (err) {
-    console.warn('❌ 后端连接失败:', err.message)
+    console.warn('后端不可用:', err.message)
     return false
   }
 }
