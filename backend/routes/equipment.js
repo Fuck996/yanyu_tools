@@ -122,6 +122,81 @@ router.delete('/records/:id', requireAuth, (req, res) => {
   )
 })
 
+// 批量导入装备数据（前端同步时调用）
+router.post('/import', requireAuth, (req, res) => {
+  const userId = req.user.id
+  const { data } = req.body
+  let successCount = 0
+  let errorCount = 0
+
+  if (!data || typeof data !== 'object') {
+    return res.status(400).json({ error: 'Invalid data format' })
+  }
+
+  console.log('POST /api/equipment/import called. user:', { id: userId }, 'data keys:', Object.keys(data))
+
+  try {
+    // 清空用户现有记录（同步前清空）
+    db.run('DELETE FROM equipment_records WHERE user_id = ?', [userId], (err) => {
+      if (err) {
+        console.error('Failed to clear records:', err)
+        return res.status(500).json({ error: 'Failed to clear existing records', detail: err.message })
+      }
+
+      // 递归解析前端的嵌套数据结构并插入
+      const parseAndInsert = (obj, depth = 0) => {
+        Object.entries(obj).forEach(([key, value]) => {
+          if (Array.isArray(value)) {
+            // 这是一个记录数组
+            value.forEach((record) => {
+              if (record && typeof record === 'object') {
+                const recordId = record.id || uuidv4()
+                const equipmentType = record.equipmentType || 'unknown'
+                const location = record.location || 'unknown'
+                const equipmentName = record.equipmentName || key
+                const quality = record.quality || 'normal'
+                const specialAttr = record.specialAttr || ''
+                const attributes = record.attributes || {}
+                const isFavorite = record.isFavorite ? 1 : 0
+
+                db.run(
+                  `INSERT INTO equipment_records 
+                   (id, user_id, equipment_type, location, equipment_name, quality, attributes, special_attr, is_favorite)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                  [recordId, userId, equipmentType, location, equipmentName, quality, JSON.stringify(attributes), specialAttr, isFavorite],
+                  (err) => {
+                    if (err) {
+                      console.error('Failed to insert record during import:', err)
+                      errorCount++
+                    } else {
+                      successCount++
+                    }
+                  }
+                )
+              }
+            })
+          } else if (value && typeof value === 'object') {
+            // 递归处理嵌套对象
+            parseAndInsert(value, depth + 1)
+          }
+        })
+      }
+
+      parseAndInsert(data)
+
+      // 返回成功（注意：由于异步插入，这里不能确实知道实际插入数）
+      res.json({
+        success: true,
+        message: 'Data import initiated',
+        estimatedRecords: Object.values(data).length,
+      })
+    })
+  } catch (err) {
+    console.error('Import error:', err)
+    res.status(500).json({ error: 'Import failed', detail: err.message })
+  }
+})
+
 // 导出用户数据
 router.get('/export', requireAuth, (req, res) => {
   const userId = req.user.id

@@ -294,12 +294,8 @@ export const DataSync = {
         console.warn('上传前比较云端数据失败，继续上传', err)
       }
 
-      // 实际上传逻辑取决于后端的数据结构
-      // 这里是一个基础实现
-      const result = await ApiClient.saveRecord({
-        equipmentType: 'all',
-        data: data,
-      })
+      // 使用新的批量导入接口上传所有数据
+      const result = await ApiClient.importData(data)
 
       if (result.success) {
         this.lastSyncTime = new Date()

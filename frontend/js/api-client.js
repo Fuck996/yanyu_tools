@@ -194,6 +194,46 @@ export const ApiClient = {
   },
 
   /**
+   * 批量导入装备数据到云端
+   * @param {Object} data - 装备数据对象（本地存储格式）
+   * @returns {Promise<Object>}
+   */
+  async importData(data) {
+    const available = await this.isBackendEnabled()
+    if (!available) {
+      return { success: false, offline: true, error: '后端未运行' }
+    }
+
+    const token = AuthHandler.getToken()
+    if (!token) {
+      return { success: false, error: '未认证' }
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/equipment/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ data }),
+      })
+
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status === 401) {
+        return { success: false, error: '认证已过期，请重新登录' }
+      } else {
+        const body = await response.json()
+        return { success: false, error: body.error || '导入失败' }
+      }
+    } catch (err) {
+      return { success: false, offline: true, error: err.message }
+    }
+  },
+
+  /**
    * 导出用户数据
    * @returns {Promise<Object>}
    */
