@@ -353,35 +353,35 @@ const AuthUI = {
           
           if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
             console.log('✅ [updateSyncStatus] 找到备份')
-            // 显示手动备份（优先显示，因为保政策限制只有一个手动备份）
-            const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-            console.log('🔍 [updateSyncStatus] 查找手动备份:', manualBackup)
+            // 显示自动备份（固定显示最后一次自动备份信息）
+            const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
+            console.log('🔍 [updateSyncStatus] 查找自动备份:', autoBackup)
             
-            if (manualBackup) {
+            if (autoBackup) {
               const formatTime = (date) => {
                 if (!date) return '未知'
                 return new Date(date).toLocaleString('zh-CN')
               }
               
-              console.log('✅ [updateSyncStatus] 显示手动备份信息')
+              console.log('✅ [updateSyncStatus] 显示自动备份信息')
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
-                  <div>📪 手动备份 ${manualBackup.recordCount} 条记录</div>
-                  <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(manualBackup.timestamp)}</div>
+                  <div>⏱️ 自动备份 ${autoBackup.recordCount} 条记录</div>
+                  <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(autoBackup.timestamp)}</div>
                 </div>
               `
+              // 自动备份不显示还原按钮（只能手动还原手动备份）
               if (restoreBtn) {
-                console.log('✅ [updateSyncStatus] 显示还原按钮')
-                restoreBtn.style.display = 'flex'
+                restoreBtn.style.display = 'none'
               }
             } else {
-              // 没有手动备份，显示无备份
-              console.log('📭 [updateSyncStatus] 未找到手动备份（虽然有其他备份）')
+              // 没有自动备份
+              console.log('📭 [updateSyncStatus] 未找到自动备份')
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
-                  <span>📦 无备份数据</span>
+                  <span>⏱️ 自动备份：等待首次备份...</span>
                 </div>
               `
               if (restoreBtn) {
@@ -394,7 +394,7 @@ const AuthUI = {
             manualBackupStatus.className = 'manual-backup-status'
             manualBackupStatus.innerHTML = `
               <div class="manual-backup-status-text">
-                <span>📦 无备份数据</span>
+                <span>⏱️ 自动备份：等待首次备份...</span>
               </div>
             `
             if (restoreBtn) {
@@ -403,11 +403,11 @@ const AuthUI = {
           }
         } catch (err) {
           console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message, err)
-          // 如果服务器请求失败，显示无备份
+          // 如果服务器请求失败
           manualBackupStatus.className = 'manual-backup-status'
           manualBackupStatus.innerHTML = `
             <div class="manual-backup-status-text">
-              <span>📦 无法连接到服务器</span>
+              <span>⏱️ 自动备份：无法连接到服务器</span>
             </div>
           `
           if (restoreBtn) {
@@ -642,6 +642,38 @@ Object.assign(window.YanyuApp, {
       warning: LocalStorageManager.checkStorageWarning(),
     }
   },
+
+  /**
+   * 自动备份（静默备份，不显示提示）
+   * 在定时任务或页面卸载时调用
+   */
+  async autoBackup() {
+    try {
+      if (!AuthHandler.isAuthenticated()) {
+        console.log('📝 [autoBackup] 未认证，跳过自动备份')
+        return { success: false, error: '未认证' }
+      }
+
+      console.log('📝 [autoBackup] 开始自动备份...')
+      const result = await ApiClient.saveBackup('auto')
+      
+      if (result.success) {
+        console.log('✅ [autoBackup] 自动备份成功:', {
+          recordCount: result.recordCount,
+          timestamp: result.timestamp
+        })
+        // 自动更新同步状态显示
+        AuthUI.updateSyncStatus()
+        return result
+      } else {
+        console.warn('⚠️ [autoBackup] 自动备份失败:', result.error)
+        return { success: false, error: result.error }
+      }
+    } catch (err) {
+      console.error('❌ [autoBackup] 自动备份异常:', err.message)
+      return { success: false, error: err.message }
+    }
+  },
 })
 
 console.log('✅ [app-init.js] window.YanyuApp 已填充所有模块')
@@ -681,6 +713,45 @@ async function initializeApp() {
       }
     }, 10000)
     console.log('✅ [initializeApp] 后端状态监控已启动')
+
+    // 3.6 启动自动备份机制
+    console.log('📦 启动自动备份机制...')
+    // 页面加载时立即进行一次自动备份
+    if (AuthHandler.isAuthenticated()) {
+      console.log('📝 [initializeApp] 页面加载时进行首次自动备份')
+      setTimeout(() => {
+        window.YanyuApp.autoBackup()
+      }, 1000)
+    }
+    // 设置定时自动备份（每10分钟）
+    setInterval(() => {
+      if (AuthHandler.isAuthenticated()) {
+        console.log('⏱️ [initializeApp] 触发定时自动备份')
+        window.YanyuApp.autoBackup()
+      }
+    }, 10 * 60 * 1000)  // 10分钟
+    console.log('✅ [initializeApp] 自动备份机制已启动（每10分钟一次）')
+
+    // 页面卸载前进行自动备份
+    window.addEventListener('beforeunload', () => {
+      if (AuthHandler.isAuthenticated()) {
+        console.log('📝 [initializeApp] 页面卸载前进行自动备份')
+        // 使用 navigator.sendBeacon 以确保请求在页面卸载前完成
+        const token = AuthHandler.getToken()
+        if (token) {
+          const backendUrl = window.__API_URL__ || 'https://yanyu-tools-backend-production.up.railway.app'
+          try {
+            navigator.sendBeacon(
+              `${backendUrl}/api/equipment/save-backup`,
+              JSON.stringify({ backupType: 'auto' })
+            )
+          } catch (e) {
+            console.warn('⚠️ 页面卸载时自动备份失败:', e.message)
+          }
+        }
+      }
+    })
+    console.log('✅ [initializeApp] 页面卸载前自动备份已注册')
 
     // 4. 检查存储警告
     if (LocalStorageManager.checkStorageWarning()) {
