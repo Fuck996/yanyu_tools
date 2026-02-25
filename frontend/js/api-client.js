@@ -5,7 +5,11 @@
 
 import { AuthHandler } from './auth-handler.js'
 
-const API_URL = window.__API_URL__ || 'http://localhost:3000/api'
+// 必须使用生产 API URL - 绝不允许 localhost fallback
+const API_URL = window.__API_URL__ || 'https://yanyu-tools-backend-production.up.railway.app/api'
+if (!window.__API_URL__) {
+  console.warn('⚠️ window.__API_URL__ not set, using production backend fallback')
+}
 
 // 检查后端是否可用
 let backendAvailable = null

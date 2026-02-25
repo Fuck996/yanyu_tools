@@ -5,29 +5,15 @@
 
 console.log('🟢 [auth-handler.js] 模块已加载')
 
-// 自动识别 API URL
+// 优先使用构建/页面注入的全局 `window.__API_URL__`，否则回退到生产后端地址
 const getAPIUrl = () => {
-  if (window.__API_URL__) return window.__API_URL__
-  
-  const port = window.location.port
-  console.log('🔍 [getAPIUrl] 检测前端端口:', port || '(未检测到)')
-  
-  // 优先级：
-  // 1. 如果明确设置了前端端口号，则使用对应的后端端口
-  // 2. 如果前端在 file:// 或无端口，默认后端在 3001
-  let backendPort = 3001  // 默认优先用 3001
-  
-  if (port === '5500' || port === '5501' || port === '5502') {
-    // Live Server 标准端口 5500
-    backendPort = 3001
-  } else if (port && port !== '80' && port !== '443') {
-    // 如果有其他开发端口，假设后端在 3000
-    backendPort = 3000
+  const prod = 'https://yanyu-tools-backend-production.up.railway.app/api'
+  if (window.__API_URL__) {
+    console.log('✅ [getAPIUrl] 使用页面注入的 API_URL:', window.__API_URL__)
+    return window.__API_URL__
   }
-  
-  const apiUrl = `http://localhost:${backendPort}/api`
-  console.log('✅ [getAPIUrl] 使用后端端口:', backendPort)
-  return apiUrl
+  console.warn('⚠️ [getAPIUrl] window.__API_URL__ 未设置，使用生产后端:', prod)
+  return prod
 }
 
 const API_URL = getAPIUrl()
