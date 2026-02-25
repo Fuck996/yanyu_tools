@@ -797,32 +797,10 @@ async function initializeApp() {
     // 暴露到 YanyuApp
     window.YanyuApp.FRONTEND_VERSION = frontendVersion
     window.YanyuApp.FRONTEND_BUILD_DATE = window.__FRONTEND_BUILD_DATE__ || window.FRONTEND_BUILD_DATE || FRONTEND_BUILD_DATE || 'unknown'
-    console.log('📝 [initializeApp] 版本号已添加到 window.YanyuApp')
     
-    // 尝试获取后端版本号
-    try {
-      const baseUrl = AuthHandler.getGitHubAuthUrl().replace('/auth/github', '')
-      const versionUrl = `${baseUrl}/version`
-      console.log('📝 [initializeApp] 获取后端版本号，URL:', versionUrl)
-      
-      const versionResponse = await fetch(versionUrl)
-      if (versionResponse.ok) {
-        const versionData = await versionResponse.json()
-        if (beVersionEl && versionData.backend) {
-          beVersionEl.textContent = versionData.backend
-          console.log(`✅ 后端版本已显示: ${versionData.backend}`)
-        }
-      } else {
-        console.warn('⚠️ 后端版本查询失败，状态码:', versionResponse.status)
-        if (beVersionEl) {
-          beVersionEl.textContent = '未连接'
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ 无法获取后端版本号:', err.message)
-      if (beVersionEl) {
-        beVersionEl.textContent = '未连接'
-      }
+    // 显示前端版本
+    if (beVersionEl) {
+      beVersionEl.textContent = '后端'  // 简化显示
     }
 
     console.log('✅ 应用初始化完成')
