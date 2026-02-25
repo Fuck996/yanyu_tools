@@ -319,6 +319,7 @@ router.post('/save-backup', requireAuth, async (req, res) => {
 // 获取用户的所有备份列表
 router.get('/backups', requireAuth, (req, res) => {
   const userId = req.user.id
+  console.log(`📝 GET /backups called for user ${userId}`)
 
   db.all(
     `SELECT id, backup_type, export_data, created_at FROM export_history 
@@ -327,23 +328,32 @@ router.get('/backups', requireAuth, (req, res) => {
     [userId],
     (err, rows) => {
       if (err) {
-        console.error('获取备份列表失败:', err)
-        return res.status(500).json({ error: 'Failed to fetch backups' })
+        console.error('❌ 获取备份列表失败:', err.message, err.code)
+        console.error('SQL Error Details:', err)
+        return res.status(500).json({ error: 'Failed to fetch backups', detail: err.message })
+      }
+      
+      console.log(`✅ Query succeeded, found ${rows.length} backups for user ${userId}`)
+      if (!rows || rows.length === 0) {
+        console.log(`📭 No backups found for user ${userId}`)
       }
 
       // 先按备份类型分组，然后返回
       const manualBackups = []
       const autoBackups = []
       
-      (rows || []).forEach(row => {
+      (rows || []).forEach((row, idx) => {
         try {
+          console.log(`📋 Processing backup ${idx + 1}:`, { id: row.id, type: row.backup_type })
+          
           let recordCount = 0
           try {
             const data = JSON.parse(row.export_data || '[]')
             // 处理两种格式：单个对象或数组
             recordCount = Array.isArray(data) ? data.length : 0
-          } catch (e) {
-            console.warn('无法解析备份数据:', row.id)
+            console.log(`  📊 recordCount: ${recordCount}`)
+          } catch (parseErr) {
+            console.warn(`  ⚠️ 无法解析备份数据 ${row.id}: ${parseErr.message}`)
             recordCount = 0
           }
 
@@ -358,23 +368,31 @@ router.get('/backups', requireAuth, (req, res) => {
             // 手动备份只保留第一条（最新）
             if (manualBackups.length === 0) {
               manualBackups.push(backup)
+              console.log(`  ✅ Added manual backup`)
             }
           } else {
             // 自动备份保留最新10条
             if (autoBackups.length < 10) {
               autoBackups.push(backup)
+              console.log(`  ✅ Added auto backup (${autoBackups.length}/10)`)
             }
           }
         } catch (e) {
-          console.error('处理备份失败:', e)
+          console.error(`  ❌ 处理备份 ${row.id} 失败:`, e.message)
         }
       })
 
       // 合并结果：手动备份在前
       const response = [...manualBackups, ...autoBackups]
       
-      console.log(`✅ 用户 ${userId} 备份列表: ${manualBackups.length} 个手动备份, ${autoBackups.length} 个自动备份`)
-      res.json({ success: true, backups: response })
+      try {
+        console.log(`✅ 用户 ${userId} 备份列表: ${manualBackups.length} 个手动备份, ${autoBackups.length} 个自动备份`)
+        console.log(`📤 Response payload ready to send: ${response.length} backups`)
+        res.json({ success: true, backups: response })
+      } catch (respErr) {
+        console.error(`❌ 发送响应失败:`, respErr.message)
+        res.status(500).json({ error: 'Failed to send response', detail: respErr.message })
+      }
     }
   )
 })
