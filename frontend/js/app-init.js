@@ -657,14 +657,37 @@ Object.assign(window.YanyuApp, {
     const backupDate = new Date(manualBackup.timestamp).toLocaleString('zh-CN')
     if (confirm(`确认恢复手动备份吗？\n时间: ${backupDate}\n记录数: ${manualBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
       const result = await ApiClient.restoreBackup(manualBackup.id)
-      if (result.success) {
-        UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
-        setTimeout(() => location.reload(), 1500)
-        return result
-      } else {
+      if (!result.success) {
         UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
         return result
       }
+
+      // 后端已恢复，拉取数据写入本地 localStorage，然后刷新 UI，无需整页重载
+      UIManager.showMessage('⏳ 正在加载恢复数据...', 'info', 1500)
+      try {
+        const recordsResult = await ApiClient.getRecords()
+        if (recordsResult.success) {
+          const localData = DataSync.mergeCloudData(recordsResult.records)
+          LocalStorageManager.saveEquipmentData(localData)
+
+          // 重新渲染页面数据（全局函数，定义在 index.html）
+          if (typeof window.renderNav === 'function') window.renderNav()
+          if (typeof window.renderMain === 'function') window.renderMain()
+
+          // 刷新备份状态面板
+          this.isUpdatingStatus = false
+          await AuthUI.updateSyncStatus()
+
+          UIManager.showMessage(`✅ 已恢复 ${recordsResult.records.length} 条数据`, 'success', 2000)
+        } else {
+          UIManager.showMessage('⚠️ 后端已恢复，但拉取数据失败，请手动刷新页面', 'warning', 4000)
+        }
+      } catch (err) {
+        console.warn('恢复后拉取数据失败:', err.message)
+        UIManager.showMessage('⚠️ 后端已恢复，但加载数据失败，请手动刷新页面', 'warning', 4000)
+      }
+
+      return result
     }
     return { success: false, error: '用户取消' }
   },
