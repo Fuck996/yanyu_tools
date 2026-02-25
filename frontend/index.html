@@ -171,12 +171,8 @@
         .status-backup-container { position: fixed; top: 70px; right: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; z-index: 999; max-width: 420px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         .status-backup-content { display: flex; gap: 16px; align-items: flex-start; }
         
-        /* 同步状态 - 上下居中，支持多行显示 */
-        .status-left { display: flex; flex-direction: column; gap: 6px; font-size: 11px; padding-right: 12px; border-right: 1px solid var(--border); min-width: 75px; justify-content: center; }
-        .sync-status-line { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
-        .sync-status-icon { font-size: 14px; flex-shrink: 0; }
-        .sync-status-text { color: var(--text); font-weight: 500; }
-        .sync-status-extra { font-size: 10px; color: var(--nav-text); line-height: 1.2; }
+        /* 同步状态区域已移除（在头部改为菜单左侧的状态卡片） */
+        .sync-status-line { display: none; }
         
         /* 备份信息 - 横向排列，各占2行 */
         .backup-status-box { display: flex; gap: 20px; flex: 1; }
@@ -380,15 +376,8 @@
 
 <!-- 状态和备份信息框 -->
 <div class="status-backup-container" id="statusBackupContainer" style="display:none;">
-    <div class="status-backup-content">
-        <!-- 同步状态 -->
-        <div class="status-left">
-            <div class="sync-status-line">
-                <span class="sync-status-icon" id="syncStatusIcon">🟢</span>
-                <span class="sync-status-text" id="syncStatusText">已连接</span>
-            </div>
-            <div class="sync-status-extra" id="syncStatusExtra"></div>
-        </div>
+        <div class="status-backup-content">
+        <!-- 同步状态区域已移除：在头部使用状态卡片替代 -->
         <!-- 备份信息：自动备份在上，手动备份在下 -->
         <div class="backup-status-box" id="backupStatusBox">
             <!-- 自动备份（先显示） -->

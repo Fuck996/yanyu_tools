@@ -330,19 +330,19 @@ const AuthUI = {
       const headerStatusText = document.getElementById('headerStatusText')
       const headerStatusExtra = document.getElementById('headerStatusExtra')
       if (status.isSyncing) {
-        syncStatusIcon.textContent = '⏳'
-        syncStatusText.textContent = '正在同步中'
-        syncStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
-        if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
-          headerStatusCard.style.display = 'flex'
-          headerStatusIcon.textContent = '⏳'
-          headerStatusText.textContent = '正在同步中'
-          headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
-        }
+          if (syncStatusIcon) syncStatusIcon.textContent = '⏳'
+          if (syncStatusText) syncStatusText.textContent = '正在同步中'
+          if (syncStatusExtra) syncStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
+          if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
+            headerStatusCard.style.display = 'flex'
+            headerStatusIcon.textContent = '⏳'
+            headerStatusText.textContent = '正在同步中'
+            headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
+          }
       } else {
-        syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
-        syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
-        syncStatusExtra.textContent = ''
+        if (syncStatusIcon) syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
+        if (syncStatusText) syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
+        if (syncStatusExtra) syncStatusExtra.textContent = ''
         if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
           headerStatusCard.style.display = 'flex'
           headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
