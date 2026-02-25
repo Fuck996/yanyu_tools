@@ -86,7 +86,7 @@
         /* 恢复原始角标样式与偏移量 */
         .badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 10px; min-width: 12px; text-align: center; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 270px); min-height: 400px; }
+        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 220px); min-height: 500px; }
         .loc-section { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
         .loc-title { font-size: 1.15em; font-weight: bold; color: var(--title-color); margin-bottom: 20px; text-align: center; }
 
@@ -159,22 +159,22 @@
         .sync-spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--blue); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 状态和备份框 - 在主功能栏下方，跨越全宽 */
-        .status-backup-container { background: transparent; padding: 0; border-radius: 0; border: none; margin-bottom: 12px; }
-        .status-backup-content { background: var(--card); padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border); display: flex; gap: 20px; align-items: stretch; }
+        /* 状态和备份框 - 右上角fixed定位 */
+        .status-backup-container { position: fixed; top: 70px; right: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; z-index: 999; max-width: 200px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .status-backup-content { display: flex; flex-direction: column; gap: 8px; }
         
-        /* 同步状态左侧 */
-        .status-left { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 140px; padding-right: 20px; border-right: 1px solid var(--border); }
-        .sync-status-line { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-        .sync-status-icon { font-size: 14px; }
-        .sync-status-text { color: var(--text); font-weight: 500; }
+        /* 同步状态 */
+        .status-left { display: flex; flex-direction: column; gap: 3px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+        .sync-status-line { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
+        .sync-status-icon { font-size: 12px; flex-shrink: 0; }
+        .sync-status-text { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
         
-        /* 备份信息右侧 */
-        .backup-status-box { display: flex; gap: 28px; flex: 1; font-size: 12px; }
-        .backup-item { display: flex; flex-direction: column; justify-content: center; min-width: 120px; }
-        .backup-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 600; font-size: 12px; }
-        .backup-item-count { font-size: 12px; color: var(--text); margin-bottom: 2px; }
-        .backup-item-time { font-size: 11px; color: var(--nav-text); }
+        /* 备份信息 */
+        .backup-status-box { display: flex; flex-direction: column; gap: 6px; font-size: 11px; }
+        .backup-item { display: flex; flex-direction: column; gap: 2px; }
+        .backup-item-header { display: flex; align-items: center; gap: 4px; font-weight: 600; font-size: 11px; white-space: nowrap; }
+        .backup-item-count { font-size: 11px; color: var(--text); }
+        .backup-item-time { font-size: 10px; color: var(--nav-text); overflow: hidden; text-overflow: ellipsis; }
 
 
         .dropdown-menu { padding: 8px 0; }
@@ -363,26 +363,26 @@
 <!-- 状态和备份信息框 -->
 <div class="status-backup-container" id="statusBackupContainer" style="display:none;">
     <div class="status-backup-content">
-        <!-- 左侧同步状态 -->
+        <!-- 同步状态 -->
         <div class="status-left">
             <div class="sync-status-line">
                 <span class="sync-status-icon" id="syncStatusIcon">🟢</span>
                 <span class="sync-status-text" id="syncStatusText">已连接</span>
             </div>
         </div>
-        <!-- 右侧备份信息 -->
+        <!-- 备份信息：自动备份在上，手动备份在下 -->
         <div class="backup-status-box" id="backupStatusBox">
-            <!-- 手动备份 -->
-            <div class="backup-item" id="manualBackupItem" style="display:none;">
-                <div class="backup-item-header">📪 手动备份</div>
-                <div class="backup-item-count" id="manualBackupCount"></div>
-                <div class="backup-item-time" id="manualBackupTime"></div>
-            </div>
-            <!-- 自动备份 -->
+            <!-- 自动备份（先显示） -->
             <div class="backup-item" id="autoBackupItem" style="display:none;">
                 <div class="backup-item-header">⏱️ 自动备份</div>
                 <div class="backup-item-count" id="autoBackupCount"></div>
                 <div class="backup-item-time" id="autoBackupTime"></div>
+            </div>
+            <!-- 手动备份（后显示） -->
+            <div class="backup-item" id="manualBackupItem" style="display:none;">
+                <div class="backup-item-header">📪 手动备份</div>
+                <div class="backup-item-count" id="manualBackupCount"></div>
+                <div class="backup-item-time" id="manualBackupTime"></div>
             </div>
         </div>
     </div>

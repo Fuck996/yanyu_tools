@@ -329,7 +329,7 @@ const AuthUI = {
         syncStatusText.textContent = `正在同步 (${status.syncedRecords}/${status.totalRecords})`
       } else {
         syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
-        syncStatusText.textContent = backendOnline ? `已连接 | 共 ${recordCount} 条` : `连接失败`
+        syncStatusText.textContent = backendOnline ? `已连接 | 共${recordCount}条` : `连接失败`
       }
 
       // 获取并显示备份状态
@@ -348,18 +348,7 @@ const AuthUI = {
             return new Date(date).toLocaleString('zh-CN')
           }
           
-          // 显示手动备份
-          const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-          if (manualBackup) {
-            console.log('✅ [updateSyncStatus] 找到手动备份')
-            manualBackupItem.style.display = 'flex'
-            document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
-            document.getElementById('manualBackupTime').textContent = `${formatTime(manualBackup.timestamp)}`
-          } else {
-            manualBackupItem.style.display = 'none'
-          }
-          
-          // 显示自动备份
+          // 显示自动备份（在上）
           const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
           if (autoBackup) {
             console.log('✅ [updateSyncStatus] 找到自动备份')
@@ -368,6 +357,17 @@ const AuthUI = {
             document.getElementById('autoBackupTime').textContent = `${formatTime(autoBackup.timestamp)}`
           } else {
             autoBackupItem.style.display = 'none'
+          }
+          
+          // 显示手动备份（在下）
+          const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+          if (manualBackup) {
+            console.log('✅ [updateSyncStatus] 找到手动备份')
+            manualBackupItem.style.display = 'flex'
+            document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
+            document.getElementById('manualBackupTime').textContent = `${formatTime(manualBackup.timestamp)}`
+          } else {
+            manualBackupItem.style.display = 'none'
           }
         } else {
           console.log('📭 [updateSyncStatus] 没有任何备份')
