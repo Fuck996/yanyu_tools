@@ -333,17 +333,27 @@ router.get('/backups', requireAuth, (req, res) => {
         return res.status(500).json({ error: 'Failed to fetch backups', detail: err.message })
       }
       
-      console.log(`✅ Query succeeded, found ${rows.length} backups for user ${userId}`)
-      if (!rows || rows.length === 0) {
-        console.log(`📭 No backups found for user ${userId}`)
-      }
+      console.log(`✅ Query succeeded`)
+      const backupRows = rows || []
+      console.log(`📊 Found ${backupRows.length} total backups for user ${userId}`)
 
       // 先按备份类型分组，然后返回
       const manualBackups = []
       const autoBackups = []
       
-      (rows || []).forEach((row, idx) => {
+      backupRows.forEach((row, idx) => {
         try {
+          // 防守性检查：确保row有所有必要的字段
+          if (!row) {
+            console.warn(`  ⚠️ Backup ${idx + 1} is null/undefined, skipping`)
+            return
+          }
+          
+          if (!row.id || !row.backup_type) {
+            console.warn(`  ⚠️ Backup ${idx + 1} missing id or backup_type:`, { id: row.id, backup_type: row.backup_type })
+            return
+          }
+          
           console.log(`📋 Processing backup ${idx + 1}:`, { id: row.id, type: row.backup_type })
           
           let recordCount = 0
