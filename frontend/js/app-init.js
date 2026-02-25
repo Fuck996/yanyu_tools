@@ -134,6 +134,34 @@ const AuthUI = {
   },
 
   /**
+   * 切换用户面板下拉（登录后）
+   */
+  toggleUserDropdown() {
+    const dropdown = document.getElementById('userDropdown')
+    if (!dropdown) {
+      console.error('❌ [AuthUI] 找不到用户下拉菜单元素')
+      return
+    }
+    this.userDropdownOpen = !this.userDropdownOpen
+    dropdown.classList.toggle('active', this.userDropdownOpen)
+    console.log('🔄 [AuthUI] 用户下拉已切换:', this.userDropdownOpen ? '打开' : '关闭')
+  },
+
+  /**
+   * 关闭用户面板下拉
+   */
+  closeUserDropdown() {
+    const dropdown = document.getElementById('userDropdown')
+    if (!dropdown) {
+      console.error('❌ [AuthUI] 找不到用户下拉菜单元素')
+      return
+    }
+    this.userDropdownOpen = false
+    dropdown.classList.remove('active')
+    console.log('✖️ [AuthUI] 用户下拉已关闭')
+  },
+
+  /**
    * 访问项目
    */
   visitProject() {
@@ -215,8 +243,7 @@ const AuthUI = {
     const userAvatar = document.getElementById('userAvatar')
     const userName = document.getElementById('userName')
     const userStatus = document.getElementById('userStatus')
-    const dropdownAvatar = document.getElementById('dropdownAvatar')
-    const dropdownUsername = document.getElementById('dropdownUsername')
+    const defaultAvatar = document.getElementById('defaultAvatar')
 
     // 检查所有必要元素是否存在
     const missingElements = []
@@ -224,8 +251,6 @@ const AuthUI = {
     if (!userPanel) missingElements.push('userPanel')
     if (!userAvatar) missingElements.push('userAvatar')
     if (!userName) missingElements.push('userName')
-    if (!dropdownAvatar) missingElements.push('dropdownAvatar')
-    if (!dropdownUsername) missingElements.push('dropdownUsername')
 
     if (missingElements.length > 0) {
       console.error('❌ [AuthUI] 找不到必要的 DOM 元素:', missingElements.join(', '))
@@ -236,6 +261,7 @@ const AuthUI = {
       // 隐藏登录按钮，显示用户面板
       if (loginBtn) loginBtn.style.display = 'none'
       if (userPanel) userPanel.style.display = 'flex'
+      if (defaultAvatar) defaultAvatar.style.display = 'none'
 
       // 设置头部用户信息
       const avatar = user.avatar || user.avatar_url || 'https://avatars.githubusercontent.com/u/1?v=4'
@@ -252,14 +278,10 @@ const AuthUI = {
         userName.textContent = user.username
       }
 
-      // 设置下拉菜单中的用户信息
-      if (dropdownAvatar) {
-        dropdownAvatar.src = avatar
-        dropdownAvatar.alt = user.username
-      }
-      if (dropdownUsername) {
-        dropdownUsername.textContent = user.username
-      }
+      // 关闭通用菜单（如果打开）
+      this.closeDropdown()
+      // 关闭用户下拉（确保初始关闭）
+      this.closeUserDropdown()
       
       // 更新同步状态
       this.updateSyncStatus()
@@ -273,7 +295,9 @@ const AuthUI = {
         }
       }
       if (userPanel) userPanel.style.display = 'none'
+      if (defaultAvatar) defaultAvatar.style.display = 'inline-block'
       this.closeDropdown()
+      this.closeUserDropdown()
     }
   },
 

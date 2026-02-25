@@ -154,6 +154,8 @@
 
         .auth-dropdown { position: absolute; top: 100%; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 1001; display: none; margin-top: 8px; overflow: hidden; }
         .auth-dropdown.active { display: block; animation: slideDown 0.2s ease-out; }
+        .user-dropdown { position: absolute; top: 100%; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 1001; display: none; margin-top: 8px; overflow: hidden; }
+        .user-dropdown.active { display: block; animation: slideDown 0.2s ease-out; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 
         .dropdown-header { padding: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
@@ -326,12 +328,18 @@
         <button class="ctrl-btn" id="menuToggleBtn" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">⋯ 菜单</button>
         <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
         <div class="auth-container">
+            <img id="defaultAvatar" class="user-avatar" alt="avatar" src="https://avatars.githubusercontent.com/u/1?v=4" style="width:36px;height:36px;border-radius:50%;margin-right:8px;">
             <button class="login-btn" id="loginBtn">🔑 登录 GitHub</button>
-            <div class="user-panel" id="userPanel" style="display:none;" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">
+            <div class="user-panel" id="userPanel" style="display:none;" onclick="window.YanyuApp?.AuthUI?.toggleUserDropdown()">
                 <div class="user-panel-header">
                     <img class="user-avatar" id="userAvatar" alt="avatar">
                     <div class="user-name" id="userName"></div>
-                    <div class="user-status" id="userStatus"></div>
+                </div>
+                <!-- 登录后的用户下拉菜单（包含退出登录） -->
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">🔗 访问项目</div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-item danger" onclick="window.YanyuApp?.AuthUI?.logout()">🚪 退出登录</div>
                 </div>
             </div>
         </div>
@@ -339,26 +347,13 @@
         <!-- 将下拉菜单移出 user-panel，放在 control-panel 内，保证未登录时也能访问 -->
         <div class="auth-dropdown" id="authDropdown">
             <div class="dropdown-header">
-                <img class="dropdown-avatar" id="dropdownAvatar" alt="avatar">
-                <div class="dropdown-user-info">
-                    <div class="dropdown-username" id="dropdownUsername"></div>
-                </div>
+                <div style="font-weight:600;color:var(--nav-text);">菜单</div>
             </div>
             <div class="dropdown-menu">
-                <div class="dropdown-item" onclick="exportData()">
-                    📤 备份
-                </div>
-                <div class="dropdown-item" onclick="importData()">
-                    📥 还原
-                </div>
+                <div class="dropdown-item" onclick="exportData()">📤 备份</div>
+                <div class="dropdown-item" onclick="importData()">📥 还原</div>
                 <div class="dropdown-divider"></div>
-                <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">
-                    🔗 访问项目
-                </div>
-                <div class="dropdown-divider"></div>
-                <div class="dropdown-item danger" onclick="window.YanyuApp?.AuthUI?.logout()">
-                    🚪 退出登录
-                </div>
+                <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">🔗 访问项目</div>
             </div>
         </div>
     </div>
