@@ -158,9 +158,13 @@
         .sync-spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--blue); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 手动备份状态区域 */
-        .manual-backup-status { padding: 10px 12px; background: rgba(255, 152, 0, 0.08); border-bottom: 1px solid var(--border); font-size: 11px; color: #ff9500; }
-        .manual-backup-status-text { display: flex; flex-direction: column; gap: 4px; }
+        /* 备份状态区域 - 显示手动和自动备份 */
+        .backup-status-box { padding: 14px; background: rgba(76, 175, 80, 0.08); border: 1px solid rgba(76, 175, 80, 0.15); border-radius: 4px; margin-top: 8px; font-size: 12px; color: #333; }
+        .backup-item { margin-bottom: 12px; }
+        .backup-item:last-child { margin-bottom: 0; }
+        .backup-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 600; }
+        .backup-item-count { font-size: 12px; color: #333; margin-bottom: 2px; }
+        .backup-item-time { font-size: 11px; color: #999; }
 
 
         .dropdown-menu { padding: 8px 0; }
@@ -292,8 +296,8 @@
 
 <div class="control-panel">
     <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
-    <button class="ctrl-btn" onclick="exportData()">📤 备份</button>
-    <button class="ctrl-btn" onclick="importData()">📥 还原</button>
+    <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 保存手动备份</button>
+    <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 恢复手动备份</button>
     <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
     <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
     <div class="auth-container">
@@ -302,6 +306,21 @@
             <img class="user-avatar" id="userAvatar" alt="avatar">
             <div class="user-name" id="userName"></div>
             <div class="user-status" id="userStatus"></div>
+            <!-- 备份状态盒子 -->
+            <div class="backup-status-box" id="backupStatusBox" style="display:none;">
+                <!-- 手动备份 -->
+                <div class="backup-item" id="manualBackupItem" style="display:none;">
+                    <div class="backup-item-header">📪 手动备份</div>
+                    <div class="backup-item-count" id="manualBackupCount"></div>
+                    <div class="backup-item-time" id="manualBackupTime"></div>
+                </div>
+                <!-- 自动备份 -->
+                <div class="backup-item" id="autoBackupItem" style="display:none;">
+                    <div class="backup-item-header">⏱️ 自动备份</div>
+                    <div class="backup-item-count" id="autoBackupCount"></div>
+                    <div class="backup-item-time" id="autoBackupTime"></div>
+                </div>
+            </div>
             <div class="auth-dropdown" id="authDropdown">
                 <div class="dropdown-header">
                     <img class="dropdown-avatar" id="dropdownAvatar" alt="avatar">
@@ -312,17 +331,12 @@
                 <div class="sync-status" id="syncStatus">
                     <div class="sync-status-text">✓ 离线模式（未连接后端）</div>
                 </div>
-                <div class="manual-backup-status" id="manualBackupStatus">
-                    <div class="manual-backup-status-text">
-                        <span>📦 无备份数据</span>
-                    </div>
-                </div>
                 <div class="dropdown-menu">
-                    <div class="dropdown-item" onclick="window.YanyuApp?.saveManualBackup()">
-                        💾 保存手动备份
+                    <div class="dropdown-item" onclick="exportData()">
+                        📤 备份
                     </div>
-                    <div class="dropdown-item" id="restoreBackupItem" style="display:none;" onclick="window.YanyuApp?.restoreManualBackup()">
-                        ♻️ 恢复手动备份
+                    <div class="dropdown-item" onclick="importData()">
+                        📥 还原
                     </div>
                     <div class="dropdown-divider"></div>
                     <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">

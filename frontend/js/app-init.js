@@ -295,8 +295,6 @@ const AuthUI = {
    */
   async updateSyncStatus() {
     const syncStatus = document.getElementById('syncStatus')
-    const manualBackupStatus = document.getElementById('manualBackupStatus')
-    const restoreBtn = document.getElementById('restoreBackupItem')
     const status = DataSync.getSyncStatus()
 
     if (status.authenticated) {
@@ -339,11 +337,14 @@ const AuthUI = {
         syncStatus.innerHTML = html
       }
 
-      // 更新手动备份状态显示（从服务器获取手动备份信息）
-      if (manualBackupStatus) {
+      // 更新备份状态显示（显示手动备份和自动备份信息）
+      const backupStatusBox = document.getElementById('backupStatusBox')
+      const manualBackupItem = document.getElementById('manualBackupItem')
+      const autoBackupItem = document.getElementById('autoBackupItem')
+      
+      if (backupStatusBox) {
         try {
           console.log('📝 [updateSyncStatus] 开始获取备份列表...')
-          // 从服务器获取备份列表
           const backupListResult = await ApiClient.getBackupList()
           console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
             success: backupListResult.success,
@@ -351,74 +352,49 @@ const AuthUI = {
             backups: backupListResult.backups
           })
           
+          let hasBackup = false
+          
           if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-            console.log('✅ [updateSyncStatus] 找到备份')
-            // 显示自动备份（固定显示最后一次自动备份信息）
-            const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
-            console.log('🔍 [updateSyncStatus] 查找自动备份:', autoBackup)
+            const formatTime = (date) => {
+              if (!date) return '未知'
+              return new Date(date).toLocaleString('zh-CN')
+            }
             
-            if (autoBackup) {
-              const formatTime = (date) => {
-                if (!date) return '未知'
-                return new Date(date).toLocaleString('zh-CN')
-              }
-              
-              console.log('✅ [updateSyncStatus] 显示自动备份信息')
-              manualBackupStatus.className = 'manual-backup-status'
-              manualBackupStatus.innerHTML = `
-                <div class="manual-backup-status-text">
-                  <div>⏱️ 自动备份 ${autoBackup.recordCount} 条记录</div>
-                  <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(autoBackup.timestamp)}</div>
-                </div>
-              `
-              // 自动备份不显示还原按钮（只能手动还原手动备份）
-              if (restoreBtn) {
-                restoreBtn.style.display = 'none'
-              }
+            // 显示手动备份
+            const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+            if (manualBackup) {
+              console.log('✅ [updateSyncStatus] 找到手动备份')
+              manualBackupItem.style.display = 'block'
+              document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
+              document.getElementById('manualBackupTime').textContent = `于 ${formatTime(manualBackup.timestamp)}`
+              hasBackup = true
             } else {
-              // 没有自动备份
-              console.log('📭 [updateSyncStatus] 未找到自动备份')
-              manualBackupStatus.className = 'manual-backup-status'
-              manualBackupStatus.innerHTML = `
-                <div class="manual-backup-status-text">
-                  <span>⏱️ 自动备份：等待首次备份...</span>
-                </div>
-              `
-              if (restoreBtn) {
-                restoreBtn.style.display = 'none'
-              }
+              manualBackupItem.style.display = 'none'
+            }
+            
+            // 显示自动备份
+            const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
+            if (autoBackup) {
+              console.log('✅ [updateSyncStatus] 找到自动备份')
+              autoBackupItem.style.display = 'block'
+              document.getElementById('autoBackupCount').textContent = `${autoBackup.recordCount}条记录`
+              document.getElementById('autoBackupTime').textContent = `于 ${formatTime(autoBackup.timestamp)}`
+              hasBackup = true
+            } else {
+              autoBackupItem.style.display = 'none'
             }
           } else {
-            // 没有任何备份
-            console.log('📭 [updateSyncStatus] 没有任何备份:', backupListResult)
-            manualBackupStatus.className = 'manual-backup-status'
-            manualBackupStatus.innerHTML = `
-              <div class="manual-backup-status-text">
-                <span>⏱️ 自动备份：等待首次备份...</span>
-              </div>
-            `
-            if (restoreBtn) {
-              restoreBtn.style.display = 'none'
-            }
+            console.log('📭 [updateSyncStatus] 没有任何备份')
+            manualBackupItem.style.display = 'none'
+            autoBackupItem.style.display = 'none'
           }
+          
+          // 备份状态盒子显示/隐藏
+          backupStatusBox.style.display = hasBackup ? 'block' : 'none'
         } catch (err) {
-          console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message, err)
-          // 如果服务器请求失败
-          manualBackupStatus.className = 'manual-backup-status'
-          manualBackupStatus.innerHTML = `
-            <div class="manual-backup-status-text">
-              <span>⏱️ 自动备份：无法连接到服务器</span>
-            </div>
-          `
-          if (restoreBtn) {
-            restoreBtn.style.display = 'none'
-          }
+          console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
+          backupStatusBox.style.display = 'none'
         }
-      }
-    } else {  // 未认证时的处理
-      // 隐藏还原按钮
-      if (restoreBtn) {
-        restoreBtn.style.display = 'none'
       }
     }
   }
