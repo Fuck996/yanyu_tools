@@ -155,16 +155,18 @@ router.post('/import', requireAuth, async (req, res) => {
       for (const [key, value] of Object.entries(obj)) {
         if (Array.isArray(value)) {
           // 这是一个记录数组
+          // 前端格式：{ q: quality, attrs: attributes, special: special_attr, k: isFavorite }
           for (const record of value) {
             if (record && typeof record === 'object') {
               const recordId = record.id || uuidv4()
               const type = record.equipmentType || equipmentType || 'unknown'
               const loc = record.location || location || 'unknown'
               const name = record.equipmentName || key
-              const quality = record.quality || 'normal'
-              const specialAttr = record.specialAttr || ''
-              const attributes = record.attributes || {}
-              const isFavorite = record.isFavorite ? 1 : 0
+              // 关键修复：使用前端的字段名（q, attrs, special, k）而不是数据库字段名
+              const quality = record.q || record.quality || 'normal'
+              const specialAttr = record.special || record.specialAttr || ''
+              const attributes = record.attrs || record.attributes || {}
+              const isFavorite = record.k || record.isFavorite ? 1 : 0
 
               try {
                 await dbRun(
