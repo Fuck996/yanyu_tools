@@ -626,13 +626,13 @@ Object.assign(window.YanyuApp, {
         AuthUI.updateSyncStatus()
         return serverResult
       } else {
-        // 如果服务器失败但本地成功，显示警告
-        UIManager.showMessage(`⚠️ 本地备份成功，但上传到服务器失败: ${serverResult.error}`, 'warning', 3000)
-        return { success: true, offline: true, warning: '服务器备份失败' }
+        // 如果服务器备份失败，显示警告
+        UIManager.showMessage(`⚠️ 备份保存失败（可能是网络问题）: ${serverResult.error}`, 'warning', 3000)
+        return { success: false, error: serverResult.error }
       }
     } catch (err) {
-      UIManager.showMessage(`⚠️ 本地备份成功，但上传到服务器失败`, 'warning', 3000)
-      return { success: true, offline: true, warning: err.message }
+      UIManager.showMessage(`⚠️ 备份保存失败（可能是网络问题）`, 'warning', 3000)
+      return { success: false, error: err.message }
     }
   },
 
@@ -694,7 +694,7 @@ Object.assign(window.YanyuApp, {
         return new Date(date).toLocaleString('zh-CN')
       }
 
-      if (confirm(`确认恢复本地手动备份吗？\n备份包含 ${backupInfo.recordCount} 条记录\n备份时间: ${formatTime(backupInfo.timestamp)}\n\n这会覆盖当前的本地数据。`)) {
+      if (confirm(`确认恢复此备份吗？\n备份包含 ${backupInfo.recordCount} 条记录\n备份时间: ${formatTime(backupInfo.timestamp)}\n\n这会覆盖当前的本地数据。`)) {
         const result = LocalStorageManager.restoreManualBackup()
         if (result.success) {
           UIManager.showMessage('✅ 手动备份已恢复，页面将刷新', 'success', 1500)
