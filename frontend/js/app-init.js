@@ -339,40 +339,17 @@ const AuthUI = {
         syncStatus.innerHTML = html
       }
 
-      // [新增] 更新手动备份状态显示（从服务器获取）
+      // 更新手动备份状态显示（从服务器获取手动备份信息）
       if (manualBackupStatus) {
         try {
-          // 尝试从服务器获取备份列表
+          // 从服务器获取备份列表
           const backupListResult = await ApiClient.getBackupList()
           
           if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-            // 优先显示手动备份（如果存在），否则显示最新备份
+            // 显示手动备份（优先显示，因为保政策限制只有一个手动备份）
             const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-            const latestBackup = manualBackup || backupListResult.backups[0]
             
-            const formatTime = (date) => {
-              if (!date) return '未知'
-              return new Date(date).toLocaleString('zh-CN')
-            }
-            
-            const backupTypeLabel = latestBackup.backupType === 'manual' ? '📪 手动备份' : '⏱️ 自动备份'
-            
-            manualBackupStatus.className = 'manual-backup-status'
-            manualBackupStatus.innerHTML = `
-              <div class="manual-backup-status-text">
-                <div>${backupTypeLabel} ${latestBackup.recordCount} 条记录</div>
-                <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(latestBackup.timestamp)}</div>
-              </div>
-            `
-            // 显示还原按钮
-            if (restoreBtn) {
-              restoreBtn.style.display = 'flex'
-            }
-          } else {
-            // 服务器没有备份，显示本地备份信息
-            const backupInfo = LocalStorageManager.getManualBackupInfo()
-            
-            if (backupInfo.hasBackup) {
+            if (manualBackup) {
               const formatTime = (date) => {
                 if (!date) return '未知'
                 return new Date(date).toLocaleString('zh-CN')
@@ -381,14 +358,15 @@ const AuthUI = {
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
-                  <div>📦 本地备份 ${backupInfo.recordCount} 条记录</div>
-                  <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">保存于 ${formatTime(backupInfo.timestamp)}</div>
+                  <div>📪 手动备份 ${manualBackup.recordCount} 条记录</div>
+                  <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(manualBackup.timestamp)}</div>
                 </div>
               `
               if (restoreBtn) {
                 restoreBtn.style.display = 'flex'
               }
             } else {
+              // 没有手动备份，显示无备份
               manualBackupStatus.className = 'manual-backup-status'
               manualBackupStatus.innerHTML = `
                 <div class="manual-backup-status-text">
@@ -399,28 +377,8 @@ const AuthUI = {
                 restoreBtn.style.display = 'none'
               }
             }
-          }
-        } catch (err) {
-          console.warn('获取备份列表失败:', err)
-          // 如果服务器请求失败，回退到本地备份信息
-          const backupInfo = LocalStorageManager.getManualBackupInfo()
-          if (backupInfo.hasBackup) {
-            const formatTime = (date) => {
-              if (!date) return '未知'
-              return new Date(date).toLocaleString('zh-CN')
-            }
-            
-            manualBackupStatus.className = 'manual-backup-status'
-            manualBackupStatus.innerHTML = `
-              <div class="manual-backup-status-text">
-                <div>📦 本地备份 ${backupInfo.recordCount} 条记录</div>
-                <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">保存于 ${formatTime(backupInfo.timestamp)}</div>
-              </div>
-            `
-            if (restoreBtn) {
-              restoreBtn.style.display = 'flex'
-            }
           } else {
+            // 没有任何备份
             manualBackupStatus.className = 'manual-backup-status'
             manualBackupStatus.innerHTML = `
               <div class="manual-backup-status-text">
@@ -431,46 +389,27 @@ const AuthUI = {
               restoreBtn.style.display = 'none'
             }
           }
-        }
-      }
-    } else {
-      syncStatus.className = 'sync-status'
-      syncStatus.innerHTML = `<div class="sync-status-text">✓ 离线模式（未连接后端）</div>`
-      
-      // 未登录时也显示手动备份状态（仅显示本地备份）
-      if (manualBackupStatus) {
-        const backupInfo = LocalStorageManager.getManualBackupInfo()
-        
-        if (backupInfo.hasBackup) {
-          const formatTime = (date) => {
-            if (!date) return '未知'
-            return new Date(date).toLocaleString('zh-CN')
+        } catch (err) {
+          console.warn('获取备份列表失败:', err)
+          // 如果服务器请求失败，显示无备份
+          manualBackupStatus.className = 'manual-backup-status'
+          manualBackupStatus.innerHTML = `
+            <div class="manual-backup-status-text">
+              <span>📦 无法连接到服务器</span>
+            </div>
+          `
+          if (restoreBtn) {
+            restoreBtn.style.display = 'none'
           }
-          
-          manualBackupStatus.className = 'manual-backup-status'
-          manualBackupStatus.innerHTML = `
-            <div class="manual-backup-status-text">
-              <div>📦 本地备份 ${backupInfo.recordCount} 条记录</div>
-              <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">保存于 ${formatTime(backupInfo.timestamp)}</div>
-            </div>
-          `
-        } else {
-          manualBackupStatus.className = 'manual-backup-status'
-          manualBackupStatus.innerHTML = `
-            <div class="manual-backup-status-text">
-              <span>📦 无备份数据</span>
-            </div>
-          `
         }
       }
-
-      // 更新菜单中还原按钮的显示状态
+    } else {  // 未认证时的处理
+      // 隐藏还原按钮
       if (restoreBtn) {
-        const backupInfo = LocalStorageManager.getManualBackupInfo()
-        restoreBtn.style.display = backupInfo.hasBackup ? 'flex' : 'none'
+        restoreBtn.style.display = 'none'
       }
     }
-  },
+  }
 }
 
 // 将所有模块和方法填充到 window.YanyuApp
@@ -611,27 +550,19 @@ Object.assign(window.YanyuApp, {
    * 保存手动备份（同时保存到本地和服务器）
    */
   async saveManualBackup() {
-    // 先保存到本地
-    const localResult = LocalStorageManager.saveManualBackup()
-    if (!localResult.success) {
-      UIManager.showMessage(`❌ 保存备份失败: ${localResult.error}`, 'error', 3000)
-      return localResult
-    }
-
-    // 再上传到服务器（指定类型为 'manual'）
+    // 直接保存到后端服务器（不保存本地副本）
     try {
-      const serverResult = await ApiClient.saveBackup('manual')
-      if (serverResult.success) {
-        UIManager.showMessage(`✅ 备份已保存 (${serverResult.recordCount} 条记录)`, 'success', 2000)
+      const result = await ApiClient.saveBackup('manual')
+      if (result.success) {
+        UIManager.showMessage(`✅ 备份已保存到服务器 (${result.recordCount} 条记录)`, 'success', 2000)
         AuthUI.updateSyncStatus()
-        return serverResult
+        return result
       } else {
-        // 如果服务器备份失败，显示警告
-        UIManager.showMessage(`⚠️ 备份保存失败（可能是网络问题）: ${serverResult.error}`, 'warning', 3000)
-        return { success: false, error: serverResult.error }
+        UIManager.showMessage(`❌ 备份保存失败: ${result.error}`, 'error', 3000)
+        return { success: false, error: result.error }
       }
     } catch (err) {
-      UIManager.showMessage(`⚠️ 备份保存失败（可能是网络问题）`, 'warning', 3000)
+      UIManager.showMessage(`❌ 备份保存失败: ${err.message}`, 'error', 3000)
       return { success: false, error: err.message }
     }
   },
@@ -640,73 +571,49 @@ Object.assign(window.YanyuApp, {
    * 恢复手动备份（从服务器获取备份列表）
    */
   async restoreManualBackup() {
-    // 先尝试从服务器获取备份列表
+    // 从服务器获取备份列表
     const backupListResult = await ApiClient.getBackupList()
     
-    if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-      // 有服务器备份，显示备份列表让用户选择
-      const backups = backupListResult.backups
-      
-      let message = '选择要恢复的备份：\n\n'
-      const backupOptions = {}
-      
-      backups.forEach((backup, index) => {
-        const date = new Date(backup.timestamp).toLocaleString('zh-CN')
-        const typeLabel = backup.backupType === 'manual' ? '📪 手动' : '⏱️ 自动'
-        const option = `${index + 1}. [${typeLabel}] ${date} (${backup.recordCount} 条)`
-        message += option + '\n'
-        backupOptions[index + 1] = backup.id
-      })
-      
-      message += '\n输入索引号选择'
-      
-      const choice = prompt(message)
-      if (!choice || !(choice in backupOptions)) {
-        return { success: false, error: '用户取消' }
-      }
-      
-      const selectedBackupId = backupOptions[choice]
-      const selectedBackup = backups.find(b => b.id === selectedBackupId)
-      const typeLabel = selectedBackup.backupType === 'manual' ? '手动备份' : '自动备份'
-      
-      if (confirm(`确认恢复此${typeLabel}吗？\n时间: ${new Date(selectedBackup.timestamp).toLocaleString('zh-CN')}\n记录数: ${selectedBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
-        const result = await ApiClient.restoreBackup(selectedBackupId)
-        if (result.success) {
-          UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
-          setTimeout(() => location.reload(), 1500)
-          return result
-        } else {
-          UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
-          return result
-        }
-      }
-      return { success: false, error: '用户取消' }
-    } else {
-      // 没有服务器备份，尝试使用本地备份
-      const backupInfo = LocalStorageManager.getManualBackupInfo()
-      if (!backupInfo.hasBackup) {
-        UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
-        return { success: false, error: '没有备份' }
-      }
-
-      const formatTime = (date) => {
-        if (!date) return '未知'
-        return new Date(date).toLocaleString('zh-CN')
-      }
-
-      if (confirm(`确认恢复此备份吗？\n备份包含 ${backupInfo.recordCount} 条记录\n备份时间: ${formatTime(backupInfo.timestamp)}\n\n这会覆盖当前的本地数据。`)) {
-        const result = LocalStorageManager.restoreManualBackup()
-        if (result.success) {
-          UIManager.showMessage('✅ 手动备份已恢复，页面将刷新', 'success', 1500)
-          setTimeout(() => location.reload(), 1500)
-          return result
-        } else {
-          UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
-          return result
-        }
-      }
+    if (!backupListResult.success || !backupListResult.backups || backupListResult.backups.length === 0) {
+      UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
+      return { success: false, error: '没有备份' }
+    }
+    
+    const backups = backupListResult.backups
+    let message = '选择要恢复的备份：\n\n'
+    const backupOptions = {}
+    
+    backups.forEach((backup, index) => {
+      const date = new Date(backup.timestamp).toLocaleString('zh-CN')
+      const typeLabel = backup.backupType === 'manual' ? '📪 手动' : '⏱️ 自动'
+      const option = `${index + 1}. [${typeLabel}] ${date} (${backup.recordCount} 条)`
+      message += option + '\n'
+      backupOptions[index + 1] = backup.id
+    })
+    
+    message += '\n输入索引号选择'
+    
+    const choice = prompt(message)
+    if (!choice || !(choice in backupOptions)) {
       return { success: false, error: '用户取消' }
     }
+    
+    const selectedBackupId = backupOptions[choice]
+    const selectedBackup = backups.find(b => b.id === selectedBackupId)
+    const typeLabel = selectedBackup.backupType === 'manual' ? '手动备份' : '自动备份'
+    
+    if (confirm(`确认恢复此${typeLabel}吗？\n时间: ${new Date(selectedBackup.timestamp).toLocaleString('zh-CN')}\n记录数: ${selectedBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
+      const result = await ApiClient.restoreBackup(selectedBackupId)
+      if (result.success) {
+        UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
+        setTimeout(() => location.reload(), 1500)
+        return result
+      } else {
+        UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
+        return result
+      }
+    }
+    return { success: false, error: '用户取消' }
   },
 
   /**
