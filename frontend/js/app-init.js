@@ -63,10 +63,14 @@ const AuthUI = {
     
     if (savedUser) {
       this.updateUI(savedUser)
+      // 恢复登录状态后也要显示备份信息
+      await this.updateSyncStatus()
       return
     }
     
+    // 第三步：未登录，显示登录按钮但也要显示连接状态
     this.updateUI(null)
+    await this.updateSyncStatus()
   },
 
   /**
@@ -582,8 +586,21 @@ Object.assign(window.YanyuApp, {
   clearEquipmentDataOnly() {
     if (confirm('确认清空所有装备数据？登录信息将保留。')) {
       LocalStorageManager.clearEquipmentData()
-      UIManager.showMessage('✅ 装备数据已清空，页面将刷新', 'success', 1500)
-      setTimeout(() => location.reload(), 1500)
+      UIManager.showMessage('✅ 装备数据已清空', 'success', 1000)
+      
+      // 清空后立即进行一次自动备份
+      if (AuthHandler.isAuthenticated()) {
+        window.YanyuApp.autoBackup().then(() => {
+          console.log('✅ 清空后已自动备份')
+          // 更新状态显示
+          AuthUI.updateSyncStatus().then(() => {
+            UIManager.showMessage('✅ 已保存备份，页面将刷新', 'success', 1500)
+            setTimeout(() => location.reload(), 1500)
+          })
+        })
+      } else {
+        setTimeout(() => location.reload(), 1500)
+      }
       return { success: true }
     }
     return { success: false, error: '用户取消' }
