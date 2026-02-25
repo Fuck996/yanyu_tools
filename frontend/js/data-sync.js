@@ -404,9 +404,24 @@ export const DataSync = {
         result[equipment_type][location][equipment_name] = []
       }
 
+      // 处理 attributes：可能是字符串或对象
+      let parsedAttributes = []
+      if (attributes) {
+        if (typeof attributes === 'string') {
+          try {
+            parsedAttributes = JSON.parse(attributes)
+          } catch (e) {
+            console.warn('Failed to parse attributes string:', attributes)
+            parsedAttributes = []
+          }
+        } else if (typeof attributes === 'object') {
+          parsedAttributes = attributes
+        }
+      }
+
       result[equipment_type][location][equipment_name].push({
         q: quality,
-        attrs: attributes ? JSON.parse(attributes) : [],
+        attrs: parsedAttributes,
         special: special_attr || "",
         k: !!record.is_favorite,
       })
