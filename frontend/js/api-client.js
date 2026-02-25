@@ -14,9 +14,10 @@ async function checkBackendAvailability() {
   if (backendAvailable !== null) return backendAvailable
 
   try {
-    const response = await fetch(`${API_URL}/health`, { 
+    const response = await fetch(`${API_URL}/health`, {
       method: 'GET',
       timeout: 2000,
+      credentials: 'include',
     })
     backendAvailable = response.ok
     return backendAvailable
@@ -59,6 +60,7 @@ export const ApiClient = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(record),
       })
 
@@ -94,6 +96,7 @@ export const ApiClient = {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (response.ok) {
@@ -133,6 +136,7 @@ export const ApiClient = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify(updateData),
       })
 
@@ -170,6 +174,7 @@ export const ApiClient = {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (response.ok) {
@@ -204,6 +209,7 @@ export const ApiClient = {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
       })
 
       if (response.ok) {
@@ -230,7 +236,7 @@ export const ApiClient = {
     }
 
     try {
-      const response = await fetch(`${API_URL}/auth/user`)
+      const response = await fetch(`${API_URL}/auth/user`, { credentials: 'include' })
       if (response.ok) {
         const user = await response.json()
         return { success: true, user }
