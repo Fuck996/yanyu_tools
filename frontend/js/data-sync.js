@@ -154,7 +154,23 @@ export const DataSync = {
         const records = result.records
         console.log(`✅ 获取到 ${records.length} 条云端记录`)
 
-        // [改进] 只在首次登录时进行冲突检测
+          // 如果云端数据与本地数据一致，跳过同步并且不要更新时间
+          try {
+            const cloudDataInLocalFormat = this.convertCloudRecordsToLocal(records)
+            const localDataForCompare = LocalStorageManager.getEquipmentData()
+            const localHash = this.hashData(localDataForCompare)
+            const cloudHash = this.hashData(cloudDataInLocalFormat)
+
+            if (localHash && cloudHash && localHash === cloudHash) {
+              console.log('ℹ️ 本地与云端数据一致，跳过同步（不更新时间）')
+              // 不保存、不更新时间，也不改写 sync timestamp
+              return { success: true, recordCount: records.length, noChange: true }
+            }
+          } catch (err) {
+            console.warn('比较本地与云端数据时发生错误，继续正常同步', err)
+          }
+
+          // [改进] 只在首次登录时进行冲突检测
         const localData = LocalStorageManager.getEquipmentData()
         const localRecordCount = this.countLocalRecords(localData)
         const hasCheckedConflict = LocalStorageManager.getConflictCheckFlag()
@@ -197,6 +213,7 @@ export const DataSync = {
         const merged = this.mergeCloudData(records)
         LocalStorageManager.saveEquipmentData(merged)
 
+        // 只有在确实有数据变更的情况下才更新时间
         this.lastSyncTime = new Date()
         LocalStorageManager.updateSyncStatus('synced', {
           direction: 'download',
@@ -261,6 +278,22 @@ export const DataSync = {
       console.log('📤 上传本地数据到云端...')
       const data = LocalStorageManager.getEquipmentData()
       
+      // 在上传前先检查云端是否已有相同数据，若相同则跳过上传并且不要更新时间
+      try {
+        const remoteCheck = await ApiClient.getRecords()
+        if (remoteCheck.success) {
+          const remoteInLocal = this.convertCloudRecordsToLocal(remoteCheck.records)
+          const localHash = this.hashData(data)
+          const remoteHash = this.hashData(remoteInLocal)
+          if (localHash && remoteHash && localHash === remoteHash) {
+            console.log('ℹ️ 本地数据与云端一致，跳过上传（不更新时间）')
+            return { success: true, noChange: true }
+          }
+        }
+      } catch (err) {
+        console.warn('上传前比较云端数据失败，继续上传', err)
+      }
+
       // 实际上传逻辑取决于后端的数据结构
       // 这里是一个基础实现
       const result = await ApiClient.saveRecord({
@@ -394,10 +427,30 @@ export const DataSync = {
 
     console.log(`🔄 启用自动同步（间隔：${this.autoSyncIntervalSeconds}秒）`)
 
-    // 立即同步一次
-    this.syncFromCloud()
+    // 只有在下列情况下才立即触发一次同步：
+    // - 最近通过 OAuth 回调刚登录（handleOAuthCallback 会单独触发）
+    // - 本地最后同步时间不存在或已超过自动同步间隔
+    try {
+      const lastLocalTimestamp = LocalStorageManager.getEquipmentDataTimestamp()
+      const lastSyncMillis = lastLocalTimestamp ? new Date(lastLocalTimestamp).getTime() : null
+      const ageSeconds = lastSyncMillis ? ((Date.now() - lastSyncMillis) / 1000) : Infinity
 
-    // 定期同步
+      if (!lastLocalTimestamp || ageSeconds > this.autoSyncIntervalSeconds) {
+        // 仅当本地没有同步记录或已超时才立即同步一次
+        this.syncFromCloud().catch(err => {
+          console.warn('首次自动同步失败:', err)
+        })
+      } else {
+        console.log('ℹ️ 本地数据最近已同步，首次自动同步被跳过')
+      }
+    } catch (err) {
+      console.warn('检查本地同步时间失败，仍尝试立即同步一次', err)
+      this.syncFromCloud().catch(err2 => {
+        console.warn('首次自动同步失败:', err2)
+      })
+    }
+
+    // 定期同步（仅启动定时器，实际执行前会再检查认证）
     this.syncInterval = setInterval(() => {
       if (AuthHandler.isAuthenticated()) {
         this.syncFromCloud().catch(err => {

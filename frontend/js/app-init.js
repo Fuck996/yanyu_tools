@@ -282,11 +282,8 @@ const AuthUI = {
    */
   async checkBackendHealth() {
     try {
-      const response = await fetch('http://localhost:3001/api/health', {
-        method: 'GET',
-        timeout: 3000,
-      })
-      return response.ok
+      const available = await ApiClient.isBackendEnabled()
+      return !!available
     } catch (err) {
       console.warn('后端健康检查失败:', err.message)
       return false
