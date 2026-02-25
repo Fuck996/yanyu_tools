@@ -368,11 +368,13 @@ router.get('/backups', requireAuth, (req, res) => {
           }
 
           const backup = {
-            id: row.id,
-            backupType: row.backup_type,
-            timestamp: row.created_at,
-            recordCount,
+            id: String(row.id || ''),
+            backupType: String(row.backup_type || 'unknown'),
+            timestamp: String(row.created_at || new Date().toISOString()),
+            recordCount: Number(recordCount) || 0,
           }
+          
+          console.log(`  ✅ Built backup object:`, backup)
 
           if (row.backup_type === 'manual') {
             // 手动备份只保留第一条（最新）
