@@ -38,10 +38,12 @@ if (!window.YanyuApp) {
 // ========== 认证 UI 管理器 ==========
 const AuthUI = {
   dropdownOpen: false,
-  pollingTimer: null,      // 10 分钟刷新定时器
-  pollingStarted: false,    // 轮询是否已启动
-  retryTimer: null,         // 连接失败后的重试定时器（30 秒间隔）
-  isUpdatingStatus: false,  // 防止并发调用 updateSyncStatus
+  pollingTimer: null,       // 10 分钟刷新定时器
+  pollingStarted: false,     // 轮询是否已启动
+  retryTimer: null,          // 连接失败后的重试定时器（30 秒间隔）
+  isUpdatingStatus: false,   // 防止并发调用 updateSyncStatus
+  cachedBackupList: null,    // updateSyncStatus 获取的备份列表缓存
+  cachedBackupListTime: 0,   // 缓存时间戳
 
   /**
    * 初始化认证 UI
@@ -408,6 +410,9 @@ const AuthUI = {
 
       try {
         const backupListResult = await ApiClient.getBackupList()
+        // 缓存备份列表，供 restoreManualBackup 复用，避免重复请求
+        this.cachedBackupList = backupListResult
+        this.cachedBackupListTime = Date.now()
         const backendOnline = backupListResult.success !== false && !backupListResult.offline
         window.YanyuApp.backendStatus = backendOnline
 
@@ -617,25 +622,25 @@ Object.assign(window.YanyuApp, {
    */
   clearEquipmentDataOnly() {
     if (confirm('确认清空所有装备数据？登录信息将保留。')) {
-      // 清空本地存储
+      // 1. 先清空本地存储并立即刷新 UI（无需等待后端）
       LocalStorageManager.clearEquipmentData()
+      if (typeof window.renderNav === 'function') window.renderNav()
+      if (typeof window.renderMain === 'function') window.renderMain()
       UIManager.showMessage('✅ 装备数据已清空', 'success', 1000)
-      
-      // 清空后同时清空后端数据
+
+      // 2. 异步清空后端数据，完成后刷新备份状态面板
       if (AuthHandler.isAuthenticated()) {
         window.YanyuApp.clearAllData().then(() => {
           console.log('✅ 本地和后端数据都已清空')
-          // 更新状态显示
-          AuthUI.updateSyncStatus().then(() => {
-            UIManager.showMessage('✅ 数据清空完成，页面将刷新', 'success', 1500)
-            setTimeout(() => location.reload(), 1500)
-          })
+          AuthUI.cachedBackupList = null  // 使备份列表缓存失效
+          AuthUI.isUpdatingStatus = false
+          return AuthUI.updateSyncStatus()
+        }).then(() => {
+          UIManager.showMessage('✅ 数据清空完成', 'success', 1500)
         }).catch((err) => {
           console.error('❌ 清空操作失败:', err)
           UIManager.showMessage(`❌ 清空失败: ${err.message}`, 'error', 2000)
         })
-      } else {
-        setTimeout(() => location.reload(), 1500)
       }
       return { success: true }
     }
@@ -672,9 +677,21 @@ Object.assign(window.YanyuApp, {
    * 恢复手动备份（直接恢复最新的手动备份，不需要选择）
    */
   async restoreManualBackup() {
-    // 从服务器获取备份列表
-    const backupListResult = await ApiClient.getBackupList()
-    
+    // 优先复用 updateSyncStatus 已拿到的缓存（5 分钟内有效），避免重复请求
+    const CACHE_TTL = 5 * 60 * 1000
+    let backupListResult
+    if (
+      AuthUI.cachedBackupList &&
+      AuthUI.cachedBackupList.success &&
+      Date.now() - AuthUI.cachedBackupListTime < CACHE_TTL
+    ) {
+      backupListResult = AuthUI.cachedBackupList
+    } else {
+      backupListResult = await ApiClient.getBackupList()
+      AuthUI.cachedBackupList = backupListResult
+      AuthUI.cachedBackupListTime = Date.now()
+    }
+
     if (!backupListResult.success || !backupListResult.backups || backupListResult.backups.length === 0) {
       UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
       return { success: false, error: '没有备份' }

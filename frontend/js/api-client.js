@@ -17,7 +17,7 @@ let healthCacheTime = 0
 let healthCacheResult = null
 const HEALTH_CACHE_TTL      = 30 * 1000  // 成功缓存 30 秒
 const HEALTH_FAIL_CACHE_TTL = 15 * 1000  // 失败缓存 15 秒
-const HEALTH_TIMEOUT_MS     = 3000       // 单次超时 3 秒
+const HEALTH_TIMEOUT_MS     = 5000       // 单次超时 5 秒
 const HEALTH_MAX_RETRIES    = 3          // 最多尝试 3 次
 const HEALTH_RETRY_DELAY_MS = 1000       // 每次重试间隔 1 秒
 
@@ -482,11 +482,7 @@ export const ApiClient = {
    * @returns {Promise<Object>}
    */
   async restoreBackup(backupId) {
-    const available = await this.isBackendEnabled()
-    if (!available) {
-      return { success: false, offline: true, error: '后端未运行' }
-    }
-
+    // 调用方（restoreManualBackup）已通过 getBackupList 确认后端在线，无需重复健康检查
     const token = AuthHandler.getToken()
     if (!token) {
       return { success: false, error: '未认证' }
