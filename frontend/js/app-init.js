@@ -49,6 +49,8 @@ if (!window.YanyuApp) {
 // ========== 认证 UI 管理器 ==========
 const AuthUI = {
   dropdownOpen: false,
+  pollingTimer: null,  // 轮询定时器
+  pollingStarted: false,  // 轮询是否已启动
 
   /**
    * 初始化认证 UI
@@ -58,25 +60,21 @@ const AuthUI = {
     console.log('🔐 [AuthUI] 初始化认证界面...')
     
     // 第一步：检查是否有 OAuth 回调（用户刚刚登录）
-    console.log('🔍 [AuthUI] 检查 OAuth 回调...')
     const user = AuthHandler.handleOAuthCallback()
-    console.log('📊 [AuthUI] handleOAuthCallback() 返回:', user)
     
     if (user) {
       console.log('✅ [AuthUI] GitHub 登录成功:', user.username)
-      console.log('📊 [AuthUI] 用户对象详情:', JSON.stringify(user))
       this.updateUI(user)
+      // 登录成功后更新备份状态
+      await this.updateSyncStatus()
       return
     }
     
     // 第二步：如果没有回调，检查本地存储的用户信息（用户之前登过）
-    console.log('🔍 [AuthUI] 检查本地存储的用户信息...')
     const savedUser = AuthHandler.getUser()
-    console.log('📊 [AuthUI] getUser() 返回:', savedUser)
     
     if (savedUser) {
       console.log('✅ [AuthUI] 使用保存的用户信息:', savedUser.username)
-      console.log('📊 [AuthUI] 用户对象详情:', JSON.stringify(savedUser))
       this.updateUI(savedUser)
       return
     }
@@ -323,6 +321,37 @@ const AuthUI = {
   },
 
   /**
+   * 停止轮询
+   */
+  stopPolling() {
+    if (this.pollingTimer) {
+      clearInterval(this.pollingTimer)
+      this.pollingTimer = null
+      this.pollingStarted = false
+      console.log('⏹️ [AuthUI] 轮询已停止')
+    }
+  },
+
+  /**
+   * 启动10分钟的轮询
+   */
+  startPolling() {
+    if (this.pollingStarted) {
+      return
+    }
+    this.pollingStarted = true
+    console.log('▶️ [AuthUI] 启动10分钟轮询机制')
+    
+    // 设置10分钟后的下一次检查
+    this.pollingTimer = setInterval(() => {
+      if (AuthHandler.isAuthenticated()) {
+        console.log('⏱️ [AuthUI] 触发定时检查备份数据')
+        this.updateSyncStatus().catch(err => console.warn('轮询更新失败:', err.message))
+      }
+    }, 10 * 60 * 1000)  // 10分钟
+  },
+
+  /**
    * 更新同步状态显示
    * 不论认证状态如何，总是显示连接状态和备份信息
    */
@@ -341,8 +370,6 @@ const AuthUI = {
     // 总是显示主容器和状态卡片（添加null检查）
     if (statusBackupContainer) {
       statusBackupContainer.style.display = 'block'
-    } else {
-      console.warn('⚠️ [updateSyncStatus] 找不到 statusBackupContainer 元素')
     }
     
     if (headerStatusCard) {
@@ -369,18 +396,15 @@ const AuthUI = {
     if (status.authenticated) {
       // 获取并显示备份状态
       try {
-        console.log('📝 [updateSyncStatus] 开始获取备份列表...')
         if (loadingIndicator) loadingIndicator.style.display = 'none'
         if (failureIndicator) failureIndicator.style.display = 'none'
         
         const backupListResult = await ApiClient.getBackupList()
-        console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
-          success: backupListResult.success,
-          backupCount: backupListResult.backups?.length,
-          backups: backupListResult.backups
-        })
         
         if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
+          // 成功获取备份数据，启动轮询
+          this.startPolling()
+          
           const formatTime = (date) => {
             if (!date) return '未知'
             return new Date(date).toLocaleString('zh-CN')
@@ -389,7 +413,6 @@ const AuthUI = {
           // 显示自动备份（在上）
           const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
           if (autoBackup) {
-            console.log('✅ [updateSyncStatus] 找到自动备份')
             if (autoBackupItem) {
               autoBackupItem.style.display = 'flex'
               const autoCountEl = document.getElementById('autoBackupCount')
@@ -406,7 +429,6 @@ const AuthUI = {
           // 显示手动备份（在下）
           const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
           if (manualBackup) {
-            console.log('✅ [updateSyncStatus] 找到手动备份')
             if (manualBackupItem) {
               manualBackupItem.style.display = 'flex'
               const manualCountEl = document.getElementById('manualBackupCount')
@@ -420,12 +442,11 @@ const AuthUI = {
             if (manualBackupItem) manualBackupItem.style.display = 'none'
           }
         } else {
-          console.log('📭 [updateSyncStatus] 没有任何备份')
           if (manualBackupItem) manualBackupItem.style.display = 'none'
           if (autoBackupItem) autoBackupItem.style.display = 'none'
         }
       } catch (err) {
-        console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
+        console.warn('获取备份列表失败:', err.message)
         // 显示失败状态
         if (manualBackupItem) manualBackupItem.style.display = 'none'
         if (autoBackupItem) autoBackupItem.style.display = 'none'
@@ -712,10 +733,11 @@ async function initializeApp() {
     
     console.log('✅ [initializeApp] window.YanyuApp 已就位:', !!window.YanyuApp)
 
-    // 1. 注册同步状态回调
+    // 1. 注册同步状态回调（仅用于本地数据变化）
     console.log('📝 [initializeApp] 注册同步状态回调...')
     DataSync.setSyncStatusCallback(() => {
-      AuthUI.updateSyncStatus().catch(err => console.warn('更新同步状态失败:', err))
+      // 仅在数据实际同步变化时显示同步状态
+      AuthUI.updateSyncStatus().catch(err => console.warn('同步状态更新失败:', err))
     })
     console.log('✅ [initializeApp] 同步回调已注册')
 
@@ -729,18 +751,10 @@ async function initializeApp() {
     await DataSync.initialize()
     console.log('✅ [initializeApp] 数据同步初始化完成')
 
-    // 3.5 定期检查后端状态（每10秒检查一次，仅在已认证时）
-    setInterval(() => {
-      if (AuthHandler.isAuthenticated()) {
-        AuthUI.updateSyncStatus().catch(err => console.warn('定期更新同步状态失败:', err))
-      }
-    }, 10000)
-
-    // 3.6 初始化时立即显示连接状态
-    console.log('📝 [initializeApp] 初始化连接状态显示...')
+    // 3.5 初始化时获取一次备份状态
+    console.log('📝 [initializeApp] 初始化备份状态...')
     await AuthUI.updateSyncStatus()
-    console.log('✅ [initializeApp] 连接状态显示初始化完成')
-    console.log('✅ [initializeApp] 后端状态监控已启动')
+    console.log('✅ [initializeApp] 备份状态初始化完成')
 
     // 3.6 启动自动备份机制
     console.log('📦 启动自动备份机制...')
