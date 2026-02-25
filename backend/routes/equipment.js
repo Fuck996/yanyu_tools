@@ -298,62 +298,59 @@ router.get('/backups', requireAuth, (req, res) => {
   const userId = req.user.id
 
   db.all(
-    `SELECT id, backup_type, created_at FROM export_history 
+    `SELECT id, backup_type, export_data, created_at FROM export_history 
      WHERE user_id = ? 
-     ORDER BY backup_type DESC, created_at DESC`,
+     ORDER BY backup_type ASC, created_at DESC`,
     [userId],
     (err, rows) => {
       if (err) {
+        console.error('获取备份列表失败:', err)
         return res.status(500).json({ error: 'Failed to fetch backups' })
       }
 
-      const backups = (rows || [])
-        // 按类型分组：手动备份只取最新一份，自动备份保留最近10份
-        .reduce((acc, row) => {
-          if (row.backup_type === 'manual') {
-            // 手动备份只取第一条（最新的）
-            if (!acc.manual) {
-              acc.manual = row
-            }
-          } else {
-            // 自动备份保留最近10份
-            if (!acc.auto) acc.auto = []
-            if (acc.auto.length < 10) {
-              acc.auto.push(row)
-            }
-          }
-          return acc
-        }, {})
-
-      // 合并结果：手动备份在前
-      const result = []
-      if (backups.manual) {
-        result.push(backups.manual)
-      }
-      if (backups.auto) {
-        result.push(...backups.auto)
-      }
-
-      const response = result.map(row => {
+      // 先按备份类型分组，然后返回
+      const manualBackups = []
+      const autoBackups = []
+      
+      (rows || []).forEach(row => {
         try {
-          const data = JSON.parse(row.export_data || '[]')
-          const recordCount = Array.isArray(data) ? data.length : 0
-          return {
+          let recordCount = 0
+          try {
+            const data = JSON.parse(row.export_data || '[]')
+            // 处理两种格式：单个对象或数组
+            recordCount = Array.isArray(data) ? data.length : 0
+          } catch (e) {
+            console.warn('无法解析备份数据:', row.id)
+            recordCount = 0
+          }
+
+          const backup = {
             id: row.id,
             backupType: row.backup_type,
             timestamp: row.created_at,
             recordCount,
           }
-        } catch {
-          return {
-            id: row.id,
-            backupType: row.backup_type,
-            timestamp: row.created_at,
-            recordCount: 0,
+
+          if (row.backup_type === 'manual') {
+            // 手动备份只保留第一条（最新）
+            if (manualBackups.length === 0) {
+              manualBackups.push(backup)
+            }
+          } else {
+            // 自动备份保留最新10条
+            if (autoBackups.length < 10) {
+              autoBackups.push(backup)
+            }
           }
+        } catch (e) {
+          console.error('处理备份失败:', e)
         }
       })
 
+      // 合并结果：手动备份在前
+      const response = [...manualBackups, ...autoBackups]
+      
+      console.log(`✅ 用户 ${userId} 备份列表: ${manualBackups.length} 个手动备份, ${autoBackups.length} 个自动备份`)
       res.json({ success: true, backups: response })
     }
   )

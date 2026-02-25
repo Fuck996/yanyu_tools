@@ -293,9 +293,10 @@ export const ApiClient = {
 
   /**
    * 保存手动备份到服务器
+   * @param {string} backupType - 备份类型 ('manual' 或 'auto')
    * @returns {Promise<Object>}
    */
-  async saveBackup() {
+  async saveBackup(backupType = 'manual') {
     const available = await this.isBackendEnabled()
     if (!available) {
       return { success: false, offline: true, error: '后端未运行' }
@@ -314,6 +315,7 @@ export const ApiClient = {
           'Authorization': `Bearer ${token}`,
         },
         credentials: 'include',
+        body: JSON.stringify({ backupType }),
       })
 
       if (response.ok) {

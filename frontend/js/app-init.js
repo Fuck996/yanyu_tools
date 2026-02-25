@@ -604,9 +604,9 @@ Object.assign(window.YanyuApp, {
       return localResult
     }
 
-    // 再上传到服务器
+    // 再上传到服务器（指定类型为 'manual'）
     try {
-      const serverResult = await ApiClient.saveBackup()
+      const serverResult = await ApiClient.saveBackup('manual')
       if (serverResult.success) {
         UIManager.showMessage(`✅ 备份已保存 (${serverResult.recordCount} 条记录)`, 'success', 2000)
         AuthUI.updateSyncStatus()
