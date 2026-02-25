@@ -325,20 +325,17 @@
         <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 在线保存</button>
         <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 在线恢复</button>
         <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
-        <button class="ctrl-btn" id="menuToggleBtn" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">⋯ 菜单</button>
+        <button class="ctrl-btn" id="menuToggleBtn" onclick="window.YanyuApp?.AuthUI?.toggleDropdown()">更多功能</button>
         <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
         <div class="auth-container">
-            <img id="defaultAvatar" class="user-avatar" alt="avatar" src="https://avatars.githubusercontent.com/u/1?v=4" style="width:36px;height:36px;border-radius:50%;margin-right:8px;">
             <button class="login-btn" id="loginBtn">🔑 登录 GitHub</button>
             <div class="user-panel" id="userPanel" style="display:none;" onclick="window.YanyuApp?.AuthUI?.toggleUserDropdown()">
                 <div class="user-panel-header">
                     <img class="user-avatar" id="userAvatar" alt="avatar">
                     <div class="user-name" id="userName"></div>
                 </div>
-                <!-- 登录后的用户下拉菜单（包含退出登录） -->
+                <!-- 登录后的用户下拉菜单（仅保留退出登录） -->
                 <div class="user-dropdown" id="userDropdown">
-                    <div class="dropdown-item" onclick="window.YanyuApp?.AuthUI?.visitProject()">🔗 访问项目</div>
-                    <div class="dropdown-divider"></div>
                     <div class="dropdown-item danger" onclick="window.YanyuApp?.AuthUI?.logout()">🚪 退出登录</div>
                 </div>
             </div>

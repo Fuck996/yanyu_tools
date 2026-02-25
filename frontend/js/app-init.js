@@ -115,6 +115,10 @@ const AuthUI = {
       return
     }
     this.dropdownOpen = !this.dropdownOpen
+    // 互斥：如果打开通用菜单，则关闭用户下拉
+    if (this.dropdownOpen) {
+      this.closeUserDropdown()
+    }
     dropdown.classList.toggle('active', this.dropdownOpen)
     console.log('🔄 [AuthUI] 下拉菜单已切换:', this.dropdownOpen ? '打开' : '关闭')
   },
@@ -143,6 +147,10 @@ const AuthUI = {
       return
     }
     this.userDropdownOpen = !this.userDropdownOpen
+    // 互斥：如果打开用户下拉，则关闭通用菜单
+    if (this.userDropdownOpen) {
+      this.closeDropdown()
+    }
     dropdown.classList.toggle('active', this.userDropdownOpen)
     console.log('🔄 [AuthUI] 用户下拉已切换:', this.userDropdownOpen ? '打开' : '关闭')
   },
@@ -821,10 +829,11 @@ async function initializeApp() {
     console.log('=' .repeat(50))
     console.log('💡 使用 window.YanyuApp 访问所有 API')
 
-    // 6. 设置全局事件监听：点击其他地方关闭下拉菜单（考虑 control-panel）
+    // 6. 设置全局事件监听：点击其他地方关闭下拉菜单（考虑 control-panel、user-dropdown）
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.user-panel') && !e.target.closest('.auth-dropdown') && !e.target.closest('.control-panel')) {
+      if (!e.target.closest('.control-panel') && !e.target.closest('.auth-dropdown') && !e.target.closest('.user-dropdown') && !e.target.closest('.user-panel')) {
         AuthUI.closeDropdown()
+        AuthUI.closeUserDropdown()
       }
     })
   } catch (err) {
