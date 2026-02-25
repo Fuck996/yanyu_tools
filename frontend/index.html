@@ -160,20 +160,21 @@
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* 状态和备份框 - 右上角fixed定位，横向排列 */
-        .status-backup-container { position: fixed; top: 70px; right: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; z-index: 999; max-width: 320px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .status-backup-content { display: flex; gap: 12px; align-items: flex-start; }
+        .status-backup-container { position: fixed; top: 70px; right: 15px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; z-index: 999; max-width: 420px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .status-backup-content { display: flex; gap: 16px; align-items: flex-start; }
         
-        /* 同步状态 - 不显示记录数 */
-        .status-left { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; padding-right: 10px; border-right: 1px solid var(--border); min-width: 70px; }
+        /* 同步状态 - 上下居中，支持多行显示 */
+        .status-left { display: flex; flex-direction: column; gap: 6px; font-size: 11px; padding-right: 12px; border-right: 1px solid var(--border); min-width: 75px; justify-content: center; }
         .sync-status-line { display: flex; align-items: center; gap: 4px; font-size: 11px; white-space: nowrap; }
-        .sync-status-icon { font-size: 12px; flex-shrink: 0; }
+        .sync-status-icon { font-size: 14px; flex-shrink: 0; }
         .sync-status-text { color: var(--text); font-weight: 500; }
+        .sync-status-extra { font-size: 10px; color: var(--nav-text); line-height: 1.2; }
         
         /* 备份信息 - 横向排列，各占2行 */
-        .backup-status-box { display: flex; gap: 16px; flex: 1; }
-        .backup-item { display: flex; flex-direction: column; gap: 2px; min-width: 100px; }
+        .backup-status-box { display: flex; gap: 20px; flex: 1; }
+        .backup-item { display: flex; flex-direction: column; gap: 4px; min-width: 110px; }
         .backup-item-header { display: flex; align-items: center; gap: 3px; font-weight: 600; font-size: 11px; white-space: nowrap; }
-        .backup-item-count { font-size: 11px; color: var(--text); }
+        .backup-item-count { font-size: 11px; color: var(--text); display: none; }
         .backup-item-time { font-size: 10px; color: var(--nav-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 
@@ -369,6 +370,7 @@
                 <span class="sync-status-icon" id="syncStatusIcon">🟢</span>
                 <span class="sync-status-text" id="syncStatusText">已连接</span>
             </div>
+            <div class="sync-status-extra" id="syncStatusExtra"></div>
         </div>
         <!-- 备份信息：自动备份在上，手动备份在下 -->
         <div class="backup-status-box" id="backupStatusBox">

@@ -324,12 +324,15 @@ const AuthUI = {
       statusBackupContainer.style.display = 'block'
       
       // 更新同步状态显示
+      const syncStatusExtra = document.getElementById('syncStatusExtra')
       if (status.isSyncing) {
         syncStatusIcon.textContent = '⏳'
-        syncStatusText.textContent = `正在同步 (${status.syncedRecords}/${status.totalRecords})`
+        syncStatusText.textContent = '正在同步中'
+        syncStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
       } else {
         syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
         syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
+        syncStatusExtra.textContent = ''
       }
 
       // 获取并显示备份状态
@@ -353,7 +356,8 @@ const AuthUI = {
           if (autoBackup) {
             console.log('✅ [updateSyncStatus] 找到自动备份')
             autoBackupItem.style.display = 'flex'
-            document.getElementById('autoBackupCount').textContent = `${autoBackup.recordCount}条记录`
+            document.getElementById('autoBackupCount').style.display = 'none'
+            document.querySelector('#autoBackupItem .backup-item-header').textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
             document.getElementById('autoBackupTime').textContent = `${formatTime(autoBackup.timestamp)}`
           } else {
             autoBackupItem.style.display = 'none'
@@ -364,7 +368,8 @@ const AuthUI = {
           if (manualBackup) {
             console.log('✅ [updateSyncStatus] 找到手动备份')
             manualBackupItem.style.display = 'flex'
-            document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
+            document.getElementById('manualBackupCount').style.display = 'none'
+            document.querySelector('#manualBackupItem .backup-item-header').textContent = `📪 手动备份(${manualBackup.recordCount}条)`
             document.getElementById('manualBackupTime').textContent = `${formatTime(manualBackup.timestamp)}`
           } else {
             manualBackupItem.style.display = 'none'
