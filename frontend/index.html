@@ -86,7 +86,7 @@
         /* 恢复原始角标样式与偏移量 */
         .badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 10px; min-width: 12px; text-align: center; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 
-        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 220px); min-height: 500px; }
+        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 270px); min-height: 400px; }
         .loc-section { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
         .loc-title { font-size: 1.15em; font-weight: bold; color: var(--title-color); margin-bottom: 20px; text-align: center; }
 
@@ -143,7 +143,6 @@
         .user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue); }
         .user-name { font-size: 12px; color: var(--text); font-weight: bold; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .user-status { width: 8px; height: 8px; border-radius: 50%; background: var(--green); margin-left: 2px; }
-        .user-sync-info { font-size: 11px; color: var(--nav-text); padding: 4px 8px; text-align: center; white-space: nowrap; }
 
         .auth-dropdown { position: absolute; top: 100%; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 12px; min-width: 220px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); z-index: 1001; display: none; margin-top: 8px; overflow: hidden; }
         .auth-dropdown.active { display: block; animation: slideDown 0.2s ease-out; }
@@ -160,16 +159,21 @@
         .sync-spinner { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--blue); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* 状态和备份框 - 在主功能栏下方 */
-        .status-backup-container { margin-bottom: 20px; background: var(--card); padding: 16px; border-radius: 8px; border: 1px solid var(--border); }
-        .status-section { padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; font-size: 12px; }
-        .status-section:last-of-type { padding-bottom: 0; border-bottom: none; margin-bottom: 0; }
+        /* 状态和备份框 - 在主功能栏下方，跨越全宽 */
+        .status-backup-container { background: transparent; padding: 0; border-radius: 0; border: none; margin-bottom: 12px; }
+        .status-backup-content { background: var(--card); padding: 12px 20px; border-radius: 8px; border: 1px solid var(--border); display: flex; gap: 20px; align-items: stretch; }
         
-        /* 备份状态区域 - 显示手动和自动备份 */
-        .backup-status-box { display: flex; gap: 16px; font-size: 12px; }
-        .backup-item { flex: 1; padding: 0; }
-        .backup-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 600; font-size: 12px; }
-        .backup-item-count { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+        /* 同步状态左侧 */
+        .status-left { display: flex; flex-direction: column; justify-content: center; gap: 6px; min-width: 140px; padding-right: 20px; border-right: 1px solid var(--border); }
+        .sync-status-line { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .sync-status-icon { font-size: 14px; }
+        .sync-status-text { color: var(--text); font-weight: 500; }
+        
+        /* 备份信息右侧 */
+        .backup-status-box { display: flex; gap: 28px; flex: 1; font-size: 12px; }
+        .backup-item { display: flex; flex-direction: column; justify-content: center; min-width: 120px; }
+        .backup-item-header { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-weight: 600; font-size: 12px; }
+        .backup-item-count { font-size: 12px; color: var(--text); margin-bottom: 2px; }
         .backup-item-time { font-size: 11px; color: var(--nav-text); }
 
 
@@ -314,7 +318,6 @@
                 <div class="user-name" id="userName"></div>
                 <div class="user-status" id="userStatus"></div>
             </div>
-            <div class="user-sync-info" id="userSyncInfo" style="display:none;"></div>
             <div class="auth-dropdown" id="authDropdown">
                 <div class="dropdown-header">
                     <img class="dropdown-avatar" id="dropdownAvatar" alt="avatar">
@@ -359,24 +362,28 @@
 
 <!-- 状态和备份信息框 -->
 <div class="status-backup-container" id="statusBackupContainer" style="display:none;">
-    <!-- 同步状态 -->
-    <div class="status-section" id="syncStatusSection" style="display:none;">
-        <span id="syncStatusIcon">🟢</span>
-        <span id="syncStatusText">已连接</span>
-    </div>
-    <!-- 备份信息 -->
-    <div class="backup-status-box" id="backupStatusBox">
-        <!-- 手动备份 -->
-        <div class="backup-item" id="manualBackupItem" style="display:none;">
-            <div class="backup-item-header">📪 手动备份</div>
-            <div class="backup-item-count" id="manualBackupCount"></div>
-            <div class="backup-item-time" id="manualBackupTime"></div>
+    <div class="status-backup-content">
+        <!-- 左侧同步状态 -->
+        <div class="status-left">
+            <div class="sync-status-line">
+                <span class="sync-status-icon" id="syncStatusIcon">🟢</span>
+                <span class="sync-status-text" id="syncStatusText">已连接</span>
+            </div>
         </div>
-        <!-- 自动备份 -->
-        <div class="backup-item" id="autoBackupItem" style="display:none;">
-            <div class="backup-item-header">⏱️ 自动备份</div>
-            <div class="backup-item-count" id="autoBackupCount"></div>
-            <div class="backup-item-time" id="autoBackupTime"></div>
+        <!-- 右侧备份信息 -->
+        <div class="backup-status-box" id="backupStatusBox">
+            <!-- 手动备份 -->
+            <div class="backup-item" id="manualBackupItem" style="display:none;">
+                <div class="backup-item-header">📪 手动备份</div>
+                <div class="backup-item-count" id="manualBackupCount"></div>
+                <div class="backup-item-time" id="manualBackupTime"></div>
+            </div>
+            <!-- 自动备份 -->
+            <div class="backup-item" id="autoBackupItem" style="display:none;">
+                <div class="backup-item-header">⏱️ 自动备份</div>
+                <div class="backup-item-count" id="autoBackupCount"></div>
+                <div class="backup-item-time" id="autoBackupTime"></div>
+            </div>
         </div>
     </div>
 </div>

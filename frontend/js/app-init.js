@@ -295,10 +295,11 @@ const AuthUI = {
    */
   async updateSyncStatus() {
     const statusBackupContainer = document.getElementById('statusBackupContainer')
-    const syncStatusSection = document.getElementById('syncStatusSection')
     const syncStatusIcon = document.getElementById('syncStatusIcon')
     const syncStatusText = document.getElementById('syncStatusText')
-    const userSyncInfo = document.getElementById('userSyncInfo')
+    const backupStatusBox = document.getElementById('backupStatusBox')
+    const manualBackupItem = document.getElementById('manualBackupItem')
+    const autoBackupItem = document.getElementById('autoBackupItem')
     const status = DataSync.getSyncStatus()
 
     if (status.authenticated) {
@@ -319,84 +320,68 @@ const AuthUI = {
         console.warn('获取服务器统计信息失败，使用本地数据:', err)
       }
 
-      // 更新主容器显示和同步状态
+      // 显示主容器
       statusBackupContainer.style.display = 'block'
       
+      // 更新同步状态显示
       if (status.isSyncing) {
-        syncStatusSection.style.display = 'flex'
         syncStatusIcon.textContent = '⏳'
         syncStatusText.textContent = `正在同步 (${status.syncedRecords}/${status.totalRecords})`
-        userSyncInfo.textContent = `正在同步...`
-        userSyncInfo.style.display = 'block'
       } else {
-        syncStatusSection.style.display = 'flex'
-        const statusIndicator = backendOnline ? '🟢' : '🔴'
-        const statusText = backendOnline ? `已连接 | 共 ${recordCount} 条记录` : `连接失败`
-        syncStatusIcon.textContent = statusIndicator
-        syncStatusText.textContent = statusText
-        userSyncInfo.textContent = backendOnline ? '🟢 已连接' : '🔴 连接失败'
-        userSyncInfo.style.display = 'block'
+        syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
+        syncStatusText.textContent = backendOnline ? `已连接 | 共 ${recordCount} 条` : `连接失败`
       }
 
-      // 更新备份状态显示（显示手动备份和自动备份信息）
-      const backupStatusBox = document.getElementById('backupStatusBox')
-      const manualBackupItem = document.getElementById('manualBackupItem')
-      const autoBackupItem = document.getElementById('autoBackupItem')
-      
-      if (backupStatusBox) {
-        try {
-          console.log('📝 [updateSyncStatus] 开始获取备份列表...')
-          const backupListResult = await ApiClient.getBackupList()
-          console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
-            success: backupListResult.success,
-            backupCount: backupListResult.backups?.length,
-            backups: backupListResult.backups
-          })
+      // 获取并显示备份状态
+      try {
+        console.log('📝 [updateSyncStatus] 开始获取备份列表...')
+        const backupListResult = await ApiClient.getBackupList()
+        console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
+          success: backupListResult.success,
+          backupCount: backupListResult.backups?.length,
+          backups: backupListResult.backups
+        })
+        
+        if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
+          const formatTime = (date) => {
+            if (!date) return '未知'
+            return new Date(date).toLocaleString('zh-CN')
+          }
           
-          let hasBackup = false
-          
-          if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-            const formatTime = (date) => {
-              if (!date) return '未知'
-              return new Date(date).toLocaleString('zh-CN')
-            }
-            
-            // 显示手动备份
-            const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-            if (manualBackup) {
-              console.log('✅ [updateSyncStatus] 找到手动备份')
-              manualBackupItem.style.display = 'block'
-              document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
-              document.getElementById('manualBackupTime').textContent = `于 ${formatTime(manualBackup.timestamp)}`
-              hasBackup = true
-            } else {
-              manualBackupItem.style.display = 'none'
-            }
-            
-            // 显示自动备份
-            const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
-            if (autoBackup) {
-              console.log('✅ [updateSyncStatus] 找到自动备份')
-              autoBackupItem.style.display = 'block'
-              document.getElementById('autoBackupCount').textContent = `${autoBackup.recordCount}条记录`
-              document.getElementById('autoBackupTime').textContent = `于 ${formatTime(autoBackup.timestamp)}`
-              hasBackup = true
-            } else {
-              autoBackupItem.style.display = 'none'
-            }
+          // 显示手动备份
+          const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+          if (manualBackup) {
+            console.log('✅ [updateSyncStatus] 找到手动备份')
+            manualBackupItem.style.display = 'flex'
+            document.getElementById('manualBackupCount').textContent = `${manualBackup.recordCount}条记录`
+            document.getElementById('manualBackupTime').textContent = `${formatTime(manualBackup.timestamp)}`
           } else {
-            console.log('📭 [updateSyncStatus] 没有任何备份')
             manualBackupItem.style.display = 'none'
+          }
+          
+          // 显示自动备份
+          const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
+          if (autoBackup) {
+            console.log('✅ [updateSyncStatus] 找到自动备份')
+            autoBackupItem.style.display = 'flex'
+            document.getElementById('autoBackupCount').textContent = `${autoBackup.recordCount}条记录`
+            document.getElementById('autoBackupTime').textContent = `${formatTime(autoBackup.timestamp)}`
+          } else {
             autoBackupItem.style.display = 'none'
           }
-        } catch (err) {
-          console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
+        } else {
+          console.log('📭 [updateSyncStatus] 没有任何备份')
+          manualBackupItem.style.display = 'none'
+          autoBackupItem.style.display = 'none'
         }
+      } catch (err) {
+        console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
+        manualBackupItem.style.display = 'none'
+        autoBackupItem.style.display = 'none'
       }
     } else {
       // 未认证状态
       statusBackupContainer.style.display = 'none'
-      userSyncInfo.style.display = 'none'
     }
   }
 }
