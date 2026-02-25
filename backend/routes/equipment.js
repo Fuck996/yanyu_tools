@@ -123,11 +123,19 @@ router.delete('/records/:id', requireAuth, (req, res) => {
 })
 
 // 批量导入装备数据（前端同步时调用）
-router.post('/import', requireAuth, (req, res) => {
+// 使用 Promise 包装 db 操作以支持 async/await
+const dbRun = (sql, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) reject(err)
+      else resolve(this)
+    })
+  })
+}
+
+router.post('/import', requireAuth, async (req, res) => {
   const userId = req.user.id
   const { data } = req.body
-  let successCount = 0
-  let errorCount = 0
 
   if (!data || typeof data !== 'object') {
     return res.status(400).json({ error: 'Invalid data format' })
@@ -136,60 +144,58 @@ router.post('/import', requireAuth, (req, res) => {
   console.log('POST /api/equipment/import called. user:', { id: userId }, 'data keys:', Object.keys(data))
 
   try {
-    // 清空用户现有记录（同步前清空）
-    db.run('DELETE FROM equipment_records WHERE user_id = ?', [userId], (err) => {
-      if (err) {
-        console.error('Failed to clear records:', err)
-        return res.status(500).json({ error: 'Failed to clear existing records', detail: err.message })
-      }
+    // 清空用户现有记录
+    await dbRun('DELETE FROM equipment_records WHERE user_id = ?', [userId])
+    console.log('✅ Cleared existing records for user:', userId)
 
-      // 递归解析前端的嵌套数据结构并插入
-      const parseAndInsert = (obj, depth = 0) => {
-        Object.entries(obj).forEach(([key, value]) => {
-          if (Array.isArray(value)) {
-            // 这是一个记录数组
-            value.forEach((record) => {
-              if (record && typeof record === 'object') {
-                const recordId = record.id || uuidv4()
-                const equipmentType = record.equipmentType || 'unknown'
-                const location = record.location || 'unknown'
-                const equipmentName = record.equipmentName || key
-                const quality = record.quality || 'normal'
-                const specialAttr = record.specialAttr || ''
-                const attributes = record.attributes || {}
-                const isFavorite = record.isFavorite ? 1 : 0
+    // 递归解析前端的嵌套数据结构：
+    // { equipmentType: { location: { equipmentName: [records] } } }
+    let insertCount = 0
+    const parseAndInsert = async (obj, equipmentType = null, location = null) => {
+      for (const [key, value] of Object.entries(obj)) {
+        if (Array.isArray(value)) {
+          // 这是一个记录数组
+          for (const record of value) {
+            if (record && typeof record === 'object') {
+              const recordId = record.id || uuidv4()
+              const type = record.equipmentType || equipmentType || 'unknown'
+              const loc = record.location || location || 'unknown'
+              const name = record.equipmentName || key
+              const quality = record.quality || 'normal'
+              const specialAttr = record.specialAttr || ''
+              const attributes = record.attributes || {}
+              const isFavorite = record.isFavorite ? 1 : 0
 
-                db.run(
+              try {
+                await dbRun(
                   `INSERT INTO equipment_records 
                    (id, user_id, equipment_type, location, equipment_name, quality, attributes, special_attr, is_favorite)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                  [recordId, userId, equipmentType, location, equipmentName, quality, JSON.stringify(attributes), specialAttr, isFavorite],
-                  (err) => {
-                    if (err) {
-                      console.error('Failed to insert record during import:', err)
-                      errorCount++
-                    } else {
-                      successCount++
-                    }
-                  }
+                  [recordId, userId, type, loc, name, quality, JSON.stringify(attributes), specialAttr, isFavorite]
                 )
+                insertCount++
+              } catch (insertErr) {
+                console.error('Failed to insert record:', { recordId, name, error: insertErr.message })
               }
-            })
-          } else if (value && typeof value === 'object') {
-            // 递归处理嵌套对象
-            parseAndInsert(value, depth + 1)
+            }
           }
-        })
+        } else if (value && typeof value === 'object') {
+          // 递归处理嵌套对象
+          // 传递当前 key 作为 equipmentType 或 location
+          await parseAndInsert(value, equipmentType || key, location || (equipmentType ? key : null))
+        }
       }
+    }
 
-      parseAndInsert(data)
+    await parseAndInsert(data)
 
-      // 返回成功（注意：由于异步插入，这里不能确实知道实际插入数）
-      res.json({
-        success: true,
-        message: 'Data import initiated',
-        estimatedRecords: Object.values(data).length,
-      })
+    console.log(`✅ Import completed: ${insertCount} records inserted`)
+
+    // 返回实际插入的记录数
+    res.json({
+      success: true,
+      message: 'Data import completed',
+      insertedRecords: insertCount,
     })
   } catch (err) {
     console.error('Import error:', err)
