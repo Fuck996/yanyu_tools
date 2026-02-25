@@ -8,11 +8,11 @@
  */
 
 // ⚠️ 最优先：立即定义版本号到 window 对象
-window.__FRONTEND_VERSION__ = '1.0.1'
+window.__FRONTEND_VERSION__ = '1.1.0'
 window.__FRONTEND_BUILD_DATE__ = '2026-02-25'
 
 // 版本号定义 - 也在模块中备份
-const FRONTEND_VERSION = '1.0.1'
+const FRONTEND_VERSION = '1.1.0'
 const FRONTEND_BUILD_DATE = '2026-02-25'
 
 // 暴露到 window（备用）
