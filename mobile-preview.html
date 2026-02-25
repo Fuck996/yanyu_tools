@@ -1,0 +1,620 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>烟雨江湖 移动端方案 v2</title>
+<style>
+/* ===== 预览外框 ===== */
+body { margin: 0; background: #111827; font-family: "PingFang SC","Microsoft YaHei",sans-serif;
+  display: flex; flex-direction: column; align-items: center; padding: 20px 12px 60px; gap: 32px; }
+.demo-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; position: sticky; top: 0; z-index: 999; background: #111827; padding: 8px 0; }
+.demo-tab { padding: 7px 16px; border-radius: 20px; border: 1px solid #444; background: #1f2937; color: #9ca3af; font-size: 13px; cursor: pointer; transition: .15s; }
+.demo-tab.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+.preview-label { color: #6b7280; font-size: 12px; letter-spacing: 1px; }
+.phone-frame { width: 390px; border: 2.5px solid #374151; border-radius: 44px; overflow: hidden;
+  box-shadow: 0 24px 72px rgba(0,0,0,.7); background: #0f0f0f; flex-shrink: 0; }
+.phone-screen { width: 100%; display: flex; flex-direction: column; height: 844px; overflow: hidden; position: relative; }
+.note-card { width: 390px; background: #1f2937; border: 1px solid #374151; border-radius: 14px;
+  padding: 14px 18px; color: #d1d5db; font-size: 12px; line-height: 1.9; }
+.note-card h4 { margin: 0 0 6px; color: #93c5fd; font-size: 13px; }
+.note-card ul { margin: 0; padding-left: 18px; }
+.ok  { color: #34d399; }
+.warn { color: #fbbf24; }
+:root {
+  --bg:#0f0f0f; --card:#1a1a1a; --text:#e0e0e0; --border:#2a2a2a;
+  --green:#2ecc71; --blue:#3498db; --purple:#9b59b6; --accent:#f1c40f;
+  --btn:#252525; --muted:#888; --title:#fff; --red:#ff4757;
+}
+.status-bar { height: 44px; background:#111; display:flex; align-items:flex-end;
+  justify-content:space-between; padding:0 24px 6px; flex-shrink:0; }
+.status-time { color:#fff; font-size:14px; font-weight:600; }
+.status-icons { color:#fff; font-size:12px; display:flex; gap:5px; }
+.app-header { height: 50px; background:rgba(17,17,17,.97); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border); display:flex; align-items:center;
+  padding:0 14px; gap:10px; flex-shrink:0; z-index:10; }
+.header-title { font-size:15px; font-weight:bold; color:var(--title); flex:1; }
+.header-sync { display:flex; align-items:center; gap:5px; }
+.sync-dot { width:7px; height:7px; border-radius:50%; background:var(--green); }
+.sync-label { font-size:11px; color:var(--green); }
+.hamburger { width:36px; height:36px; border-radius:10px; background:var(--btn);
+  border:none; color:var(--muted); font-size:18px; display:flex; align-items:center;
+  justify-content:center; cursor:pointer; flex-shrink:0; }
+.header-logo { height:32px; width:auto; max-width:100px; object-fit:contain; flex-shrink:0; filter:brightness(1.1); }
+.sys-btn { display:flex; align-items:center; gap:5px; padding:5px 10px 5px 8px;
+  background:rgba(52,152,219,.12); border:1px solid rgba(52,152,219,.3); border-radius:18px;
+  cursor:pointer; flex-shrink:0; }
+.sys-btn-icon { font-size:15px; }
+.sys-btn-label { font-size:13px; font-weight:bold; color:var(--blue); }
+.sys-btn-caret { font-size:9px; color:rgba(52,152,219,.6); margin-left:1px; }
+/* 系统切换弹窗 */
+.sys-modal-overlay { position:absolute; inset:0; background:rgba(0,0,0,.65);
+  backdrop-filter:blur(8px); z-index:70; display:flex; align-items:center; justify-content:center; }
+.sys-modal { background:#1e2533; border:1px solid rgba(255,255,255,.08); border-radius:20px;
+  width:300px; overflow:hidden; box-shadow:0 24px 64px rgba(0,0,0,.8); }
+.sys-modal-title { text-align:center; padding:16px; font-size:13px; color:var(--muted);
+  border-bottom:1px solid var(--border); }
+.sys-opt { display:flex; align-items:center; gap:14px; padding:18px 20px;
+  cursor:pointer; border-bottom:1px solid rgba(255,255,255,.04); transition:.15s; }
+.sys-opt:last-of-type { border-bottom:none; }
+.sys-opt-emoji { font-size:28px; }
+.sys-opt-info { flex:1; }
+.sys-opt-name { font-size:16px; font-weight:bold; color:var(--title); margin-bottom:3px; }
+.sys-opt-desc { font-size:11px; color:var(--muted); }
+.sys-opt.active-sys { background:rgba(52,152,219,.08); }
+.sys-opt.active-sys .sys-opt-name { color:var(--blue); }
+.sys-check { font-size:18px; color:var(--blue); }
+.sys-modal-cancel { width:100%; padding:14px; background:transparent; border:none;
+  border-top:1px solid var(--border); color:var(--muted); font-size:13px; cursor:pointer; margin-top:8px; }
+/* 弹窗内系统 Tab */
+.sys-modal-tabs { display:flex; padding:12px 14px 0; gap:8px; }
+.sys-modal-tab { flex:1; display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:10px 0; border-radius:10px; border:1.5px solid var(--border);
+  background:var(--btn); color:var(--muted); font-size:13px; font-weight:bold; cursor:pointer; }
+.sys-modal-tab.active { background:rgba(52,152,219,.15); border-color:rgba(52,152,219,.5); color:var(--blue); }
+.sys-modal-tab-icon { font-size:17px; }
+/* 装备品类格子 */
+.sys-equip-section { padding:12px 14px 4px; }
+.sys-equip-title { font-size:11px; color:var(--muted); margin-bottom:9px; }
+.sys-equip-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+.sys-equip-chip { padding:10px 4px; text-align:center; font-size:13px; font-weight:bold;
+  background:var(--btn); border:1.5px solid var(--border); border-radius:10px;
+  color:var(--text); cursor:pointer; position:relative; }
+.sys-equip-chip.active { background:rgba(52,152,219,.18); border-color:var(--blue); color:var(--blue); }
+.sys-equip-chip .chip-badge { position:absolute; top:-5px; right:-3px; background:var(--accent);
+  color:#000; font-size:8px; padding:1px 4px; border-radius:7px; font-weight:800; }
+/* Header 按钮内装备分隔 */
+.sys-btn-sep { color:rgba(52,152,219,.4); margin:0 1px; font-size:11px; }
+.sys-btn-equip { font-size:13px; font-weight:bold; color:#7ec8e3; }
+.equip-tabs { height: 40px; background:var(--bg); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 12px; gap:8px; overflow-x:auto; flex-shrink:0; }
+.equip-tabs::-webkit-scrollbar { display:none; }
+.equip-tab { padding:5px 14px; border-radius:18px; font-size:13px; font-weight:bold;
+  border:1px solid var(--border); background:var(--btn); color:var(--muted);
+  white-space:nowrap; flex-shrink:0; position:relative; }
+.equip-tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+.equip-tab .badge { position:absolute; top:-5px; right:-5px; background:var(--accent);
+  color:#000; font-size:9px; padding:1px 4px; border-radius:8px; font-weight:800; }
+/* 地点分段控件 (2选1) */
+.loc-seg { height:42px; background:var(--card); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 14px; gap:0; flex-shrink:0; }
+.loc-seg-wrap { display:flex; flex:1; background:rgba(255,255,255,.05); border-radius:10px;
+  padding:3px; gap:2px; }
+.loc-seg-btn { flex:1; display:flex; align-items:center; justify-content:center; gap:5px;
+  padding:6px 0; border-radius:8px; font-size:12px; font-weight:bold; color:var(--muted);
+  cursor:pointer; transition:.15s; }
+.loc-seg-btn.active { background:var(--card); box-shadow:0 1px 4px rgba(0,0,0,.4);
+  color:var(--title); border:1px solid rgba(241,196,15,.25); }
+.loc-seg-btn.active .loc-dot { background:var(--accent); }
+.loc-dot { width:6px; height:6px; border-radius:50%; background:#444; flex-shrink:0; }
+.loc-content { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+.loc-content::-webkit-scrollbar { display:none; }
+.equip-header { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--border); flex-shrink:0; }
+.equip-header-col { padding:8px 10px; display:flex; align-items:center; justify-content:space-between; border-right:1px solid var(--border); }
+.equip-header-col:last-child { border-right:none; }
+.equip-name { font-size:12px; font-weight:bold; color:var(--title); }
+.add-btns { display:flex; gap:5px; }
+.add-btn { padding:3px 8px; border-radius:7px; border:none; font-size:11px; font-weight:bold; color:#fff; cursor:pointer; }
+.add-btn.g { background:var(--green); } .add-btn.b { background:var(--blue); } .add-btn.p { background:var(--purple); }
+.start-row { display:flex; align-items:center; gap:3px; font-size:10px; color:var(--muted); margin-top:3px; }
+.start-row input { width:26px; background:transparent; border:1px solid #444; border-radius:4px; color:#ddd; text-align:center; font-size:11px; padding:1px 0; }
+.data-row { display:flex; border-bottom:1px solid rgba(255,255,255,.04); align-items:stretch; min-height:58px; }
+.data-row:last-child { border-bottom:none; }
+.row-idx { width:24px; display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:var(--muted); background:rgba(255,255,255,.01);
+  border-right:1px solid rgba(255,255,255,.05); flex-shrink:0; }
+.data-cols { display:grid; grid-template-columns:1fr 1fr; flex:1; }
+.cell { display:flex; align-items:center; padding:6px 8px; gap:4px;
+  border-right:1px solid rgba(255,255,255,.05); cursor:pointer; }
+.cell:last-child { border-right:none; }
+.cell.keep { background:rgba(241,196,15,.08); }
+.cell-body { flex:1; }
+.cell-q { font-size:10px; font-weight:bold; margin-bottom:2px; }
+.cell-attrs { display:flex; flex-wrap:wrap; gap:2px; }
+.a { font-size:9px; background:rgba(52,152,219,.1); border:1px solid var(--blue); border-radius:3px; padding:1px 4px; color:var(--blue); }
+.s { font-size:9px; background:rgba(191,0,255,.1); border:1px solid #bf00ff; border-radius:3px; padding:1px 4px; color:#cf00ff; font-weight:bold; }
+.cell-empty { flex:1; display:flex; align-items:center; justify-content:center; color:#333; font-size:14px; }
+.cell-actions { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding:0 2px; }
+.star { font-size:16px; color:#333; padding:5px 4px; cursor:pointer; line-height:1; }
+.star.on { color:var(--accent); }
+.del  { font-size:11px; color:#333; padding:5px 4px; cursor:pointer; line-height:1; }
+.sheet-overlay { position:absolute; inset:0; background:rgba(0,0,0,.65);
+  backdrop-filter:blur(6px); z-index:50; display:flex; flex-direction:column; justify-content:flex-end; }
+.sheet-body { background:var(--card); border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border); padding:10px 16px 28px; }
+.sheet-handle { width:36px; height:4px; background:#3a3a3a; border-radius:2px; margin:0 auto 14px; }
+.sheet-status { display:flex; align-items:center; justify-content:space-between;
+  background:rgba(46,204,113,.07); border:1px solid rgba(46,204,113,.2);
+  border-radius:10px; padding:10px 14px; margin-bottom:10px; }
+.sheet-status-left { display:flex; align-items:center; gap:7px; }
+.sheet-status-dot { width:8px; height:8px; border-radius:50%; background:var(--green); }
+.sheet-status-text { font-size:12px; color:var(--green); font-weight:bold; }
+.sheet-user { display:flex; align-items:center; gap:7px; }
+.sheet-avatar { width:24px; height:24px; border-radius:50%; background:var(--blue);
+  display:flex; align-items:center; justify-content:center; font-size:12px; }
+.sheet-uname { font-size:12px; color:var(--text); }
+.sheet-backups { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.backup-card { background:var(--btn); border:1px solid var(--border); border-radius:9px; padding:10px 12px; }
+.backup-card-title { font-size:11px; color:var(--muted); margin-bottom:3px; }
+.backup-card-time { font-size:10px; color:#555; }
+.sheet-section-title { font-size:11px; color:var(--muted); margin-bottom:10px; text-align:center; }
+.sheet-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.sheet-item { display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:13px 4px; background:var(--btn); border-radius:12px;
+  border:1px solid var(--border); cursor:pointer; }
+.sheet-icon { font-size:22px; }
+.sheet-label { font-size:11px; color:var(--muted); }
+.picker-overlay { position:absolute; inset:0; background:rgba(0,0,0,.72);
+  backdrop-filter:blur(6px); z-index:60; display:flex; flex-direction:column; justify-content:flex-end; }
+.picker-body { background:var(--card); border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border); padding:12px 16px 32px; max-height:84%; overflow-y:auto; }
+.picker-body::-webkit-scrollbar { display:none; }
+.picker-title { text-align:center; font-size:14px; font-weight:bold; color:var(--title); margin-bottom:10px; }
+.picker-preview { background:rgba(255,255,255,.04); border:1px dashed var(--border);
+  border-radius:10px; padding:10px 12px; min-height:36px; display:flex;
+  flex-wrap:wrap; gap:5px; align-items:center; margin-bottom:12px; }
+.picker-sec { font-size:11px; color:var(--muted); margin:10px 0 7px;
+  display:flex; justify-content:space-between; }
+.attr-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.attr-btn { padding:12px 4px; text-align:center; font-size:12px; background:var(--btn);
+  border:1px solid var(--border); border-radius:9px; color:var(--blue); cursor:pointer; }
+.attr-btn.sel { background:rgba(52,152,219,.18); border-color:var(--blue); font-weight:bold; }
+.spec-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.spec-btn { padding:12px 4px; text-align:center; font-size:12px; background:var(--btn);
+  border:1px solid var(--border); border-radius:9px; color:#cf00ff; cursor:pointer; }
+.picker-footer { display:flex; gap:10px; margin-top:16px; }
+.btn-reset { padding:13px; background:#2a2a2a; border:none; border-radius:12px;
+  color:var(--text); font-size:13px; cursor:pointer; width:80px; }
+.btn-confirm { flex:1; padding:13px; background:var(--green); border:none;
+  border-radius:12px; color:#fff; font-size:14px; font-weight:bold; cursor:pointer; }
+/* 品质小选卧（picker内部） */
+.q-chips { display:flex; gap:8px; margin-bottom:12px; }
+.q-chip { flex:1; padding:9px 0; text-align:center; border-radius:10px; border:1.5px solid;
+  font-size:14px; font-weight:bold; cursor:pointer; opacity:.45; }
+.q-chip.active { opacity:1; }
+.q-chip.g { background:rgba(46,204,113,.1); border-color:var(--green); color:var(--green); }
+.q-chip.b { background:rgba(52,152,219,.1); border-color:var(--blue); color:var(--blue); }
+.q-chip.p { background:rgba(155,89,182,.1); border-color:var(--purple); color:var(--purple); }
+/* 编辑弹窗标题行 */
+.picker-title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.picker-title-row .picker-title { margin-bottom:0; }
+.title-icon-btns { display:flex; gap:6px; }
+.title-icon-btn { width:32px; height:32px; border-radius:50%; border:1.5px solid;
+  display:flex; align-items:center; justify-content:center; font-size:15px; cursor:pointer;
+  background:transparent; flex-shrink:0; }
+.title-icon-btn.star { border-color:rgba(241,196,15,.4); color:var(--accent); }
+.title-icon-btn.star.on { background:rgba(241,196,15,.15); border-color:var(--accent); }
+.title-icon-btn.del { border-color:rgba(255,71,87,.35); color:var(--red); }
+/* 新增按钮 */
+.add-new-btn { padding:5px 12px; border-radius:8px; border:1.5px dashed rgba(255,255,255,.2);
+  background:transparent; color:var(--muted); font-size:13px; cursor:pointer;
+  display:flex; align-items:center; gap:4px; }
+.add-new-btn:active { background:rgba(255,255,255,.06); }
+/* 品质选择步骤 */
+.quality-step { padding:8px 0 4px; }
+.quality-step-title { text-align:center; font-size:12px; color:var(--muted); margin-bottom:12px; }
+.quality-btns { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.q-btn { padding:18px 4px; text-align:center; border-radius:13px; border:2px solid;
+  font-size:16px; font-weight:900; cursor:pointer; letter-spacing:1px; }
+.q-btn.g { background:rgba(46,204,113,.12); border-color:var(--green); color:var(--green); }
+.q-btn.b { background:rgba(52,152,219,.12); border-color:var(--blue); color:var(--blue); }
+.q-btn.p { background:rgba(155,89,182,.12); border-color:var(--purple); color:var(--purple); }
+/* 步骤指示器 */
+.step-bar { display:flex; align-items:center; justify-content:center; gap:6px; margin-bottom:12px; }
+.step-dot { width:8px; height:8px; border-radius:50%; background:#333; }
+.step-dot.on { background:var(--blue); }
+.step-line { width:28px; height:2px; background:#2a2a2a; border-radius:1px; }
+.step-line.on { background:var(--blue); }
+</style>
+</head>
+<body>
+
+<div class="demo-tabs">
+  <div class="demo-tab active" onclick="show('main')">① 主页面</div>
+  <div class="demo-tab" onclick="show('sysmodal')">② 系统切换</div>
+  <div class="demo-tab" onclick="show('menu')">③ 菜单Sheet</div>
+  <div class="demo-tab" onclick="show('add')">④ 新增弹窗</div>
+  <div class="demo-tab" onclick="show('edit')">⑤ 编辑弹窗</div>
+</div>
+
+<!-- ① 主页面 -->
+<div id="s-main" class="screen">
+<div class="preview-label">① 主页面 — 系统切换 → 装备 → 地点 → 序列</div>
+<div class="phone-frame"><div class="phone-screen">
+  <div class="status-bar"><span class="status-time">9:41</span><span class="status-icons">📶 🔋</span></div>
+  <div class="app-header">
+    <img class="header-logo" src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png" onerror="this.src='';this.insertAdjacentHTML('afterend','<div style=\'font-size:14px;font-weight:900;color:#e8c97a;letter-spacing:1px;\'>烟雨江湖</div>');this.remove()">
+    <div class="sys-btn">
+      <span class="sys-btn-icon">⚒️</span>
+      <span class="sys-btn-label">铸造</span>
+      <span class="sys-btn-sep">·</span>
+      <span class="sys-btn-equip">棍</span>
+      <span class="sys-btn-caret">▾</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="header-sync"><div class="sync-dot"></div><div class="sync-label">已连接</div></div>
+    <button class="hamburger">☰</button>
+  </div>
+  <div class="loc-seg">
+    <div class="loc-seg-wrap">
+      <div class="loc-seg-btn active"><span class="loc-dot"></span>⚔️ 剑王阁</div>
+      <div class="loc-seg-btn"><span class="loc-dot"></span>🔥 铸剑山庄</div>
+    </div>
+  </div>
+  <div class="loc-content">
+    <div class="equip-header" style="flex-shrink:0;">
+      <div class="equip-header-col">
+        <div>
+          <div class="equip-name">棍</div>
+          <div class="start-row">第 <input value="3"> 次起</div>
+        </div>
+        <button class="add-new-btn">＋ 新增</button>
+      </div>
+      <div class="equip-header-col">
+        <div>
+          <div class="equip-name">拳套</div>
+          <div class="start-row">第 <input value="1"> 次起</div>
+        </div>
+        <button class="add-new-btn">＋ 新增</button>
+      </div>
+    </div>
+    <div class="data-row">
+      <div class="row-idx">1</div>
+      <div class="data-cols">
+        <div class="cell keep">
+          <div class="cell-body">
+            <div class="cell-q" style="color:var(--purple)">紫</div>
+            <div class="cell-attrs"><span class="a">穿甲</span><span class="a">速度</span><span class="a">闪避</span><span class="s">臂力+12</span></div>
+          </div>
+        </div>
+        <div class="cell">
+          <div class="cell-body">
+            <div class="cell-q" style="color:var(--blue)">蓝</div>
+            <div class="cell-attrs"><span class="a">气血</span><span class="a">招架</span><span class="s">命中+110</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="data-row">
+      <div class="row-idx">2</div>
+      <div class="data-cols">
+        <div class="cell">
+          <div class="cell-body">
+            <div class="cell-q" style="color:var(--green)">绿</div>
+            <div class="cell-attrs"><span class="a">速度</span></div>
+          </div>
+        </div>
+        <div class="cell"><div class="cell-empty">—</div></div>
+      </div>
+    </div>
+    <div class="data-row"><div class="row-idx">3</div><div class="data-cols"><div class="cell"><div class="cell-empty">—</div></div><div class="cell"><div class="cell-empty">—</div></div></div></div>
+    <div class="data-row"><div class="row-idx">4</div><div class="data-cols"><div class="cell"><div class="cell-empty">—</div></div><div class="cell"><div class="cell-empty">—</div></div></div></div>
+    <div class="data-row"><div class="row-idx">5</div><div class="data-cols"><div class="cell"><div class="cell-empty">—</div></div><div class="cell"><div class="cell-empty">—</div></div></div></div>
+    <div class="data-row"><div class="row-idx">6</div><div class="data-cols"><div class="cell"><div class="cell-empty">—</div></div><div class="cell"><div class="cell-empty">—</div></div></div></div>
+  </div>
+</div></div>
+<div class="note-card">
+  <h4>① 主页面层级说明</h4>
+  <ul>
+    <li class="ok"><b>Header</b>：Logo 图标 + 「⚒️ 铸造 · 棍 ▾」按钮 + 连接状态 + ☰菜单</li>
+    <li class="ok"><b>地点切换</b>：两个地点的分段控件，同一棆处一次只看一个地点的序列</li>
+    <li class="ok"><b>装备类型</b>：通过顶部系统按钮弹窗切换，不占屏幕空间</li>
+    <li class="ok"><b>序列区</b>：序号 + 两列装备内容，点击单格进入编辑弹窗；收藏/删除均在编辑弹窗中操作</li>
+    <li class="ok">无底部工具栏，彻底消除误触；所有操作统一入汉堡菜单</li>
+  </ul>
+</div>
+</div>
+
+<!-- ② 系统切换弹窗 -->
+<div id="s-sysmodal" class="screen" style="display:none;">
+<div class="preview-label">② 系统切换弹窗 — 点击 Header 中的系统按钮触发</div>
+<div class="phone-frame"><div class="phone-screen" style="position:relative;">
+  <div class="status-bar"><span class="status-time">9:41</span><span class="status-icons">📶 🔋</span></div>
+  <div class="app-header">
+    <img class="header-logo" src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png" onerror="this.src='';this.insertAdjacentHTML('afterend','<div style=\'font-size:14px;font-weight:900;color:#e8c97a;letter-spacing:1px;\'>烟雨江湖</div>');this.remove()">
+    <div class="sys-btn" style="background:rgba(52,152,219,.22);border-color:rgba(52,152,219,.6);">
+      <span class="sys-btn-icon">⚒️</span>
+      <span class="sys-btn-label">铸造</span>
+      <span class="sys-btn-sep">·</span>
+      <span class="sys-btn-equip">棍</span>
+      <span class="sys-btn-caret">▴</span>
+    </div>
+    <div style="flex:1"></div>
+    <div class="header-sync"><div class="sync-dot"></div><div class="sync-label">已连接</div></div>
+    <button class="hamburger">☰</button>
+  </div>
+  <!-- 背景内容模糊 -->
+  <div style="flex:1;opacity:.12;pointer-events:none;padding:12px;display:flex;flex-direction:column;gap:8px;">
+    <div style="height:38px;background:var(--card);border-radius:8px;"></div>
+    <div style="height:36px;background:var(--card);border-radius:8px;"></div>
+    <div style="height:260px;background:var(--card);border-radius:12px;"></div>
+  </div>
+  <!-- 弹窗 -->
+  <div class="sys-modal-overlay">
+    <div class="sys-modal">
+      <div class="sys-modal-title">选择系统与装备</div>
+      <!-- 系统 Tab -->
+      <div class="sys-modal-tabs">
+        <div class="sys-modal-tab active">
+          <span class="sys-modal-tab-icon">⚒️</span>铸造
+        </div>
+        <div class="sys-modal-tab">
+          <span class="sys-modal-tab-icon">🧵</span>缝纫
+        </div>
+      </div>
+      <!-- 铸造装备品类 -->
+      <div class="sys-equip-section">
+        <div class="sys-equip-title">选择装备品类（点击即切换）</div>
+        <div class="sys-equip-grid">
+          <div class="sys-equip-chip active">棍<span class="chip-badge">12</span></div>
+          <div class="sys-equip-chip">拳套<span class="chip-badge">8</span></div>
+          <div class="sys-equip-chip">刀</div>
+          <div class="sys-equip-chip">剑<span class="chip-badge">4</span></div>
+          <div class="sys-equip-chip">瓦当</div>
+          <div class="sys-equip-chip">飞镖</div>
+          <div class="sys-equip-chip">双刃剑</div>
+          <div class="sys-equip-chip">扇子</div>
+        </div>
+      </div>
+      <button class="sys-modal-cancel">取消</button>
+    </div>
+  </div>
+</div></div>
+<div class="note-card">
+  <h4>② 系统切换弹窗说明</h4>
+  <ul>
+    <li class="ok">Header 按钮显示「⚒️ 铸造 · 棍 ▾」，系统和当前装备一目了然</li>
+    <li class="ok">弹窗顶部两个 Tab 切换铸造 / 缝纫系统</li>
+    <li class="ok">下方展示该系统全部装备品类，有收藏条数的显示黄色角标</li>
+    <li class="ok">当前选中品类蓝色高亮；<b>点击任意品类 = 同时选中系统 + 装备，关闭弹窗</b></li>
+    <li class="ok">「取消」或点击遮罩关闭弹窗，不做任何改变</li>
+  </ul>
+</div>
+</div>
+
+<!-- ③ 菜单 Sheet -->
+<div id="s-menu" class="screen" style="display:none;">
+<div class="preview-label">③ 汉堡菜单 Sheet — 所有功能集中</div>
+<div class="phone-frame"><div class="phone-screen" style="position:relative;">
+  <div class="status-bar"><span class="status-time">9:41</span><span class="status-icons">📶 🔋</span></div>
+  <div class="app-header">
+    <img class="header-logo" src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png" onerror="this.src='';this.insertAdjacentHTML('afterend','<div style=\'font-size:14px;font-weight:900;color:#e8c97a;letter-spacing:1px;\'>烟雨江湖</div>');this.remove()">
+    <div class="sys-btn">
+      <span class="sys-btn-icon">⚒️</span>
+      <span class="sys-btn-label">铸造</span>
+      <span class="sys-btn-sep">·</span>
+      <span class="sys-btn-equip">棍</span>
+      <span class="sys-btn-caret">▾</span>
+    </div>
+    <div style="flex:1"></div>
+    <button class="hamburger" style="color:var(--blue)">✕</button>
+  </div>
+  <div style="flex:1;opacity:.15;pointer-events:none;padding:12px;">
+    <div style="height:38px;background:var(--card);border-radius:8px;margin-bottom:10px;"></div>
+    <div style="height:300px;background:var(--card);border-radius:12px;"></div>
+  </div>
+  <div class="sheet-overlay">
+    <div class="sheet-body">
+      <div class="sheet-handle"></div>
+      <div class="sheet-status">
+        <div class="sheet-status-left">
+          <div class="sheet-status-dot"></div>
+          <div class="sheet-status-text">已连接</div>
+        </div>
+        <div class="sheet-user">
+          <div class="sheet-avatar">🐱</div>
+          <div class="sheet-uname">Fuck996</div>
+        </div>
+      </div>
+      <div class="sheet-backups">
+        <div class="backup-card">
+          <div class="backup-card-title">⏱️ 自动备份 (346条)</div>
+          <div class="backup-card-time">2026/2/26 03:01:49</div>
+        </div>
+        <div class="backup-card">
+          <div class="backup-card-title">📪 手动备份 (346条)</div>
+          <div class="backup-card-time">2026/2/25 19:56:34</div>
+        </div>
+      </div>
+      <div class="sheet-section-title">操作</div>
+      <div class="sheet-grid">
+        <div class="sheet-item"><span class="sheet-icon">💾</span><span class="sheet-label">在线保存</span></div>
+        <div class="sheet-item"><span class="sheet-icon">♻️</span><span class="sheet-label">在线恢复</span></div>
+        <div class="sheet-item"><span class="sheet-icon">📊</span><span class="sheet-label">收藏统计</span></div>
+        <div class="sheet-item"><span class="sheet-icon">🌙</span><span class="sheet-label">切换模式</span></div>
+        <div class="sheet-item"><span class="sheet-icon">📤</span><span class="sheet-label">导出备份</span></div>
+        <div class="sheet-item"><span class="sheet-icon">📥</span><span class="sheet-label">导入还原</span></div>
+        <div class="sheet-item"><span class="sheet-icon">🔗</span><span class="sheet-label">访问项目</span></div>
+        <div class="sheet-item"><span class="sheet-icon">🗑️</span><span class="sheet-label" style="color:#ff4757">清空数据</span></div>
+      </div>
+      <div style="margin-top:10px;padding:13px 14px;background:rgba(255,71,87,.06);border:1px solid rgba(255,71,87,.2);border-radius:10px;display:flex;align-items:center;gap:10px;cursor:pointer;">
+        <span style="font-size:18px;">🚪</span>
+        <span style="font-size:13px;color:#ff4757;">退出登录</span>
+      </div>
+    </div>
+  </div>
+</div></div>
+<div class="note-card">
+  <h4>③ 菜单 Sheet 说明</h4>
+  <ul>
+    <li class="ok">顶部状态行：连接状态 + 用户名/头像</li>
+    <li class="ok">备份信息卡：自动/手动时间和条数一目了然</li>
+    <li class="ok">8格操作网格：保存/恢复/统计/模式/导出/导入/项目/清空</li>
+    <li class="ok">退出登录单独红色行，避免与其他操作混淆</li>
+    <li class="warn">未登录时：状态行改为「登录 GitHub」按钮，备份信息隐藏</li>
+  </ul>
+</div>
+</div>
+
+<!-- ④ 新增弹窗 -->
+<div id="s-add" class="screen" style="display:none;">
+<div class="preview-label">④ 新增弹窗 — 品质 + 属性一步完成</div>
+<div class="phone-frame"><div class="phone-screen" style="position:relative;">
+  <div class="status-bar"><span class="status-time">9:41</span><span class="status-icons">📶 🔋</span></div>
+  <div class="app-header">
+    <img class="header-logo" src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png" onerror="this.src='';this.insertAdjacentHTML('afterend','<div style=\'font-size:14px;font-weight:900;color:#e8c97a;letter-spacing:1px;\'>烟雨江湖</div>');this.remove()">
+    <div class="sys-btn"><span class="sys-btn-icon">⚒️</span><span class="sys-btn-label">铸造</span><span class="sys-btn-sep">·</span><span class="sys-btn-equip">棍</span><span class="sys-btn-caret">▾</span></div>
+    <div style="flex:1"></div>
+    <button class="hamburger">☰</button>
+  </div>
+  <div style="flex:1;opacity:.15;pointer-events:none;padding:12px;display:flex;flex-direction:column;gap:8px;">
+    <div style="height:40px;background:var(--card);border-radius:8px;"></div>
+    <div style="height:200px;background:var(--card);border-radius:12px;"></div>
+  </div>
+  <div class="picker-overlay">
+    <div class="picker-body">
+      <div class="sheet-handle"></div>
+      <div class="picker-title">新增 — <span style="color:#888">棍 · 剑王阁</span></div>
+      <div class="q-chips">
+        <div class="q-chip g">绿品</div>
+        <div class="q-chip b active">蓝品</div>
+        <div class="q-chip p">紫品</div>
+      </div>
+      <div class="picker-preview">
+        <span style="color:#555;font-size:11px;">再选 2 个属性…</span>
+      </div>
+      <div class="picker-sec"><span>属性池</span><span style="color:var(--blue)">0 / 2</span></div>
+      <div class="attr-grid">
+        <div class="attr-btn">穿甲</div>
+        <div class="attr-btn">速度</div>
+        <div class="attr-btn">闪避</div>
+        <div class="attr-btn">招架</div>
+        <div class="attr-btn">气血</div>
+        <div class="attr-btn">破招架</div>
+        <div class="attr-btn">破闪避</div>
+        <div class="attr-btn">溅伤</div>
+      </div>
+      <div class="picker-sec"><span>特殊属性</span></div>
+      <div class="spec-grid">
+        <div class="spec-btn">命中+110</div>
+        <div class="spec-btn">攻击+50</div>
+        <div class="spec-btn">臂力+5</div>
+      </div>
+      <div class="picker-footer">
+        <button class="btn-reset">↺ 重置</button>
+        <button class="btn-confirm">✓ 确认提交</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+<div class="note-card">
+  <h4>④ 新增弹窗说明</h4>
+  <ul>
+    <li class="ok">点击列头「＋ 新增」按钮弹出</li>
+    <li class="ok">顶部三个品质选项（绿/蓝/紫），点击即切换编辑主色、不需要跳转步骤</li>
+    <li class="ok">品质下方直接展示属性池 + 特殊属性，一屏完成所有选择</li>
+    <li class="ok">已选属性预览常驻，满选自动提交</li>
+  </ul>
+</div>
+</div>
+
+<!-- ⑤ 编辑弹窗 -->
+<div id="s-edit" class="screen" style="display:none;">
+<div class="preview-label">⑤ 编辑弹窗 — 点击已有序列格触发</div>
+<div class="phone-frame"><div class="phone-screen" style="position:relative;">
+  <div class="status-bar"><span class="status-time">9:41</span><span class="status-icons">📶 🔋</span></div>
+  <div class="app-header">
+    <img class="header-logo" src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png" onerror="this.src='';this.insertAdjacentHTML('afterend','<div style=\'font-size:14px;font-weight:900;color:#e8c97a;letter-spacing:1px;\'>烟雨江湖</div>');this.remove()">
+    <div class="sys-btn"><span class="sys-btn-icon">⚒️</span><span class="sys-btn-label">铸造</span><span class="sys-btn-sep">·</span><span class="sys-btn-equip">棍</span><span class="sys-btn-caret">▾</span></div>
+    <div style="flex:1"></div>
+    <button class="hamburger">☰</button>
+  </div>
+  <div style="flex:1;opacity:.18;pointer-events:none;padding:12px;display:flex;flex-direction:column;gap:8px;">
+    <div style="height:36px;background:var(--card);border-radius:8px;"></div>
+    <div style="height:200px;background:var(--card);border-radius:12px;"></div>
+  </div>
+  <div class="picker-overlay">
+    <div class="picker-body">
+      <div class="sheet-handle"></div>
+      <div class="picker-title-row">
+        <div class="picker-title" style="margin-bottom:0;">编辑 — <span style="color:#888">棍 · 剑王阁</span></div>
+        <div class="title-icon-btns">
+          <button class="title-icon-btn star on" title="收藏">★</button>
+          <button class="title-icon-btn del" title="删除">🗑️</button>
+        </div>
+      </div>
+      <div class="q-chips">
+        <div class="q-chip g">绿品</div>
+        <div class="q-chip b active">蓝品</div>
+        <div class="q-chip p">紫品</div>
+      </div>
+      <div style="background:rgba(128,128,128,.07);border-radius:10px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:12px;color:var(--muted);">调整到第几列：</span>
+        <input type="number" value="1" style="width:44px;background:transparent;border:1.5px solid #444;border-radius:6px;color:#fff;text-align:center;font-size:14px;padding:4px 0;">
+      </div>
+      <div class="picker-preview">
+        <span class="a" style="font-size:11px;padding:3px 8px;">穿甲</span>
+        <span style="color:#555;font-size:11px;">…再选 1 个</span>
+      </div>
+      <div class="picker-sec"><span>属性池</span><span style="color:var(--blue)">1 / 2</span></div>
+      <div class="attr-grid">
+        <div class="attr-btn sel">穿甲</div>
+        <div class="attr-btn">速度</div>
+        <div class="attr-btn">闪避</div>
+        <div class="attr-btn">招架</div>
+        <div class="attr-btn">气血</div>
+        <div class="attr-btn">破招架</div>
+        <div class="attr-btn">破闪避</div>
+        <div class="attr-btn">溅伤</div>
+      </div>
+      <div class="picker-sec"><span>特殊属性</span></div>
+      <div class="spec-grid">
+        <div class="spec-btn">命中+110</div>
+        <div class="spec-btn" style="background:rgba(191,0,255,.15);border-color:#bf00ff;font-weight:bold;">攻击+50</div>
+        <div class="spec-btn">臂力+5</div>
+      </div>
+      <div class="picker-footer">
+        <button class="btn-reset">↺ 重置</button>
+        <button class="btn-confirm">✓ 确认提交</button>
+      </div>
+    </div>
+  </div>
+</div></div>
+<div class="note-card">
+  <h4>⑤ 编辑弹窗说明</h4>
+  <ul>
+    <li class="ok">点击已有序列格弹出，展示当前品质和属性</li>
+    <li class="ok">标题行右侧两个图标：★（收藏/取消收藏）和 🗑️（删除），不占底部空间</li>
+    <li class="ok">品质可切换；调整列栏允许操作顺序</li>
+    <li class="ok">底部「↺ 重置」清空当前选择；「✓ 确认提交」保存并关闭</li>
+    <li class="ok">🗑️ 删除带二次确认防误操作</li>
+  </ul>
+</div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.screen').forEach(el => el.style.display = 'none');
+  var el = document.getElementById('s-' + id);
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  el.style.alignItems = 'center';
+  el.style.gap = '16px';
+  document.querySelectorAll('.demo-tab').forEach(function(t, i) {
+    t.classList.toggle('active', ['main','sysmodal','menu','add','edit'][i] === id);
+  });
+}
+show('main');
+</script>
+</body>
+</html>

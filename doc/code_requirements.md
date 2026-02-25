@@ -28,5 +28,58 @@
 - **更新要求**: **每次代码或文档更新，无论大小，都必须至少递增修订号。**
 - **同步位置**: `index.html` 中 `title` 和 `version-footer` 的版本号必须与实际版本保持一致。
 
+## 6. 移动端兼容规范 (Mobile Compatibility)
+
+### 6.1 断点触发条件
+- **判断方式**：使用 JavaScript 计算视口高宽比，而非 CSS Media Query，以保证实时响应和统一逻辑。
+- **触发条件**：当 `window.innerHeight / window.innerWidth > 1.5` 时，切换至移动端布局；否则使用桌面端布局。
+- **实现方式**：通过在 `<body>` 元素上切换 `.mobile-view` 类来控制。
+- **触发时机**：页面加载时（`init()` 内）以及 `window.resize` 事件时均需重新检测，函数名为 `checkLayout()`。
+- **规范函数**：
+  ```js
+  function isMobileLayout() { return window.innerHeight / window.innerWidth > 1.5; }
+  function checkLayout() {
+      document.body.classList.toggle('mobile-view', isMobileLayout());
+      // 移动端时调用 renderMobileAll()，桌面端无需操作
+  }
+  ```
+
+### 6.2 布局切换原则
+- **桌面端元素**：`.control-panel`、`.top-container`、`#mainGrid`、`#statusBackupContainer`、`.version-footer` 在 `body.mobile-view` 时通过 CSS `display:none !important` 隐藏，**不得删除 HTML 结构**。
+- **移动端壳体**：所有移动端 UI 元素集中在 `#mobile-shell` 内，默认 `display:none`，仅在 `body.mobile-view` 时显示。
+- **共用逻辑**：JS 业务逻辑函数（`openPicker()`、`saveFinal()`、`toggleStar()` 等）**必须同时适用**于桌面端与移动端，**不得为移动端单独拷贝逻辑**。
+- **数据共享**：`curType`、`curSystem`、`tempEntry` 等全局状态变量由两套 UI 共用。
+
+### 6.3 移动端 UI 结构
+- **Header**：Logo 图标 + 系统/装备切换按钮 + 汉堡菜单按钮。
+- **位置分段**：两个等宽切换按钮，对应当前系统的两个地点（`LOC_MAP[curSystem]`），使用 `.m-loc-btn.active` 标记当前选中。
+- **列头**：两列，每列显示装备名 + 起始次数输入 + ＋新增按钮（虚线样式）。
+- **数据区**：可滚动 table，仅展示当前选中地点的数据，结构与桌面端一致（序号列 + 两列装备）。
+- **系统弹窗**：居中模态框，顶部选项卡切换铸造/缝纫，下方为装备 Chip 网格（4列），点击 Chip 同时完成系统切换+装备切换并关闭弹窗。
+- **菜单 Sheet**：从底部滑入，包含：连接状态、备份信息、操作按钮网格、退出登录按钮。
+- **属性选择器**：复用桌面端 `#attrPicker` 弹窗，移动端通过 CSS 将其改为底部 Sheet 样式；新增时顶部展示品质选择 Chip 行（`.m-q-chip`），编辑时顶部展示标题行（含 ★/🗑️ 图标按钮）。
+
+### 6.4 移动端状态变量
+- `curMobileLoc`：当前移动端选中的地点，切换系统时自动重置。
+- 属性选择器移动端品质状态：通过 `tempEntry.q` 管理，为 `null` 时表示尚未选择品质（移动端新增模式）。
+
+## 7. 动画使用规范 (Animation Guidelines)
+
+### 7.1 底部 Sheet 动画
+- **滑入**：使用 `@keyframes sheetSlideUp`（从 `translateY(100%)` 到 `translateY(0)`），duration `0.3s ease-out`。
+- **滑出**：为元素添加 `.closing` 类触发 `@keyframes sheetSlideDown`，在 `animationend` 事件后隐藏元素。
+- **遮罩**：配套的 `.m-sheet-overlay` 使用 `@keyframes mFadeIn`（`opacity: 0 → 1`），关闭时追加 `.closing` 类触发反向动画。
+
+### 7.2 居中弹窗动画
+- 居中模态框（如系统切换弹窗）使用 `@keyframes mModalPop`（`scale(0.9)+opacity:0 → scale(1)+opacity:1`），duration `0.25s ease-out`。
+
+### 7.3 下拉动画
+- 下拉菜单使用 `@keyframes slideDown`（`translateY(-8px)+opacity:0 → translateY(0)+opacity:1`），已有实现，新增时遵循相同规范。
+
+### 7.4 使用原则
+- **凡 Sheet/Modal 打开必须有动画**，关闭建议有反向动画（至少淡出）。
+- 动画 duration 不超过 `0.35s`，避免影响操作流畅感。
+- 不得对频繁重渲染的列表行（table row）添加 transition/animation。
+
 ---
 *本规范作为项目开发的基本要求，所有代码提交应严格遵守。*

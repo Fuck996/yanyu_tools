@@ -20,6 +20,7 @@
     </script>
 
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>烟雨江湖 - 装备录入工具</title>
     <style>
         :root {
@@ -304,6 +305,270 @@
           font-size: 11px;
           font-weight: normal;
         }
+
+        /* ================================================================
+           移动端布局 (Mobile Layout)
+           触发条件：JS 检测 innerHeight/innerWidth > 1.5（竖屏手机）
+           详见 doc/code_requirements.md § 6
+        ================================================================ */
+        #mobile-shell { display: none; }
+
+        body.mobile-view {
+            padding: 0;
+            height: 100svh;
+            overflow: hidden;
+        }
+        /* 桌面端元素在移动端隐藏 */
+        body.mobile-view .control-panel,
+        body.mobile-view .top-container,
+        body.mobile-view #mainGrid,
+        body.mobile-view #statusBackupContainer,
+        body.mobile-view .version-footer { display: none !important; }
+        /* 移动端显示 mobile-shell */
+        body.mobile-view #mobile-shell {
+            display: flex;
+            flex-direction: column;
+            height: 100svh;
+        }
+        /* attrPicker 在移动端改为底部 Sheet 样式 */
+        body.mobile-view .modal {
+            top: auto; bottom: 0; left: 0; right: 0;
+            transform: none;
+            width: 100%; max-width: 100%;
+            border-radius: 20px 20px 0 0;
+            max-height: 82svh;
+            overflow-y: auto;
+            box-sizing: border-box;
+            animation: sheetSlideUp 0.3s ease-out;
+        }
+
+        /* ---- 移动端 Header ---- */
+        .m-header {
+            display: flex; align-items: center;
+            padding: 8px 14px; gap: 10px; flex-shrink: 0;
+            background: var(--card); border-bottom: 1px solid var(--border);
+        }
+        .m-logo { height: 30px; object-fit: contain; max-width: 90px; }
+        .m-logo-text { font-size: 14px; font-weight: 900; color: #e8c97a; letter-spacing: 1px; }
+        .m-sys-btn {
+            display: flex; align-items: center; gap: 4px;
+            background: var(--btn-idle); border: 1px solid var(--border);
+            border-radius: 20px; padding: 6px 12px; font-size: 13px;
+            color: var(--text); cursor: pointer; white-space: nowrap;
+        }
+        .m-sys-equip { color: #7ec8e3; font-weight: bold; }
+        .m-hamburger {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--btn-idle); border: 1px solid var(--border);
+            color: var(--text); font-size: 16px; cursor: pointer; flex-shrink: 0;
+        }
+        /* ---- 位置分段控制 ---- */
+        .m-loc-seg {
+            display: flex; background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 8px 14px; gap: 8px; flex-shrink: 0;
+        }
+        .m-loc-btn {
+            flex: 1; padding: 8px 4px; border: 1.5px solid var(--border);
+            border-radius: 10px; background: var(--btn-idle); color: var(--nav-text);
+            font-size: 13px; cursor: pointer; transition: 0.2s;
+        }
+        .m-loc-btn.active {
+            background: rgba(52,152,219,0.12); border-color: var(--blue);
+            color: var(--blue); font-weight: bold;
+        }
+        /* ---- 装备列头 ---- */
+        .m-equip-head {
+            display: flex; background: var(--btn-idle);
+            border-bottom: 2px solid var(--border); flex-shrink: 0;
+        }
+        .m-equip-col {
+            flex: 1; padding: 8px 10px; display: flex;
+            flex-direction: column; gap: 5px;
+            border-right: 1px solid var(--border);
+        }
+        .m-equip-col:last-child { border-right: none; }
+        .m-equip-name { font-size: 13px; font-weight: bold; color: var(--title-color); }
+        .m-start-row {
+            display: flex; align-items: center; gap: 4px;
+            font-size: 11px; color: var(--nav-text);
+        }
+        .m-add-btn {
+            padding: 6px 0; border: 1.5px dashed rgba(255,255,255,0.2);
+            border-radius: 8px; background: transparent;
+            color: var(--blue); font-size: 12px; cursor: pointer; text-align: center;
+        }
+        [data-theme="light"] .m-add-btn { border-color: rgba(0,0,0,0.2); }
+        .m-add-btn:active { background: rgba(52,152,219,0.1); }
+        /* ---- 序列数据滚动区域 ---- */
+        .m-scroll-area {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        }
+        .m-table { width: 100%; border-collapse: collapse; }
+        .m-table tr { border-bottom: 1px solid var(--border); }
+        .m-table tr:nth-child(even) { background: var(--zebra); }
+        .m-td-idx {
+            width: 30px; font-size: 11px; color: var(--nav-text);
+            background: var(--btn-idle); text-align: center; padding: 0 4px;
+            border-right: 1px solid var(--border); vertical-align: middle;
+        }
+        .m-td { padding: 0; vertical-align: middle; border-right: 1px solid var(--border); }
+        .m-td:last-child { border-right: none; }
+        .m-cell-main {
+            min-height: 60px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 6px 4px; cursor: pointer; gap: 3px;
+        }
+        .m-cell-main:active { background: rgba(52,152,219,0.08); }
+        .m-cell-keep { background: rgba(241,196,15,0.12); }
+        .m-cell-empty { color: var(--border); font-size: 20px; }
+
+        /* ================================================================
+           移动端弹窗 / Sheet 动画
+           详见 doc/code_requirements.md § 7
+        ================================================================ */
+        @keyframes mFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes mFadeOut { from { opacity: 1; } to { opacity: 0; } }
+        @keyframes mModalPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        @keyframes sheetSlideUp   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes sheetSlideDown { from { transform: translateY(0); } to { transform: translateY(100%); } }
+
+        /* ---- 通用遮罩层 ---- */
+        .m-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 2000; animation: mFadeIn 0.2s ease-out;
+        }
+        .m-overlay.closing { animation: mFadeOut 0.22s ease-in forwards; }
+
+        /* ---- 系统切换居中弹窗 ---- */
+        .m-sys-modal {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 18px; width: calc(100vw - 32px); max-width: 360px;
+            padding: 20px 16px 16px; animation: mModalPop 0.25s ease-out;
+        }
+        .m-sys-modal.closing { animation: none; opacity: 0; }
+        .m-modal-title { font-size: 15px; font-weight: bold; color: var(--title-color); margin-bottom: 14px; text-align: center; }
+        .m-sys-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+        .m-sys-tab {
+            flex: 1; padding: 10px; text-align: center;
+            border: 1.5px solid var(--border); border-radius: 12px;
+            background: var(--btn-idle); color: var(--nav-text);
+            font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .m-sys-tab.active {
+            background: rgba(52,152,219,0.12); border-color: var(--blue); color: var(--blue);
+        }
+        .m-equip-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+        .m-equip-chip {
+            padding: 10px 4px; text-align: center; border-radius: 10px;
+            border: 1.5px solid var(--border); background: var(--btn-idle);
+            font-size: 12px; color: var(--text); cursor: pointer; transition: 0.2s;
+            position: relative;
+        }
+        .m-equip-chip.active {
+            background: rgba(52,152,219,0.12); border-color: var(--blue); color: var(--blue); font-weight: bold;
+        }
+        .m-chip-badge {
+            position: absolute; top: -5px; right: -5px; background: var(--accent);
+            color: #000; font-size: 9px; padding: 1px 4px; border-radius: 8px; font-weight: 800;
+        }
+        .m-modal-cancel {
+            width: 100%; padding: 12px; background: transparent;
+            border: 1px solid var(--border); border-radius: 12px;
+            color: var(--nav-text); font-size: 13px; cursor: pointer;
+        }
+
+        /* ---- 菜单底部 Sheet ---- */
+        .m-sheet-overlay { position: fixed; inset: 0; z-index: 2000; animation: mFadeIn 0.2s ease-out; }
+        .m-sheet-overlay.closing { animation: mFadeOut 0.25s ease-in forwards; }
+        .m-sheet-overlay::before {
+            content: ''; position: absolute; inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .m-sheet {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: var(--card); border-radius: 20px 20px 0 0;
+            padding: 8px 16px 32px; max-height: 85svh; overflow-y: auto;
+            animation: sheetSlideUp 0.3s ease-out;
+        }
+        .m-sheet.closing { animation: sheetSlideDown 0.25s ease-in forwards; }
+        .m-sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 6px auto 16px; }
+        .m-sheet-title { font-size: 11px; color: var(--nav-text); margin-bottom: 8px; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+        .m-status-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; background: var(--btn-idle);
+            border-radius: 12px; font-size: 13px; margin-bottom: 12px;
+        }
+        .m-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+        .m-status-dot.offline { background: #888; }
+        .m-backup-cards { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+        .m-backup-card {
+            padding: 9px 12px; background: var(--btn-idle);
+            border-radius: 10px; font-size: 12px;
+        }
+        .m-backup-card-label { font-weight: bold; font-size: 11px; color: var(--nav-text); margin-bottom: 3px; }
+        .m-backup-card-time { font-size: 11px; color: var(--text); }
+        .m-op-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 12px; }
+        .m-op-btn {
+            padding: 12px 4px; text-align: center;
+            background: var(--btn-idle); border: 1px solid var(--border);
+            border-radius: 12px; font-size: 11px; color: var(--text);
+            cursor: pointer; display: flex; flex-direction: column; gap: 5px;
+            align-items: center; justify-content: center;
+        }
+        .m-op-icon { font-size: 18px; }
+        .m-op-btn:active { background: rgba(52,152,219,0.1); }
+        .m-op-btn.danger { color: #ff4757; }
+        .m-op-btn.danger:active { background: rgba(255,71,87,0.1); }
+        .m-logout-btn {
+            width: 100%; padding: 13px; text-align: center;
+            border: 1px solid rgba(255,71,87,0.3); border-radius: 12px;
+            color: #ff4757; font-size: 13px; font-weight: bold;
+            cursor: pointer; background: rgba(255,71,87,0.05);
+            box-sizing: border-box;
+        }
+
+        /* ---- 属性选择器 - 移动端扩展 ---- */
+        /* 品质 Chip 行（仅移动端新增时显示） */
+        #mobileQualityRow { display: none; margin-bottom: 12px; }
+        body.mobile-view #mobileQualityRow { display: block; }
+        .m-q-chips { display: flex; gap: 8px; }
+        .m-q-chip {
+            flex: 1; padding: 10px 0; text-align: center;
+            border-radius: 10px; border: 1.5px solid;
+            font-size: 13px; font-weight: bold; cursor: pointer;
+            opacity: 0.45; transition: opacity 0.15s;
+        }
+        .m-q-chip.active { opacity: 1; }
+        .m-q-chip.g { background: rgba(46,204,113,.1); border-color: var(--green); color: var(--green); }
+        .m-q-chip.b { background: rgba(52,152,219,.1); border-color: var(--blue); color: var(--blue); }
+        .m-q-chip.p { background: rgba(155,89,182,.1); border-color: var(--purple); color: var(--purple); }
+        /* 编辑模式标题行（含 ★/🗑️ 图标按钮，仅移动端显示） */
+        #mPickerTitleRow { display: none; margin-bottom: 14px; }
+        body.mobile-view #mPickerTitleRow { display: flex; align-items: center; justify-content: space-between; }
+        body.mobile-view #modalTitle { display: none; }
+        .m-title-icons { display: flex; gap: 6px; }
+        .m-icon-btn {
+            width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; cursor: pointer; background: transparent; flex-shrink: 0;
+        }
+        .m-icon-btn.star { border-color: rgba(241,196,15,.4); color: var(--accent); }
+        .m-icon-btn.star.on { background: rgba(241,196,15,.15); border-color: var(--accent); }
+        .m-icon-btn.del { border-color: rgba(255,71,87,.35); color: #ff4757; }
+        /* 移动端 Sheet 内 handle */
+        #mPickerHandle { display: none; width: 36px; height: 4px; border-radius: 2px; background: var(--border); margin: 0 auto 14px; }
+        body.mobile-view #mPickerHandle { display: block; }
     </style>
 </head>
 <body data-theme="light">
@@ -395,14 +660,144 @@
     </div>
 </div>
 
-<input type="file" id="fileInput" style="display:none">
+<!-- fileInput: 不使用 display:none 以确保安卓 WebView 能正常调起文件管理器 -->
+<input type="file" id="fileInput" accept=".json,application/json"
+    style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">修改日期：2026-02-25 | 前端版本 <span id="fe-version">-</span> | 后端版本 <span id="be-version">-</span></div>
+</div>
+
+<!-- ================================================================
+     移动端壳体 (#mobile-shell)  默认隐藏，body.mobile-view 时显示
+     规范参见 doc/code_requirements.md § 6
+================================================================ -->
+<div id="mobile-shell">
+
+    <!-- 顶部 Header -->
+    <div class="m-header" id="mHeader">
+        <img class="m-logo" id="mLogo"
+            src="https://patchwiki.biligame.com/resources/assets/images/logo/logo_yanyu.png"
+            onerror="this.style.display='none';document.getElementById('mLogoText').style.display='inline'">
+        <span class="m-logo-text" id="mLogoText" style="display:none">烟雨江湖</span>
+        <button class="m-sys-btn" id="mSysBtn" onclick="openMobileSysModal()">
+            <span id="mSysBtnInner">⚒️ 铸造 <span class="m-sys-equip">· 拳套</span> ▾</span>
+        </button>
+        <div style="flex:1"></div>
+        <button class="m-hamburger" onclick="openMobileMenuSheet()">☰</button>
+    </div>
+
+    <!-- 位置分段控制 -->
+    <div class="m-loc-seg" id="mLocSeg"></div>
+
+    <!-- 装备列头 -->
+    <div class="m-equip-head" id="mEquipHead"></div>
+
+    <!-- 序列数据滚动区域 -->
+    <div class="m-scroll-area">
+        <table class="m-table"><tbody id="mTableBody"></tbody></table>
+    </div>
+
+    <!-- 系统切换弹窗遮罩 -->
+    <div class="m-overlay" id="mSysOverlay" style="display:none;"
+         onclick="closeMobileSysModal()">
+        <div class="m-sys-modal" id="mSysModal" onclick="event.stopPropagation()">
+            <div class="m-modal-title">选择系统与装备</div>
+            <div class="m-sys-tabs" id="mSysTabs"></div>
+            <div class="m-equip-grid" id="mEquipGrid"></div>
+            <button class="m-modal-cancel" onclick="closeMobileSysModal()">取消</button>
+        </div>
+    </div>
+
+    <!-- 菜单 Sheet 遮罩（点击遮罩背景关闭） -->
+    <div class="m-sheet-overlay" id="mMenuOverlay" style="display:none;"
+         onclick="if(event.target===this)closeMobileMenuSheet()">
+        <div class="m-sheet" id="mMenuSheet">
+            <div class="m-sheet-handle"></div>
+            <!-- 连接状态 -->
+            <div class="m-sheet-title">状态</div>
+            <div class="m-status-row" id="mStatusRow">
+                <div class="m-status-dot offline" id="mStatusDot"></div>
+                <span id="mStatusText" style="font-size:13px;">未登录</span>
+                <div style="flex:1"></div>
+                <span id="mUserName" style="font-size:12px;color:var(--nav-text);"></span>
+            </div>
+            <!-- 备份信息 -->
+            <div class="m-sheet-title">备份</div>
+            <div class="m-backup-cards">
+                <div class="m-backup-card" id="mAutoBackupCard">
+                    <div class="m-backup-card-label">⏱️ 自动备份</div>
+                    <div class="m-backup-card-time" id="mAutoBackupTime">—</div>
+                </div>
+                <div class="m-backup-card" id="mManualBackupCard">
+                    <div class="m-backup-card-label">📪 手动备份</div>
+                    <div class="m-backup-card-time" id="mManualBackupTime">—</div>
+                </div>
+            </div>
+            <!-- 操作按钮 -->
+            <div class="m-sheet-title">操作</div>
+            <div class="m-op-grid">
+                <div class="m-op-btn" onclick="toggleTheme();renderMobileMenuSheet()">
+                    <span class="m-op-icon">🌙</span><span>模式</span>
+                </div>
+                <div class="m-op-btn" onclick="openStatsModal()">
+                    <span class="m-op-icon">📊</span><span>收藏统计</span>
+                </div>
+                <div class="m-op-btn" onclick="window.YanyuApp?.saveManualBackup()">
+                    <span class="m-op-icon">💾</span><span>在线保存</span>
+                </div>
+                <div class="m-op-btn" onclick="window.YanyuApp?.restoreManualBackup()">
+                    <span class="m-op-icon">♻️</span><span>在线恢复</span>
+                </div>
+                <div class="m-op-btn" onclick="exportData()">
+                    <span class="m-op-icon">📤</span><span>备份文件</span>
+                </div>
+                <div class="m-op-btn" onclick="importData()">
+                    <span class="m-op-icon">📥</span><span>还原文件</span>
+                </div>
+                <div class="m-op-btn" onclick="window.YanyuApp?.AuthUI?.visitProject?.()">
+                    <span class="m-op-icon">🔗</span><span>项目首页</span>
+                </div>
+                <div class="m-op-btn danger" onclick="if(confirm('确认清空当前装备数据？'))clearCurrent()">
+                    <span class="m-op-icon">🗑️</span><span>清空</span>
+                </div>
+            </div>
+            <!-- 登录 / 退出 -->
+            <div id="mAuthRow">
+                <button class="m-op-btn" id="mLoginBtn" onclick="document.getElementById('loginBtn').click()"
+                    style="width:100%;border-radius:12px;background:var(--blue);color:#fff;border:none;padding:13px;font-size:13px;font-weight:bold;">
+                    🔑 登录 GitHub
+                </button>
+                <button class="m-logout-btn" id="mLogoutBtn" style="display:none" onclick="window.YanyuApp?.AuthUI?.logout()">
+                    🚪 退出登录
+                </button>
+            </div>
+        </div>
+    </div>
+</div><!-- /#mobile-shell -->
+
+<div class="version-footer">修改日期：2026-02-26 | 前端版本 <span id="fe-version">-</span> | 后端版本 <span id="be-version">-</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 
 <div class="modal" id="attrPicker">
+    <!-- 移动端 Sheet handle（桌面端隐藏） -->
+    <div id="mPickerHandle"></div>
+    <!-- 移动端编辑模式标题行（含收藏/删除图标，桌面端隐藏） -->
+    <div id="mPickerTitleRow">
+        <div id="mPickerTitle" style="font-weight:bold; color:var(--title-color); font-size:14px;">编辑</div>
+        <div class="m-title-icons">
+            <button class="m-icon-btn star" id="mPickerStarBtn" onclick="mToggleStar()">★</button>
+            <button class="m-icon-btn del" id="mPickerDelBtn" onclick="mDeleteEntry()">🗑️</button>
+        </div>
+    </div>
+    <!-- 移动端新增品质选择行（桌面端隐藏） -->
+    <div id="mobileQualityRow">
+        <div class="m-q-chips">
+            <div class="m-q-chip g" onclick="mSelectQuality('green')">绿品</div>
+            <div class="m-q-chip b" onclick="mSelectQuality('blue')">蓝品</div>
+            <div class="m-q-chip p" onclick="mSelectQuality('purple')">紫品</div>
+        </div>
+    </div>
     <div id="modalTitle" style="text-align:center; margin-bottom:15px; font-weight:bold; color:var(--title-color);">录入序列</div>
     <div id="seqAdjustRow" style="display:none; margin-bottom:15px; background:rgba(128,128,128,0.1); padding:10px; border-radius:10px;">
         <span style="font-size:12px; color:var(--nav-text)">调整到第几列：</span>
@@ -439,7 +834,13 @@
     let curType = '拳套', curSystem = 'forge', tempEntry = null;
     let focusScroll = { loc: null, row: 0 }; 
 
-    function init() { if (localStorage.getItem('yanyu_theme') === 'light') applyTheme('light'); renderNav(); renderMain(); }
+    function init() {
+        if (localStorage.getItem('yanyu_theme') === 'light') applyTheme('light');
+        renderNav(); renderMain();
+        // 移动端布局检测（规范参见 doc/code_requirements.md § 6.1）
+        checkLayout();
+        window.addEventListener('resize', checkLayout);
+    }
     function toggleTheme() { const next = document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light'; applyTheme(next); localStorage.setItem('yanyu_theme', next); }
     function applyTheme(t) { document.body.setAttribute('data-theme', t); }
 
@@ -526,7 +927,7 @@
         const existing = (mode === 'edit') ? (db[curType]?.[loc]?.[en]?.[rowIdx]) : null;
         tempEntry = { 
             loc, equipIdx: idx, q, mode, oldRow: rowIdx,
-            limit: (q==='green'?1:(q==='blue'?2:3)), 
+            limit: (q === null ? 0 : q==='green' ? 1 : q==='blue' ? 2 : 3), 
             baseAttrs: existing ? [...existing.attrs] : [], 
             specialAttr: existing ? existing.special : "",
             isKeep: existing ? existing.k : false
@@ -537,6 +938,20 @@
         document.getElementById('mask').style.display = 'block';
         document.getElementById('attrPicker').style.display = 'block';
         renderPicker();
+        // 移动端 UI 适配：品质 Chip + 标题行
+        if (document.body.classList.contains('mobile-view')) {
+            // 品质未选时（移动端新增模式），limt 设 0 禁止选属性
+            if (q === null) tempEntry.limit = 0;
+            // 品质选择行始终显示
+            document.getElementById('mobileQualityRow').style.display = 'block';
+            // 编辑模式：显示标题行（含 ★/🗑️ 图标）
+            const titleRow = document.getElementById('mPickerTitleRow');
+            titleRow.style.display = mode === 'edit' ? 'flex' : 'none';
+            if (mode === 'edit') {
+                document.getElementById('mPickerTitle').textContent = `编辑 — ${en}`;
+                document.getElementById('mPickerStarBtn').classList.toggle('on', tempEntry.isKeep);
+            }
+        }
     }
 
     function renderPicker() {
@@ -563,6 +978,17 @@
             btn.onclick = () => { tempEntry.specialAttr = isSel ? "" : s; checkAutoSave(); renderPicker(); };
             spec.appendChild(btn);
         });
+        // 移动端：同步品质 Chip 高亮状态
+        if (document.body.classList.contains('mobile-view')) {
+            document.querySelectorAll('.m-q-chip').forEach(chip => {
+                const cq = chip.classList.contains('g') ? 'green'
+                         : chip.classList.contains('b') ? 'blue' : 'purple';
+                chip.classList.toggle('active', cq === tempEntry.q);
+            });
+            // 品质未选时禁用属性按钮
+            document.getElementById('baseAttrGrid').style.opacity = tempEntry.q ? '' : '0.3';
+            document.getElementById('specAttrGrid').style.opacity = tempEntry.q ? '' : '0.3';
+        }
     }
 
     function checkAutoSave() { if (tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") saveFinal(); }
@@ -626,6 +1052,8 @@
                 }
             }, 0);
         });
+        // 移动端同步刷新
+        if (document.body.classList.contains('mobile-view')) renderMobileAll();
     }
 
     function openStatsModal() {
@@ -691,6 +1119,16 @@
         document.getElementById('mask').style.display='none';
         document.getElementById('attrPicker').style.display='none';
         document.getElementById('statsModal').style.display='none';
+        // 移动端：重置 picker 内的移动端元素状态
+        const qRow = document.getElementById('mobileQualityRow');
+        const tRow = document.getElementById('mPickerTitleRow');
+        if (qRow) qRow.style.display = 'none';
+        if (tRow) tRow.style.display = 'none';
+        // 恢复属性网格 opacity
+        const attrG = document.getElementById('baseAttrGrid');
+        const specG = document.getElementById('specAttrGrid');
+        if (attrG) attrG.style.opacity = '';
+        if (specG) specG.style.opacity = '';
     }
     function toggleStar(loc, en, i) { 
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; 
@@ -801,6 +1239,303 @@
         }; 
         reader.readAsText(e.target.files[0]); 
     };
+
+    /* ================================================================
+       移动端 JS (Mobile Layout JavaScript)
+       触发条件：innerHeight / innerWidth > 1.5（竖屏手机）
+       规范参见 doc/code_requirements.md § 6
+    ================================================================ */
+
+    /** 移动端当前选中地点 */
+    let curMobileLoc = null;
+
+    /** 判断是否为移动端布局 */
+    function isMobileLayout() { return window.innerHeight / window.innerWidth > 1.5; }
+
+    /**
+     * 检测并切换布局，在 init() 和 resize 事件中调用
+     * 规范参见 doc/code_requirements.md § 6.1
+     */
+    function checkLayout() {
+        const mobile = isMobileLayout();
+        document.body.classList.toggle('mobile-view', mobile);
+        if (mobile) {
+            if (!curMobileLoc || !LOC_MAP[curSystem].includes(curMobileLoc)) {
+                curMobileLoc = LOC_MAP[curSystem][0];
+            }
+            renderMobileAll();
+        }
+    }
+
+    /** 重渲染所有移动端视图元素 */
+    function renderMobileAll() {
+        renderMobileHeader();
+        renderMobileLocSeg();
+        renderMobileEquipHead();
+        renderMobileTable();
+    }
+
+    /** 更新 Header 中系统/装备按钮文字 */
+    function renderMobileHeader() {
+        const sysLabel = curSystem === 'forge' ? '⚒️ 铸造' : '🧵 缝纫';
+        const inner = document.getElementById('mSysBtnInner');
+        if (inner) inner.innerHTML = `${sysLabel} <span class="m-sys-equip">· ${curType}</span> ▾`;
+    }
+
+    /** 渲染地点分段控制按钮 */
+    function renderMobileLocSeg() {
+        const locs = LOC_MAP[curSystem];
+        const seg = document.getElementById('mLocSeg');
+        if (!seg) return;
+        seg.innerHTML = locs.map(loc =>
+            `<button class="m-loc-btn ${loc === curMobileLoc ? 'active' : ''}"
+                     onclick="switchMobileLoc('${loc}')">${LOC_ICONS[loc]} ${loc}</button>`
+        ).join('');
+    }
+
+    /** 切换当前显示地点 */
+    function switchMobileLoc(loc) {
+        curMobileLoc = loc;
+        renderMobileLocSeg();
+        renderMobileEquipHead();
+        renderMobileTable();
+    }
+
+    /** 渲染装备列头（装备名 + 起始次数输入 + 新增按钮） */
+    function renderMobileEquipHead() {
+        const loc = curMobileLoc;
+        const ens = curSystem === 'forge' ? FORGE_CONFIG[curType] : SEW_CONFIG[curType];
+        const s = [0, 1].map(i => parseInt(localStorage.getItem(`start_at_${loc}_${ens[i]}`)) || 1);
+        const head = document.getElementById('mEquipHead');
+        if (!head) return;
+        head.innerHTML = [0, 1].map(idx => `
+            <div class="m-equip-col">
+                <div class="m-equip-name">${ens[idx]}</div>
+                <div class="m-start-row">
+                    <span style="font-size:11px;">第</span>
+                    <input type="number" class="start-input" value="${s[idx]}" style="width:34px;"
+                           onchange="updateEquipStart('${loc}','${ens[idx]}',this.value)">
+                    <span style="font-size:11px;">次</span>
+                </div>
+                <button class="m-add-btn" onclick="openMobileAddPicker(${idx})">＋ 新增</button>
+            </div>`
+        ).join('');
+    }
+
+    /**
+     * 渲染移动端数据表格（仅展示当前地点数据）
+     */
+    function renderMobileTable() {
+        const loc = curMobileLoc;
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const ens = curSystem === 'forge' ? FORGE_CONFIG[curType] : SEW_CONFIG[curType];
+        const s1 = parseInt(localStorage.getItem(`start_at_${loc}_${ens[0]}`)) || 1;
+        const s2 = parseInt(localStorage.getItem(`start_at_${loc}_${ens[1]}`)) || 1;
+        const d = db[curType]?.[loc] || {};
+        const l1 = d[ens[0]] || [], l2 = d[ens[1]] || [];
+        const maxRows = Math.max(l1.length, l2.length, s1, s2);
+        let rows = '';
+        for (let i = 0; i < maxRows; i++) {
+            rows += `<tr>
+                <td class="m-td-idx">${i + 1}</td>
+                ${renderMobileTd(l1[i], ens[0], loc, i, 0)}
+                ${renderMobileTd(l2[i], ens[1], loc, i, 1)}
+            </tr>`;
+        }
+        const tbody = document.getElementById('mTableBody');
+        if (tbody) tbody.innerHTML = rows;
+    }
+
+    /** 渲染移动端单格，有数据则可点击进入编辑 */
+    function renderMobileTd(it, en, loc, i, equipIdx) {
+        if (!it) {
+            return `<td class="m-td"><div class="m-cell-main"><span class="m-cell-empty">—</span></div></td>`;
+        }
+        const qLabel = it.q === 'green' ? '绿' : it.q === 'blue' ? '蓝' : '紫';
+        const qColor = `var(--${it.q})`;
+        const keepClass = it.k ? ' m-cell-keep' : '';
+        const attrsHtml = (it.attrs || []).map(a =>
+            `<span class="attr-tag" style="font-size:9px;padding:1px 4px;">${fixOldData(a)}</span>`
+        ).join('');
+        const specHtml = it.special
+            ? `<span class="special-tag" style="font-size:9px;padding:1px 4px;">${it.special}</span>`
+            : '';
+        return `<td class="m-td">
+            <div class="m-cell-main${keepClass}"
+                 onclick="openPicker('${loc}',${equipIdx},'${it.q}','edit',${i})">
+                <b style="font-size:11px;color:${qColor};">${qLabel}</b>
+                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:2px;">
+                    ${attrsHtml}${specHtml}
+                </div>
+            </div>
+        </td>`;
+    }
+
+    /* ---- 系统切换弹窗 ---- */
+
+    /** 打开系统 / 装备选择弹窗 */
+    function openMobileSysModal() {
+        renderMobileSysModal(curSystem);
+        const overlay = document.getElementById('mSysOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('closing');
+        document.getElementById('mSysModal').classList.remove('closing');
+        overlay.style.display = 'flex';
+    }
+
+    /**
+     * 关闭系统弹窗（带淡出动画）
+     * 动画规范参见 doc/code_requirements.md § 7.2
+     */
+    function closeMobileSysModal() {
+        const overlay = document.getElementById('mSysOverlay');
+        const modal = document.getElementById('mSysModal');
+        if (!overlay) return;
+        modal.classList.add('closing');
+        overlay.classList.add('closing');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.classList.remove('closing');
+            modal.classList.remove('closing');
+        }, 220);
+    }
+
+    /** 渲染系统弹窗（选项卡 + 装备 Chip 网格），previewSys 控制当前预览哪个系统 */
+    function renderMobileSysModal(previewSys) {
+        const activeSys = previewSys || curSystem;
+        // 系统选项卡
+        document.getElementById('mSysTabs').innerHTML = [
+            { key: 'forge', label: '⚒️ 铸造' },
+            { key: 'sew',   label: '🧵 缝纫' }
+        ].map(s => `
+            <div class="m-sys-tab ${activeSys === s.key ? 'active' : ''}"
+                 onclick="renderMobileSysModal('${s.key}')">${s.label}</div>
+        `).join('');
+        // 装备 Chip 网格
+        const config = activeSys === 'forge' ? FORGE_CONFIG : SEW_CONFIG;
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        document.getElementById('mEquipGrid').innerHTML = Object.keys(config).map(type => {
+            let total = 0;
+            LOC_MAP[activeSys].forEach(loc => {
+                config[type].forEach(en => {
+                    const list = db[type]?.[loc]?.[en] || [];
+                    total += list.filter(it => it !== null).length;
+                });
+            });
+            const isActive = (activeSys === curSystem && type === curType);
+            const badge = total > 0 ? `<span class="m-chip-badge">${total}</span>` : '';
+            return `<div class="m-equip-chip ${isActive ? 'active' : ''}"
+                         onclick="selectMobileEquip('${activeSys}','${type}')">
+                        ${badge}${type}
+                    </div>`;
+        }).join('');
+    }
+
+    /** 点击装备 Chip：切换系统+装备，关闭弹窗并重渲染 */
+    function selectMobileEquip(sys, type) {
+        curSystem = sys;
+        curType = type;
+        focusScroll = { loc: null, row: 0 };
+        if (!LOC_MAP[curSystem].includes(curMobileLoc)) {
+            curMobileLoc = LOC_MAP[curSystem][0];
+        }
+        closeMobileSysModal();
+        renderNav();
+        renderMain();  // renderMain 末尾会调用 renderMobileAll()
+    }
+
+    /* ---- 菜单 Sheet ---- */
+
+    /** 打开菜单底部 Sheet（带滑入动画）
+     * 动画规范参见 doc/code_requirements.md § 7.1
+     */
+    function openMobileMenuSheet() {
+        renderMobileMenuSheet();
+        const overlay = document.getElementById('mMenuOverlay');
+        if (!overlay) return;
+        overlay.classList.remove('closing');
+        document.getElementById('mMenuSheet').classList.remove('closing');
+        overlay.style.display = 'block';
+    }
+
+    /** 关闭菜单 Sheet（带滑出动画） */
+    function closeMobileMenuSheet() {
+        const overlay = document.getElementById('mMenuOverlay');
+        const sheet  = document.getElementById('mMenuSheet');
+        if (!overlay) return;
+        sheet.classList.add('closing');
+        overlay.classList.add('closing');
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.classList.remove('closing');
+            sheet.classList.remove('closing');
+        }, 260);
+    }
+
+    /** 更新菜单 Sheet 里的实时状态（同步桌面端已有数据） */
+    function renderMobileMenuSheet() {
+        // 备份时间（直接从桌面端元素读取，避免重复请求）
+        const autoTime   = document.getElementById('autoBackupTime')?.textContent?.trim();
+        const manualTime = document.getElementById('manualBackupTime')?.textContent?.trim();
+        const atEl  = document.getElementById('mAutoBackupTime');
+        const mtEl  = document.getElementById('mManualBackupTime');
+        if (atEl) atEl.textContent = autoTime || '—';
+        if (mtEl) mtEl.textContent = manualTime || '—';
+        // 登录状态
+        const isLoggedIn = document.getElementById('userPanel')?.style.display !== 'none';
+        const userName   = document.getElementById('userName')?.textContent || '';
+        const dot    = document.getElementById('mStatusDot');
+        const stText = document.getElementById('mStatusText');
+        const uName  = document.getElementById('mUserName');
+        if (dot)    dot.classList.toggle('offline', !isLoggedIn);
+        if (stText) stText.textContent = isLoggedIn ? '已登录' : '未登录';
+        if (uName)  uName.textContent  = userName;
+        const loginBtn  = document.getElementById('mLoginBtn');
+        const logoutBtn = document.getElementById('mLogoutBtn');
+        if (loginBtn)  loginBtn.style.display  = isLoggedIn ? 'none'  : 'block';
+        if (logoutBtn) logoutBtn.style.display = isLoggedIn ? 'block' : 'none';
+    }
+
+    /* ---- 属性选择器 - 移动端扩展 ---- */
+
+    /** 移动端新增入口（不预选品质，由弹窗内 Chip 选择） */
+    function openMobileAddPicker(equipIdx) {
+        openPicker(curMobileLoc, equipIdx, null, 'add', null);
+    }
+
+    /** 移动端品质 Chip 点击：更新品质并刷新属性池 */
+    function mSelectQuality(q) {
+        if (!tempEntry) return;
+        tempEntry.q = q;
+        tempEntry.limit = q === 'green' ? 1 : q === 'blue' ? 2 : 3;
+        renderPicker();
+    }
+
+    /** 移动端编辑模式收藏切换 */
+    function mToggleStar() {
+        if (!tempEntry) return;
+        tempEntry.isKeep = !tempEntry.isKeep;
+        const btn = document.getElementById('mPickerStarBtn');
+        if (btn) btn.classList.toggle('on', tempEntry.isKeep);
+    }
+
+    /** 移动端编辑模式删除当前词条 */
+    function mDeleteEntry() {
+        if (!tempEntry || tempEntry.mode !== 'edit') return;
+        if (!confirm('确认删除这条词条？')) return;
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        const ens = curSystem === 'forge' ? FORGE_CONFIG[curType] : SEW_CONFIG[curType];
+        const en = ens[tempEntry.equipIdx];
+        if (db[curType]?.[tempEntry.loc]?.[en]) {
+            db[curType][tempEntry.loc][en][tempEntry.oldRow] = null;
+        }
+        localStorage.setItem('yanyu_v24_db', JSON.stringify(db));
+        closeAllModals();
+        renderNav();
+        renderMain();
+        window.YanyuApp?.AuthUI?.updateSyncStatus?.().catch(e => console.warn('移动端删除后更新状态失败'));
+    }
+
     init();
 </script>
 
