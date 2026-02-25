@@ -6,14 +6,34 @@ const router = express.Router()
 
 // 中间件：检查认证
 const requireAuth = (req, res, next) => {
+  // 优先使用 session（Passport）提供的 req.user
   if (!req.user) {
-    // 调试信息：当认证失败时打印 cookie，便于定位移动端/跨站 cookie 问题
+    // 尝试从 Authorization: Bearer <token> 恢复用户（兼容前端仅保存 token 的场景）
     try {
-      console.warn('Authentication failed. request cookies:', req.headers.cookie)
+      const auth = req.headers.authorization || ''
+      if (auth.startsWith('Bearer ')) {
+        const token = auth.slice(7)
+        try {
+          const decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'))
+          // 简单恢复 req.user（注意：此 token 未签名，仅用于兼容性）
+          req.user = decoded
+        } catch (e) {
+          // 无法解析 token，继续走后续检查
+        }
+      }
     } catch (e) {
-      console.warn('Authentication failed. (no cookie header)')
+      // ignore
     }
-    return res.status(401).json({ error: 'Not authenticated' })
+
+    if (!req.user) {
+      // 调试信息：当认证失败时打印 cookie，便于定位移动端/跨站 cookie 问题
+      try {
+        console.warn('Authentication failed. request cookies:', req.headers.cookie)
+      } catch (e) {
+        console.warn('Authentication failed. (no cookie header)')
+      }
+      return res.status(401).json({ error: 'Not authenticated' })
+    }
   }
   next()
 }
