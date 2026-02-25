@@ -103,8 +103,9 @@
         .v-line { width: 2px; background: var(--border); }
 
         .cell-container { display: flex; align-items: stretch; height: 100%; min-height: 65px; }
-        .data-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; }
-        .op-right-zone { display: flex; width: 85px; border-left: 1px solid var(--border); }
+        .data-main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 6px; cursor: pointer; transition: background 0.15s; }
+        .data-main:hover { background: rgba(52,152,219,0.07); }
+        .op-right-zone { display: flex; width: 56px; border-left: 1px solid var(--border); }
         .op-btn { flex: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; font-size: 12px; }
         .op-edit { color: var(--blue); border-right: 1px solid var(--border); }
         .op-keep { color: #555; border-right: 1px solid var(--border); font-size: 14px; }
@@ -176,7 +177,18 @@
         .dropdown-item.danger:hover { background: rgba(255, 71, 87, 0.1); color: #ff4757; }
         .dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
-        /* 数据冲突对话框样式 */
+        /* 收藏统计弹窗 */
+        .stats-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; z-index:1001; box-shadow:0 20px 60px rgba(0,0,0,0.5); width:440px; max-height:80vh; overflow-y:auto; }
+        .stats-modal h3 { margin:0 0 16px 0; font-size:16px; color:var(--title-color); }
+        .stats-system { margin-bottom:20px; }
+        .stats-system-title { font-size:13px; font-weight:bold; color:var(--accent); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+        .stats-type-group { margin-bottom:10px; }
+        .stats-type-label { font-size:12px; font-weight:bold; color:var(--text); margin-bottom:4px; }
+        .stats-row { display:flex; justify-content:space-between; align-items:center; padding:3px 8px; font-size:11px; border-radius:4px; }
+        .stats-row:nth-child(even) { background:var(--zebra); }
+        .stats-row-name { color:var(--nav-text); }
+        .stats-row-count { color:var(--accent); font-weight:bold; }
+        .stats-empty { color:var(--nav-text); font-size:12px; text-align:center; padding:20px 0; }
         .conflict-overlay {
           position: fixed;
           top: 0;
@@ -307,6 +319,7 @@
             </div>
         </div>
         <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
+        <button class="ctrl-btn" onclick="openStatsModal()">📊 收藏统计</button>
         <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 在线保存</button>
         <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 在线恢复</button>
         <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
@@ -342,16 +355,15 @@
     <div class="nav-area">
         <div class="nav-row">
             <div class="nav-btns-wrapper" id="forgeNav"></div>
-            <div id="forgeStats" class="stats-zone"></div>
         </div>
         <div class="nav-row">
             <div class="nav-btns-wrapper" id="sewNav"></div>
-            <div id="sewStats" class="stats-zone"></div>
         </div>
     </div>
 </div>
 
-<!-- 状态和备份信息框 -->
+<!-- 收藏统计弹窗 -->
+<div class="stats-modal" id="statsModal"></div>
 <div class="status-backup-container" id="statusBackupContainer">
         <div class="status-backup-content">
         <!-- 同步状态区域已移除：在头部使用状态卡片替代 -->
@@ -488,7 +500,6 @@
         document.getElementById('sewNav').innerHTML = '<span class="nav-label">缝纫</span>';
         Object.keys(FORGE_CONFIG).forEach(t => createNavBtn(t, 'forge', 'forgeNav', stats[t]));
         Object.keys(SEW_CONFIG).forEach(t => createNavBtn(t, 'sew', 'sewNav', stats[t]));
-        renderStats('forge', 'forgeStats'); renderStats('sew', 'sewStats');
     }
     
     function createNavBtn(t, sys, id, count) {
@@ -617,23 +628,70 @@
         });
     }
 
+    function openStatsModal() {
+        const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
+        let totalAll = 0;
+
+        function buildSystemHtml(label, config) {
+            let systemTotal = 0;
+            let typesHtml = '';
+            Object.keys(config).forEach(type => {
+                const byEquip = {};
+                Object.entries(db[type] || {}).forEach(([loc, locData]) => {
+                    Object.entries(locData).forEach(([equipName, list]) => {
+                        const k = (list || []).filter(it => it && it.k).length;
+                        if (k > 0) {
+                            if (!byEquip[equipName]) byEquip[equipName] = {};
+                            byEquip[equipName][loc] = (byEquip[equipName][loc] || 0) + k;
+                            systemTotal += k;
+                        }
+                    });
+                });
+                if (Object.keys(byEquip).length > 0) {
+                    const rows = Object.entries(byEquip).flatMap(([equipName, locs]) =>
+                        Object.entries(locs).map(([loc, cnt]) =>
+                            `<div class="stats-row"><span class="stats-row-name">${loc} · ${equipName}</span><span class="stats-row-count">⭐ ${cnt}</span></div>`
+                        )
+                    ).join('');
+                    typesHtml += `<div class="stats-type-group"><div class="stats-type-label">${type}</div>${rows}</div>`;
+                }
+            });
+            totalAll += systemTotal;
+            if (!typesHtml) return '';
+            return `<div class="stats-system"><div class="stats-system-title">${label} · 总计 ${systemTotal} 条</div>${typesHtml}</div>`;
+        }
+
+        const forgeHtml = buildSystemHtml('⚒️ 铸造', FORGE_CONFIG);
+        const sewHtml   = buildSystemHtml('🧵 缝纫', SEW_CONFIG);
+        const body = totalAll === 0
+            ? '<div class="stats-empty">暂无收藏数据</div>'
+            : forgeHtml + sewHtml;
+
+        document.getElementById('statsModal').innerHTML =
+            `<h3>📊 收藏统计${totalAll > 0 ? ' · 合计 ' + totalAll + ' 条' : ''}</h3>` + body;
+        document.getElementById('statsModal').style.display = 'block';
+        document.getElementById('mask').style.display = 'block';
+    }
+
     function renderTd(it, en, loc, i, equipIdx) {
         if(!it) return `<td><div class="cell-container"><div class="data-main" style="color:var(--border)">-</div></div></td>`;
         const attrsArray = Array.isArray(it.attrs) ? it.attrs : [];
         const attrs = (attrsArray.length||it.special)?(attrsArray.map(a=>`<span class="attr-tag">${fixOldData(a)}</span>`).join('')+(it.special?`<span class="special-tag">${it.special}</span>`:'')):'-';
-        return `<td class="${it.k?'col-keep':''}">
-            <div class="cell-container">
-                <div class="data-main"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
-                <div class="op-right-zone">
-                    <div class="op-btn op-edit" onclick="openPicker('${loc}',${equipIdx},'${it.q}','edit',${i})">✎</div>
-                    <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i})">★</div>
-                    <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i})">✕</div>
-                </div>
-            </div></td>`;
+        return `<td class="${it.k?'col-keep':''}"><div class="cell-container">
+            <div class="data-main" onclick="openPicker('${loc}',${equipIdx},'${it.q}','edit',${i})"><b style="color:var(--${it.q});font-size:11px">${it.q==='green'?'绿':it.q==='blue'?'蓝':'紫'}</b><div style="display:flex;flex-wrap:wrap;justify-content:center">${attrs}</div></div>
+            <div class="op-right-zone">
+                <div class="op-btn op-keep ${it.k?'active':''}" onclick="toggleStar('${loc}','${en}',${i})">★</div>
+                <div class="op-btn op-del" onclick="delEntry('${loc}','${en}',${i})">✕</div>
+            </div>
+        </div></td>`;
     }
 
     function updateEquipStart(loc, en, val) { localStorage.setItem(`start_at_${loc}_${en}`, Math.max(1, parseInt(val))); renderMain(); }
-    function closeAllModals() { document.getElementById('mask').style.display='none'; document.getElementById('attrPicker').style.display='none'; }
+    function closeAllModals() {
+        document.getElementById('mask').style.display='none';
+        document.getElementById('attrPicker').style.display='none';
+        document.getElementById('statsModal').style.display='none';
+    }
     function toggleStar(loc, en, i) { 
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db')); db[curType][loc][en][i].k = !db[curType][loc][en][i].k; 
         localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderNav(); renderMain(); 

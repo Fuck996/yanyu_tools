@@ -213,6 +213,10 @@ export const DataSync = {
         const merged = this.mergeCloudData(records)
         LocalStorageManager.saveEquipmentData(merged)
 
+        // 立即刷新前端显示（新设备首次同步后无需手动点击）
+        if (typeof window.renderNav === 'function') window.renderNav()
+        if (typeof window.renderMain === 'function') window.renderMain()
+
         // 只有在确实有数据变更的情况下才更新时间
         this.lastSyncTime = new Date()
         LocalStorageManager.updateSyncStatus('synced', {
