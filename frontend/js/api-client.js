@@ -332,23 +332,18 @@ export const ApiClient = {
    * @returns {Promise<Object>}
    */
   async saveBackup(backupType = 'manual') {
-    console.log('📝 [saveBackup] 开始保存备份，类型:', backupType)
     const available = await this.isBackendEnabled()
     if (!available) {
-      console.warn('❌ [saveBackup] 后端未运行')
       return { success: false, offline: true, error: '后端未运行' }
     }
 
     const token = AuthHandler.getToken()
-    console.log('📝 [saveBackup] Token:', token ? `已设置 (${token.slice(0, 20)}...)` : '未设置')
     if (!token) {
-      console.warn('❌ [saveBackup] 未认证，无token')
       return { success: false, error: '未认证' }
     }
 
     try {
       const url = `${API_URL}/equipment/save-backup`
-      console.log('📝 [saveBackup] 请求URL:', url)
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -359,21 +354,16 @@ export const ApiClient = {
         body: JSON.stringify({ backupType }),
       })
 
-      console.log('📥 [saveBackup] 响应状态:', response.status, response.statusText)
       if (response.ok) {
         const result = await response.json()
-        console.log('✅ [saveBackup] 备份成功:', result)
         return result
       } else if (response.status === 401) {
-        console.warn('⚠️ [saveBackup] 认证已过期 (401)')
         return { success: false, error: '认证已过期，请重新登录' }
       } else {
-        const errorText = await response.text()
-        console.error(`❌ [saveBackup] 备份失败 (${response.status}):`, errorText)
         return { success: false, error: '备份失败' }
       }
     } catch (err) {
-      console.error('❌ [saveBackup] 请求异常:', err.message, err)
+      console.error('❌ 备份异常:', err.message)
       return { success: false, offline: true, error: err.message }
     }
   },

@@ -593,24 +593,24 @@ Object.assign(window.YanyuApp, {
    * 保存手动备份（同时保存到本地和服务器）
    */
   async saveManualBackup() {
-    console.log('📝 [saveManualBackup] 开始保存手动备份...')
     // 直接保存到后端服务器（不保存本地副本）
     try {
       const result = await ApiClient.saveBackup('manual')
-      console.log('📥 [saveManualBackup] 收到结果:', result)
       if (result.success) {
-        console.log('✅ [saveManualBackup] 备份成功，更新同步状态')
-        UIManager.showMessage(`✅ 备份已保存到服务器 (${result.recordCount} 条记录)`, 'success', 2000)
+        UIManager.showMessage(`✅ 备份已保存 (${result.recordCount} 条)`, 'success', 2000)
+        // 强制刷新备份显示（绕过并发限制）
+        const wasUpdating = AuthUI.isUpdatingStatus
+        AuthUI.isUpdatingStatus = false
         await AuthUI.updateSyncStatus()
+        if (!wasUpdating) AuthUI.isUpdatingStatus = false
         return result
       } else {
-        console.warn('⚠️ [saveManualBackup] 备份失败:', result.error)
-        UIManager.showMessage(`❌ 备份保存失败: ${result.error}`, 'error', 3000)
+        UIManager.showMessage(`❌ 备份失败: ${result.error}`, 'error', 3000)
         return { success: false, error: result.error }
       }
     } catch (err) {
-      console.error('❌ [saveManualBackup] 异常:', err.message, err)
-      UIManager.showMessage(`❌ 备份保存失败: ${err.message}`, 'error', 3000)
+      console.error('❌ 备份异常:', err.message)
+      UIManager.showMessage(`❌ 备份失败: ${err.message}`, 'error', 3000)
       return { success: false, error: err.message }
     }
   },
@@ -620,44 +620,34 @@ Object.assign(window.YanyuApp, {
    */
   async restoreManualBackup() {
     // 从服务器获取备份列表
-    console.log('📝 [restoreManualBackup] 开始获取备份列表...')
     const backupListResult = await ApiClient.getBackupList()
-    console.log('📥 [restoreManualBackup] 备份列表结果:', backupListResult)
     
     if (!backupListResult.success || !backupListResult.backups || backupListResult.backups.length === 0) {
-      console.warn('⚠️ [restoreManualBackup] 没有可用的备份')
       UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
       return { success: false, error: '没有备份' }
     }
     
     // 查找最新的手动备份
     const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
-    console.log('📋 [restoreManualBackup] 找到的手动备份:', manualBackup)
     
     if (!manualBackup) {
-      console.warn('⚠️ [restoreManualBackup] 没有手动备份')
       UIManager.showMessage('⚠️ 没有手动备份', 'warning', 2000)
       return { success: false, error: '没有手动备份' }
     }
 
     // 显示确认对话框
     const backupDate = new Date(manualBackup.timestamp).toLocaleString('zh-CN')
-    console.log('📝 [restoreManualBackup] 显示恢复确认对话框:', { backupDate, recordCount: manualBackup.recordCount })
     if (confirm(`确认恢复手动备份吗？\n时间: ${backupDate}\n记录数: ${manualBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
-      console.log('📝 [restoreManualBackup] 用户确认，开始恢复...')
       const result = await ApiClient.restoreBackup(manualBackup.id)
-      console.log('📥 [restoreManualBackup] 恢复结果:', result)
       if (result.success) {
         UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
         setTimeout(() => location.reload(), 1500)
         return result
       } else {
-        console.error('❌ [restoreManualBackup] 恢复失败:', result.error)
         UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
         return result
       }
     }
-    console.log('📝 [restoreManualBackup] 用户取消恢复')
     return { success: false, error: '用户取消' }
   },
 
@@ -678,20 +668,18 @@ Object.assign(window.YanyuApp, {
   async autoBackup() {
     try {
       if (!AuthHandler.isAuthenticated()) {
-        console.log('📝 [autoBackup] 未认证，跳过自动备份')
         return { success: false, error: '未认证' }
       }
 
-      console.log('📝 [autoBackup] 开始自动备份...')
       const result = await ApiClient.saveBackup('auto')
       
       if (result.success) {
-        console.log('✅ [autoBackup] 自动备份成功:', {
-          recordCount: result.recordCount,
-          timestamp: result.timestamp
-        })
-        // 自动更新同步状态显示
+        console.log('✅ 自动备份: ' + result.recordCount + ' 条')
+        // 强制刷新备份显示
+        const wasUpdating = this.isUpdatingStatus
+        this.isUpdatingStatus = false
         await AuthUI.updateSyncStatus()
+        if (!wasUpdating) this.isUpdatingStatus = false
         return result
       } else {
         console.warn('⚠️ [autoBackup] 自动备份失败:', result.error)
@@ -734,6 +722,12 @@ async function initializeApp() {
 
     // 3.6 启动自动备份机制
     console.log('📦 启动自动备份机制...')
+    // 页面加载时立即进行一次自动备份
+    if (AuthHandler.isAuthenticated()) {
+      setTimeout(() => {
+        window.YanyuApp.autoBackup()
+      }, 1000)
+    }
     // 设置定时自动备份（每10分钟）
     setInterval(() => {
       if (AuthHandler.isAuthenticated()) {
