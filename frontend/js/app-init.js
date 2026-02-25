@@ -51,6 +51,7 @@ const AuthUI = {
   dropdownOpen: false,
   pollingTimer: null,  // 轮询定时器
   pollingStarted: false,  // 轮询是否已启动
+  isUpdatingStatus: false,  // 防止并发调用 updateSyncStatus
 
   /**
    * 初始化认证 UI
@@ -290,7 +291,7 @@ const AuthUI = {
       this.closeUserDropdown()
       
       // 更新同步状态
-      this.updateSyncStatus()
+      // 注意：在这里不调用，让 init() 的调用处理
     } else {
       // 显示登录按钮，隐藏用户面板
       if (loginBtn) {
@@ -354,8 +355,16 @@ const AuthUI = {
   /**
    * 更新同步状态显示
    * 不论认证状态如何，总是显示连接状态和备份信息
+   * 添加防并发机制，防止多个 updateSyncStatus 同时执行
    */
   async updateSyncStatus() {
+    // 防止并发调用
+    if (this.isUpdatingStatus) {
+      return
+    }
+    this.isUpdatingStatus = true
+    
+    try {
     const headerStatusCard = document.getElementById('headerStatusCard')
     const headerStatusIcon = document.getElementById('headerStatusIcon')
     const headerStatusText = document.getElementById('headerStatusText')
@@ -467,8 +476,9 @@ const AuthUI = {
         if (loadingIndicator) loadingIndicator.style.display = 'flex'
         if (failureIndicator) failureIndicator.style.display = 'none'
       }
-    }
-  }
+    }    } finally {
+      this.isUpdatingStatus = false
+    }  }
 }
 
 // 将所有模块和方法填充到 window.YanyuApp
