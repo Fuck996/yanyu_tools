@@ -138,6 +138,8 @@
         .login-btn:hover { background: #2980b9; box-shadow: 0 2px 8px rgba(52, 152, 219, 0.4); }
 
         .user-panel { display: flex; flex-direction: column; align-items: center; gap: 0; cursor: pointer; padding: 0; border-radius: 12px; transition: 0.2s; position: relative; }
+        /* 头像旁边的绿点已废弃，隐藏备用元素 */
+        .user-status { display: none !important; }
         .user-panel:hover { background: transparent; }
         .user-panel-header { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
         .user-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 2px solid var(--blue); }
@@ -305,10 +307,10 @@
 </head>
 <body data-theme="light">
 
-<div class="control-panel">
+    <div class="control-panel">
     <button class="ctrl-btn" id="themeToggle" onclick="toggleTheme()">🌙 模式</button>
-    <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 保存手动备份</button>
-    <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 恢复手动备份</button>
+    <button class="ctrl-btn" onclick="window.YanyuApp?.saveManualBackup()">💾 在线保存</button>
+    <button class="ctrl-btn" onclick="window.YanyuApp?.restoreManualBackup()">♻️ 在线恢复</button>
     <button class="ctrl-btn" onclick="clearCurrent()" style="color:#ff4757">🗑️ 清空</button>
     <div style="height: 24px; width: 1px; background: var(--border); margin: 0 8px;"></div>
     <div class="auth-container">
