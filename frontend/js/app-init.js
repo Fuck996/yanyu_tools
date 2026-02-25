@@ -383,8 +383,11 @@ const AuthUI = {
     if (status.authenticated) {
       // 获取并显示备份状态
       try {
-        if (loadingIndicator) loadingIndicator.style.display = 'none'
+        // 先显示"获取中"
+        if (loadingIndicator) loadingIndicator.style.display = 'flex'
         if (failureIndicator) failureIndicator.style.display = 'none'
+        if (manualBackupItem) manualBackupItem.style.display = 'none'
+        if (autoBackupItem) autoBackupItem.style.display = 'none'
         
         const backupListResult = await ApiClient.getBackupList()
         
@@ -396,6 +399,10 @@ const AuthUI = {
             if (!date) return '未知'
             return new Date(date).toLocaleString('zh-CN')
           }
+          
+          // 隐藏"获取中"提示，显示真实备份信息
+          if (loadingIndicator) loadingIndicator.style.display = 'none'
+          if (failureIndicator) failureIndicator.style.display = 'none'
           
           // 显示自动备份（在上）
           const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
@@ -429,6 +436,9 @@ const AuthUI = {
             if (manualBackupItem) manualBackupItem.style.display = 'none'
           }
         } else {
+          // 获取成功但没有备份数据
+          if (loadingIndicator) loadingIndicator.style.display = 'none'
+          if (failureIndicator) failureIndicator.style.display = 'none'
           if (manualBackupItem) manualBackupItem.style.display = 'none'
           if (autoBackupItem) autoBackupItem.style.display = 'none'
         }
@@ -441,7 +451,7 @@ const AuthUI = {
         if (failureIndicator) failureIndicator.style.display = 'flex'
       }
     } else {
-      // 未认证状态：显示"数据获取中"或"获取失败"
+      // 未认证状态：先显示"获取中"，如果连接失败则显示失败
       if (manualBackupItem) manualBackupItem.style.display = 'none'
       if (autoBackupItem) autoBackupItem.style.display = 'none'
       
