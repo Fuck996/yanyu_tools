@@ -17,7 +17,6 @@ const db = new sqlite3.Database(dbPath, (err) => {
   else console.log('Connected to SQLite database at:', dbPath)
 })
 
-// 初始化数据库表
 export async function initDatabase() {
   return new Promise((resolve, reject) => {
     db.serialize(() => {
@@ -62,10 +61,21 @@ export async function initDatabase() {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
-      `, (err) => {
-        if (err) reject(err)
-        else resolve()
-      })
+      `)
+      
+      // 迁移：为已存在的export_history表添加backup_type列（如果不存在）
+      db.run(
+        `ALTER TABLE export_history ADD COLUMN backup_type TEXT DEFAULT 'auto'`,
+        (err) => {
+          // 忽略列已存在的错误
+          if (err && !err.message.includes('duplicate column')) {
+            console.warn('⚠️ ALTER TABLE warning (expected if column already exists):', err.message)
+          } else if (!err) {
+            console.log('✅ Successfully added backup_type column to export_history')
+          }
+          resolve()
+        }
+      )
     })
   })
 }
