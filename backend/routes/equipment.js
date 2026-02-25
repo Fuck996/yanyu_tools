@@ -54,8 +54,10 @@ router.post('/records', requireAuth, (req, res) => {
     [recordId, userId, equipmentType, location, equipmentName, quality, JSON.stringify(attributes), specialAttr],
     (err) => {
       if (err) {
-        return res.status(500).json({ error: 'Failed to save record' })
+        console.error('Failed to insert equipment_record:', err)
+        return res.status(500).json({ error: 'Failed to save record', detail: err.message })
       }
+      console.log('Record saved:', { id: recordId, userId })
       res.json({ id: recordId, message: 'Record saved successfully' })
     }
   )
