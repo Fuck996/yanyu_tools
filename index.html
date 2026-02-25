@@ -48,12 +48,6 @@
 
         .nav-label { font-size: 12px; color: var(--nav-text); width: 45px; font-weight: bold; flex-shrink: 0; }
         .btn-type { position: relative; background: var(--btn-idle); color: var(--nav-text); padding: 8px 16px; font-size: 13px; border: 1px solid var(--border); margin-right: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; }
-        .btn-type.active { background: var(--blue); color: white; border-color: var(--blue); }
-
-        /* 恢复原始角标样式与偏移量 */
-        .badge { position: absolute; top: -6px; right: -8px; background: var(--accent); color: #000; font-size: 10px; padding: 1px 5px; border-radius: 10px; min-width: 12px; text-align: center; font-weight: 800; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-
-        .loc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 220px); min-height: 500px; }
         .loc-section { background: var(--card); border-radius: 16px; padding: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
         .loc-title { font-size: 1.15em; font-weight: bold; color: var(--title-color); margin-bottom: 20px; text-align: center; }
 
@@ -381,7 +375,7 @@
             localStorage.setItem('yanyu_v24_db', JSON.stringify(db)); renderNav(); renderMain(); 
         } 
     }
-    function clearCurrent() { if(confirm('确认清空所有？')) { localStorage.clear(); location.reload(); } }
+    function clearCurrent() { if(confirm('确认清空所有装备数据？登录信息将保留。')) { localStorage.removeItem('yanyu_v24_db'); localStorage.removeItem('yanyu_v24_equipment_timestamp'); location.reload(); } }
     
     function exportData() {
         const dbStr = localStorage.getItem('yanyu_v24_db');
@@ -459,7 +453,7 @@
                                             localStorage.setItem(`start_at_${loc}_${en}`, 1);
                                         }
                                     } else {
-                                        // 如果没有列表或列表为空，则起始次数设为 1
+                                        // 如果没有列表 or 列表为空，则起始次数设为 1
                                         localStorage.setItem(`start_at_${loc}_${en}`, 1);
                                     }
                                 });

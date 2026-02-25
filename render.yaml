@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: yanyu-tools-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: node backend/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+    disk:
+      name: yanyu-data
+      mountPath: /app/backend/data
+      sizeGB: 1
