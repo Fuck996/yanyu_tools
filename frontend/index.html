@@ -367,11 +367,21 @@
 </div>
 
 <!-- 状态和备份信息框 -->
-<div class="status-backup-container" id="statusBackupContainer" style="display:none;">
+<div class="status-backup-container" id="statusBackupContainer">
         <div class="status-backup-content">
         <!-- 同步状态区域已移除：在头部使用状态卡片替代 -->
         <!-- 备份信息：自动备份在上，手动备份在下 -->
         <div class="backup-status-box" id="backupStatusBox">
+            <!-- 数据加载中的占位符 -->
+            <div class="backup-item" id="loadingIndicator" style="display:none;">
+                <div class="backup-item-header">📊 数据获取中</div>
+                <div class="backup-item-time" style="color:#888;">正在连接到服务器...</div>
+            </div>
+            <!-- 连接失败提示 -->
+            <div class="backup-item" id="failureIndicator" style="display:none;">
+                <div class="backup-item-header" style="color:#ff4757;">❌ 数据获取失败</div>
+                <div class="backup-item-time" style="color:#ff4757;">无法连接到服务器</div>
+            </div>
             <!-- 自动备份（先显示） -->
             <div class="backup-item" id="autoBackupItem" style="display:none;">
                 <div class="backup-item-header">⏱️ 自动备份</div>

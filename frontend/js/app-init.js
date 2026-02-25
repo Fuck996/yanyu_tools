@@ -324,68 +324,48 @@ const AuthUI = {
 
   /**
    * 更新同步状态显示
+   * 不论认证状态如何，总是显示连接状态和备份信息
    */
   async updateSyncStatus() {
+    const headerStatusCard = document.getElementById('headerStatusCard')
+    const headerStatusIcon = document.getElementById('headerStatusIcon')
+    const headerStatusText = document.getElementById('headerStatusText')
+    const headerStatusExtra = document.getElementById('headerStatusExtra')
     const statusBackupContainer = document.getElementById('statusBackupContainer')
-    const syncStatusIcon = document.getElementById('syncStatusIcon')
-    const syncStatusText = document.getElementById('syncStatusText')
-    const backupStatusBox = document.getElementById('backupStatusBox')
     const manualBackupItem = document.getElementById('manualBackupItem')
     const autoBackupItem = document.getElementById('autoBackupItem')
+    const loadingIndicator = document.getElementById('loadingIndicator')
+    const failureIndicator = document.getElementById('failureIndicator')
     const status = DataSync.getSyncStatus()
 
-    if (status.authenticated) {
+    // 总是显示主容器和状态卡片
+    statusBackupContainer.style.display = 'block'
+    headerStatusCard.style.display = 'flex'
+    
+    // 首先更新连接状态
+    if (status.isSyncing) {
+      // 正在同步
+      if (headerStatusIcon) headerStatusIcon.textContent = '⏳'
+      if (headerStatusText) headerStatusText.textContent = '正在同步中'
+      if (headerStatusExtra) headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
+    } else {
       // 检查后端在线状态
       const backendOnline = await this.checkBackendHealth()
       window.YanyuApp.backendStatus = backendOnline
-
-      // 从服务器获取最新的记录数（而不仅依赖本地缓存）
-      let recordCount = status.syncedRecords // 默认使用本地缓存
-      try {
-        if (backendOnline) {
-          const statsResult = await ApiClient.getStats()
-          if (statsResult.success) {
-            recordCount = statsResult.recordCount
-          }
-        }
-      } catch (err) {
-        console.warn('获取服务器统计信息失败，使用本地数据:', err)
-      }
-
-      // 显示主容器
-      statusBackupContainer.style.display = 'block'
       
-      // 更新同步状态显示
-      const syncStatusExtra = document.getElementById('syncStatusExtra')
-      const headerStatusCard = document.getElementById('headerStatusCard')
-      const headerStatusIcon = document.getElementById('headerStatusIcon')
-      const headerStatusText = document.getElementById('headerStatusText')
-      const headerStatusExtra = document.getElementById('headerStatusExtra')
-      if (status.isSyncing) {
-          if (syncStatusIcon) syncStatusIcon.textContent = '⏳'
-          if (syncStatusText) syncStatusText.textContent = '正在同步中'
-          if (syncStatusExtra) syncStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
-          if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
-            headerStatusCard.style.display = 'flex'
-            headerStatusIcon.textContent = '⏳'
-            headerStatusText.textContent = '正在同步中'
-            headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
-          }
-      } else {
-        if (syncStatusIcon) syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
-        if (syncStatusText) syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
-        if (syncStatusExtra) syncStatusExtra.textContent = ''
-        if (headerStatusCard && headerStatusIcon && headerStatusText && headerStatusExtra) {
-          headerStatusCard.style.display = 'flex'
-          headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
-          headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
-          headerStatusExtra.textContent = ''
-        }
-      }
+      if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
+      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
+      if (headerStatusExtra) headerStatusExtra.textContent = ''
+    }
 
+    // 只有在认证时才显示备份信息
+    if (status.authenticated) {
       // 获取并显示备份状态
       try {
         console.log('📝 [updateSyncStatus] 开始获取备份列表...')
+        loadingIndicator.style.display = 'none'
+        failureIndicator.style.display = 'none'
+        
         const backupListResult = await ApiClient.getBackupList()
         console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
           success: backupListResult.success,
@@ -429,12 +409,26 @@ const AuthUI = {
         }
       } catch (err) {
         console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
+        // 显示失败状态
         manualBackupItem.style.display = 'none'
         autoBackupItem.style.display = 'none'
+        loadingIndicator.style.display = 'none'
+        failureIndicator.style.display = 'flex'
       }
     } else {
-      // 未认证状态
-      statusBackupContainer.style.display = 'none'
+      // 未认证状态：显示"数据获取中"或"获取失败"
+      manualBackupItem.style.display = 'none'
+      autoBackupItem.style.display = 'none'
+      
+      // 检查是否连接失败
+      const backendOnline = await this.checkBackendHealth()
+      if (!backendOnline) {
+        loadingIndicator.style.display = 'none'
+        failureIndicator.style.display = 'flex'
+      } else {
+        loadingIndicator.style.display = 'flex'
+        failureIndicator.style.display = 'none'
+      }
     }
   }
 }
@@ -714,6 +708,11 @@ async function initializeApp() {
         AuthUI.updateSyncStatus()
       }
     }, 10000)
+
+    // 3.6 初始化时立即显示连接状态
+    console.log('📝 [initializeApp] 初始化连接状态显示...')
+    await AuthUI.updateSyncStatus()
+    console.log('✅ [initializeApp] 连接状态显示初始化完成')
     console.log('✅ [initializeApp] 后端状态监控已启动')
 
     // 3.6 启动自动备份机制
