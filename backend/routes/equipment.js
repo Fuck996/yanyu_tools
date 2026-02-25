@@ -228,8 +228,25 @@ router.get('/export', requireAuth, (req, res) => {
 // 保存手动备份到服务器
 router.post('/save-backup', requireAuth, async (req, res) => {
   const userId = req.user.id
+  const { backupType } = req.body
+  const type = backupType || 'manual'  // 默认为手动备份
   
   try {
+    // 如果是手动备份，先删除用户的旧手动备份（只保留最新一份）
+    if (type === 'manual') {
+      await new Promise((resolve, reject) => {
+        db.run(
+          'DELETE FROM export_history WHERE user_id = ? AND backup_type = ?',
+          [userId, 'manual'],
+          (err) => {
+            if (err) reject(err)
+            else resolve()
+          }
+        )
+      })
+      console.log('✅ Deleted old manual backup for user:', userId)
+    }
+
     // 获取用户当前的所有数据
     const records = await new Promise((resolve, reject) => {
       db.all(
@@ -253,9 +270,9 @@ router.post('/save-backup', requireAuth, async (req, res) => {
     // 保存到 export_history 表
     await new Promise((resolve, reject) => {
       db.run(
-        `INSERT INTO export_history (id, user_id, export_data, created_at)
-         VALUES (?, ?, ?, ?)`,
-        [backupId, userId, JSON.stringify(backupData), timestamp],
+        `INSERT INTO export_history (id, user_id, backup_type, export_data, created_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [backupId, userId, type, JSON.stringify(backupData), timestamp],
         (err) => {
           if (err) reject(err)
           else resolve()
@@ -266,6 +283,7 @@ router.post('/save-backup', requireAuth, async (req, res) => {
     res.json({
       success: true,
       backupId,
+      backupType: type,
       timestamp,
       recordCount: records.length,
     })
@@ -280,31 +298,63 @@ router.get('/backups', requireAuth, (req, res) => {
   const userId = req.user.id
 
   db.all(
-    'SELECT id, created_at FROM export_history WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
+    `SELECT id, backup_type, created_at FROM export_history 
+     WHERE user_id = ? 
+     ORDER BY backup_type DESC, created_at DESC`,
     [userId],
     (err, rows) => {
       if (err) {
         return res.status(500).json({ error: 'Failed to fetch backups' })
       }
 
-      const backups = (rows || []).map(row => {
-        const recordCount = (() => {
-          try {
-            const data = JSON.parse(row.export_data || '[]')
-            return Array.isArray(data) ? data.length : 0
-          } catch {
-            return 0
+      const backups = (rows || [])
+        // 按类型分组：手动备份只取最新一份，自动备份保留最近10份
+        .reduce((acc, row) => {
+          if (row.backup_type === 'manual') {
+            // 手动备份只取第一条（最新的）
+            if (!acc.manual) {
+              acc.manual = row
+            }
+          } else {
+            // 自动备份保留最近10份
+            if (!acc.auto) acc.auto = []
+            if (acc.auto.length < 10) {
+              acc.auto.push(row)
+            }
           }
-        })()
+          return acc
+        }, {})
 
-        return {
-          id: row.id,
-          timestamp: row.created_at,
-          recordCount,
+      // 合并结果：手动备份在前
+      const result = []
+      if (backups.manual) {
+        result.push(backups.manual)
+      }
+      if (backups.auto) {
+        result.push(...backups.auto)
+      }
+
+      const response = result.map(row => {
+        try {
+          const data = JSON.parse(row.export_data || '[]')
+          const recordCount = Array.isArray(data) ? data.length : 0
+          return {
+            id: row.id,
+            backupType: row.backup_type,
+            timestamp: row.created_at,
+            recordCount,
+          }
+        } catch {
+          return {
+            id: row.id,
+            backupType: row.backup_type,
+            timestamp: row.created_at,
+            recordCount: 0,
+          }
         }
       })
 
-      res.json({ success: true, backups })
+      res.json({ success: true, backups: response })
     }
   )
 })

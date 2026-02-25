@@ -332,17 +332,22 @@ const AuthUI = {
           const backupListResult = await ApiClient.getBackupList()
           
           if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
-            const latestBackup = backupListResult.backups[0]
+            // 优先显示手动备份（如果存在），否则显示最新备份
+            const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+            const latestBackup = manualBackup || backupListResult.backups[0]
+            
             const formatTime = (date) => {
               if (!date) return '未知'
               return new Date(date).toLocaleString('zh-CN')
             }
             
+            const backupTypeLabel = latestBackup.backupType === 'manual' ? '📪 手动备份' : '⏱️ 自动备份'
+            
             manualBackupStatus.className = 'manual-backup-status'
             manualBackupStatus.innerHTML = `
               <div class="manual-backup-status-text">
-                <div>☁️ 服务器备份 ${latestBackup.recordCount} 条记录</div>
-                <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">最新备份于 ${formatTime(latestBackup.timestamp)}</div>
+                <div>${backupTypeLabel} ${latestBackup.recordCount} 条记录</div>
+                <div style="font-size: 10px; margin-top: 4px; color: var(--nav-text);">于 ${formatTime(latestBackup.timestamp)}</div>
               </div>
             `
             // 显示还原按钮
@@ -633,12 +638,13 @@ Object.assign(window.YanyuApp, {
       
       backups.forEach((backup, index) => {
         const date = new Date(backup.timestamp).toLocaleString('zh-CN')
-        const option = `${index + 1}. ${date} (${backup.recordCount} 条记录)`
+        const typeLabel = backup.backupType === 'manual' ? '📪 手动' : '⏱️ 自动'
+        const option = `${index + 1}. [${typeLabel}] ${date} (${backup.recordCount} 条)`
         message += option + '\n'
         backupOptions[index + 1] = backup.id
       })
       
-      message += '\n0. 或输入索引号选择'
+      message += '\n输入索引号选择'
       
       const choice = prompt(message)
       if (!choice || !(choice in backupOptions)) {
@@ -647,8 +653,9 @@ Object.assign(window.YanyuApp, {
       
       const selectedBackupId = backupOptions[choice]
       const selectedBackup = backups.find(b => b.id === selectedBackupId)
+      const typeLabel = selectedBackup.backupType === 'manual' ? '手动备份' : '自动备份'
       
-      if (confirm(`确认恢复此备份吗？\n时间: ${new Date(selectedBackup.timestamp).toLocaleString('zh-CN')}\n记录数: ${selectedBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
+      if (confirm(`确认恢复此${typeLabel}吗？\n时间: ${new Date(selectedBackup.timestamp).toLocaleString('zh-CN')}\n记录数: ${selectedBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
         const result = await ApiClient.restoreBackup(selectedBackupId)
         if (result.success) {
           UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
@@ -664,7 +671,7 @@ Object.assign(window.YanyuApp, {
       // 没有服务器备份，尝试使用本地备份
       const backupInfo = LocalStorageManager.getManualBackupInfo()
       if (!backupInfo.hasBackup) {
-        UIManager.showMessage('⚠️ 没有可用的手动备份', 'warning', 2000)
+        UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
         return { success: false, error: '没有备份' }
       }
 

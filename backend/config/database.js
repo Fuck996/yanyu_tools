@@ -57,6 +57,7 @@ export async function initDatabase() {
         CREATE TABLE IF NOT EXISTS export_history (
           id TEXT PRIMARY KEY,
           user_id INTEGER NOT NULL,
+          backup_type TEXT DEFAULT 'auto',
           export_data TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
