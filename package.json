@@ -1,6 +1,6 @@
 {
   "name": "yanyu-tools",
-  "version": "4.8.0",
+  "version": "4.8.1",
   "description": "烟雨江湖装备录入工具 - 前后端分离版本",
   "type": "module",
   "scripts": {
