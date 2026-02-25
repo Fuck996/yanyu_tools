@@ -3,7 +3,8 @@ import 'dotenv/config'
 export const githubOAuthConfig = {
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: process.env.GITHUB_CALLBACK_URL || 'http://localhost:3000/api/auth/github/callback',
+  callbackURL:
+    process.env.GITHUB_CALLBACK_URL || `http://localhost:${process.env.PORT || 3000}/api/auth/github/callback`,
   scope: ['user:email', 'read:user'],
 }
 

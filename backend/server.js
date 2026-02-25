@@ -71,6 +71,9 @@ app.use((req, res) => {
 async function start() {
   try {
     await initDatabase()
+    // 输出当前使用的回调与前端地址，便于排查 redirect_uri 问题
+    console.log('🔧 GitHub callbackURL:', githubOAuthConfig.callbackURL)
+    console.log('🔧 FRONTEND_URL:', process.env.FRONTEND_URL || 'http://localhost:5173')
     app.listen(PORT, () => {
       console.log(`
 🚀 Server running at http://localhost:${PORT}

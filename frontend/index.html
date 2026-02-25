@@ -18,6 +18,22 @@
         });
     </script>
 
+    <script>
+        // 自动注入后端 API 地址（部署时覆盖默认本地地址）
+        if (!window.__API_URL__) {
+            const host = window.location.hostname || '';
+            if (host && host !== 'localhost') {
+                // 生产环境：指向 Railway 后端（请确保该 URL 正确）
+                window.__API_URL__ = 'https://yanyu-tools-backend-production.up.railway.app/api';
+                console.log('🌐 使用生产 API_URL:', window.__API_URL__);
+            } else {
+                // 开发环境回退
+                window.__API_URL__ = 'http://localhost:3000/api';
+                console.log('🌐 使用本地 API_URL:', window.__API_URL__);
+            }
+        }
+    </script>
+
     <meta charset="UTF-8">
     <title>烟雨江湖 - 装备录入工具 V4.8.2</title>
     <style>
