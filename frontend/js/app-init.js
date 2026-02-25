@@ -338,9 +338,16 @@ const AuthUI = {
     const failureIndicator = document.getElementById('failureIndicator')
     const status = DataSync.getSyncStatus()
 
-    // 总是显示主容器和状态卡片
-    statusBackupContainer.style.display = 'block'
-    headerStatusCard.style.display = 'flex'
+    // 总是显示主容器和状态卡片（添加null检查）
+    if (statusBackupContainer) {
+      statusBackupContainer.style.display = 'block'
+    } else {
+      console.warn('⚠️ [updateSyncStatus] 找不到 statusBackupContainer 元素')
+    }
+    
+    if (headerStatusCard) {
+      headerStatusCard.style.display = 'flex'
+    }
     
     // 首先更新连接状态
     if (status.isSyncing) {
@@ -363,8 +370,8 @@ const AuthUI = {
       // 获取并显示备份状态
       try {
         console.log('📝 [updateSyncStatus] 开始获取备份列表...')
-        loadingIndicator.style.display = 'none'
-        failureIndicator.style.display = 'none'
+        if (loadingIndicator) loadingIndicator.style.display = 'none'
+        if (failureIndicator) failureIndicator.style.display = 'none'
         
         const backupListResult = await ApiClient.getBackupList()
         console.log('📥 [updateSyncStatus] 收到备份列表结果:', {
@@ -383,51 +390,61 @@ const AuthUI = {
           const autoBackup = backupListResult.backups.find(b => b.backupType === 'auto')
           if (autoBackup) {
             console.log('✅ [updateSyncStatus] 找到自动备份')
-            autoBackupItem.style.display = 'flex'
-            document.getElementById('autoBackupCount').style.display = 'none'
-            document.querySelector('#autoBackupItem .backup-item-header').textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
-            document.getElementById('autoBackupTime').textContent = `${formatTime(autoBackup.timestamp)}`
+            if (autoBackupItem) {
+              autoBackupItem.style.display = 'flex'
+              const autoCountEl = document.getElementById('autoBackupCount')
+              if (autoCountEl) autoCountEl.style.display = 'none'
+              const autoHeaderEl = document.querySelector('#autoBackupItem .backup-item-header')
+              if (autoHeaderEl) autoHeaderEl.textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
+              const autoTimeEl = document.getElementById('autoBackupTime')
+              if (autoTimeEl) autoTimeEl.textContent = `${formatTime(autoBackup.timestamp)}`
+            }
           } else {
-            autoBackupItem.style.display = 'none'
+            if (autoBackupItem) autoBackupItem.style.display = 'none'
           }
           
           // 显示手动备份（在下）
           const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
           if (manualBackup) {
             console.log('✅ [updateSyncStatus] 找到手动备份')
-            manualBackupItem.style.display = 'flex'
-            document.getElementById('manualBackupCount').style.display = 'none'
-            document.querySelector('#manualBackupItem .backup-item-header').textContent = `📪 手动备份(${manualBackup.recordCount}条)`
-            document.getElementById('manualBackupTime').textContent = `${formatTime(manualBackup.timestamp)}`
+            if (manualBackupItem) {
+              manualBackupItem.style.display = 'flex'
+              const manualCountEl = document.getElementById('manualBackupCount')
+              if (manualCountEl) manualCountEl.style.display = 'none'
+              const manualHeaderEl = document.querySelector('#manualBackupItem .backup-item-header')
+              if (manualHeaderEl) manualHeaderEl.textContent = `📪 手动备份(${manualBackup.recordCount}条)`
+              const manualTimeEl = document.getElementById('manualBackupTime')
+              if (manualTimeEl) manualTimeEl.textContent = `${formatTime(manualBackup.timestamp)}`
+            }
           } else {
-            manualBackupItem.style.display = 'none'
+            if (manualBackupItem) manualBackupItem.style.display = 'none'
           }
         } else {
           console.log('📭 [updateSyncStatus] 没有任何备份')
-          manualBackupItem.style.display = 'none'
-          autoBackupItem.style.display = 'none'
+          if (manualBackupItem) manualBackupItem.style.display = 'none'
+          if (autoBackupItem) autoBackupItem.style.display = 'none'
         }
       } catch (err) {
         console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
         // 显示失败状态
-        manualBackupItem.style.display = 'none'
-        autoBackupItem.style.display = 'none'
-        loadingIndicator.style.display = 'none'
-        failureIndicator.style.display = 'flex'
+        if (manualBackupItem) manualBackupItem.style.display = 'none'
+        if (autoBackupItem) autoBackupItem.style.display = 'none'
+        if (loadingIndicator) loadingIndicator.style.display = 'none'
+        if (failureIndicator) failureIndicator.style.display = 'flex'
       }
     } else {
       // 未认证状态：显示"数据获取中"或"获取失败"
-      manualBackupItem.style.display = 'none'
-      autoBackupItem.style.display = 'none'
+      if (manualBackupItem) manualBackupItem.style.display = 'none'
+      if (autoBackupItem) autoBackupItem.style.display = 'none'
       
       // 检查是否连接失败
       const backendOnline = await this.checkBackendHealth()
       if (!backendOnline) {
-        loadingIndicator.style.display = 'none'
-        failureIndicator.style.display = 'flex'
+        if (loadingIndicator) loadingIndicator.style.display = 'none'
+        if (failureIndicator) failureIndicator.style.display = 'flex'
       } else {
-        loadingIndicator.style.display = 'flex'
-        failureIndicator.style.display = 'none'
+        if (loadingIndicator) loadingIndicator.style.display = 'flex'
+        if (failureIndicator) failureIndicator.style.display = 'none'
       }
     }
   }
