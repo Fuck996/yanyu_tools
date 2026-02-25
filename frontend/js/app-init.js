@@ -38,8 +38,9 @@ if (!window.YanyuApp) {
 // ========== 认证 UI 管理器 ==========
 const AuthUI = {
   dropdownOpen: false,
-  pollingTimer: null,  // 轮询定时器
-  pollingStarted: false,  // 轮询是否已启动
+  pollingTimer: null,      // 10 分钟刷新定时器
+  pollingStarted: false,    // 轮询是否已启动
+  retryTimer: null,         // 连接失败后的重试定时器（30 秒间隔）
   isUpdatingStatus: false,  // 防止并发调用 updateSyncStatus
 
   /**
@@ -303,6 +304,28 @@ const AuthUI = {
   },
 
   /**
+   * 启动连接失败后的重试定时器（每 30 秒重试一次，成功后自动停止）
+   */
+  startRetry() {
+    if (this.retryTimer) return  // 已在重试中，不重复启动
+    console.log('🔄 后端连接失败，将每 30 秒自动重试...')
+    this.retryTimer = setInterval(() => {
+      this.updateSyncStatus().catch(err => console.warn('重试连接失败:', err.message))
+    }, 30 * 1000)
+  },
+
+  /**
+   * 停止重试定时器
+   */
+  stopRetry() {
+    if (this.retryTimer) {
+      clearInterval(this.retryTimer)
+      this.retryTimer = null
+      console.log('✅ 后端已恢复，停止重试')
+    }
+  },
+
+  /**
    * 停止轮询
    */
   stopPolling() {
@@ -311,6 +334,7 @@ const AuthUI = {
       this.pollingTimer = null
       this.pollingStarted = false
     }
+    this.stopRetry()
   },
 
   /**
@@ -391,6 +415,10 @@ const AuthUI = {
         if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
         if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
 
+        if (backendOnline) {
+          this.stopRetry()  // 连接成功，取消重试
+        }
+
         if (backupListResult.success && backupListResult.backups && backupListResult.backups.length > 0) {
           this.startPolling()
           if (loadingIndicator) loadingIndicator.style.display = 'none'
@@ -430,6 +458,7 @@ const AuthUI = {
           if (loadingIndicator) loadingIndicator.style.display = 'none'
           if (!backendOnline) {
             if (failureIndicator) failureIndicator.style.display = 'flex'
+            this.startRetry()  // 连接失败，启动后台重试
           }
         }
       } catch (err) {
@@ -439,6 +468,7 @@ const AuthUI = {
         if (headerStatusText) headerStatusText.textContent = '连接失败'
         if (loadingIndicator) loadingIndicator.style.display = 'none'
         if (failureIndicator) failureIndicator.style.display = 'flex'
+        this.startRetry()  // 连接失败，启动后台重试
       }
     } else {
       // 未认证：health check 判断连接状态
@@ -451,6 +481,11 @@ const AuthUI = {
       if (autoBackupItem) autoBackupItem.style.display = 'none'
       if (loadingIndicator) loadingIndicator.style.display = backendOnline ? 'flex' : 'none'
       if (failureIndicator) failureIndicator.style.display = backendOnline ? 'none' : 'flex'
+      if (backendOnline) {
+        this.stopRetry()  // 连接成功，取消重试
+      } else {
+        this.startRetry()  // 连接失败，启动后台重试
+      }
     }    } finally {
       this.isUpdatingStatus = false
     }  }

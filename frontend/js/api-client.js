@@ -12,42 +12,55 @@ if (!window.__API_URL__) {
 }
 
 // 检查后端是否可用
-// 缓存 30 秒，避免每次 API 调用都重复检查
+// 成功后缓存 30 秒；失败后缓存 15 秒（让上层重试能更快触发）
 let healthCacheTime = 0
 let healthCacheResult = null
-const HEALTH_CACHE_TTL = 30 * 1000  // 30 秒
+const HEALTH_CACHE_TTL      = 30 * 1000  // 成功缓存 30 秒
+const HEALTH_FAIL_CACHE_TTL = 15 * 1000  // 失败缓存 15 秒
+const HEALTH_TIMEOUT_MS     = 3000       // 单次超时 3 秒
+const HEALTH_MAX_RETRIES    = 3          // 最多尝试 3 次
+const HEALTH_RETRY_DELAY_MS = 1000       // 每次重试间隔 1 秒
 
 async function checkBackendAvailability() {
-  // 如果缓存未过期，直接返回缓存结果
-  if (healthCacheResult !== null && Date.now() - healthCacheTime < HEALTH_CACHE_TTL) {
+  const now = Date.now()
+  const cacheTTL = healthCacheResult ? HEALTH_CACHE_TTL : HEALTH_FAIL_CACHE_TTL
+  if (healthCacheResult !== null && now - healthCacheTime < cacheTTL) {
     return healthCacheResult
   }
 
-  // 使用 AbortController 实现真正的 3 秒超时
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 3000)
-
-  try {
-    // /health 是公共端点，不需要 credentials
-    const response = await fetch(`${API_URL}/health`, {
-      method: 'GET',
-      signal: controller.signal,
-    })
-    clearTimeout(timer)
-    healthCacheResult = response.ok
-    healthCacheTime = Date.now()
-    return healthCacheResult
-  } catch (err) {
-    clearTimeout(timer)
-    if (err.name === 'AbortError') {
-      console.warn('后端健康检查超时(3s)')
-    } else {
-      console.warn('后端不可用:', err.message)
+  let lastError = '未知错误'
+  for (let attempt = 1; attempt <= HEALTH_MAX_RETRIES; attempt++) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS)
+    try {
+      // /health 是公共端点，不需要 credentials
+      const response = await fetch(`${API_URL}/health`, {
+        method: 'GET',
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      if (response.ok) {
+        healthCacheResult = true
+        healthCacheTime = Date.now()
+        return true
+      }
+      lastError = `HTTP ${response.status}`
+    } catch (err) {
+      clearTimeout(timer)
+      lastError = err.name === 'AbortError'
+        ? `第${attempt}次超时(${HEALTH_TIMEOUT_MS}ms)`
+        : err.message
     }
-    healthCacheResult = false
-    healthCacheTime = Date.now()
-    return false
+    if (attempt < HEALTH_MAX_RETRIES) {
+      console.warn(`后端健康检查失败(${lastError})，${HEALTH_RETRY_DELAY_MS}ms 后重试 (${attempt}/${HEALTH_MAX_RETRIES})`)
+      await new Promise(r => setTimeout(r, HEALTH_RETRY_DELAY_MS))
+    }
   }
+
+  console.warn(`后端不可用(已重试${HEALTH_MAX_RETRIES}次): ${lastError}`)
+  healthCacheResult = false
+  healthCacheTime = Date.now()
+  return false
 }
 
 export const ApiClient = {
