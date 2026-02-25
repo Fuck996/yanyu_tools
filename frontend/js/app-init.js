@@ -596,7 +596,7 @@ Object.assign(window.YanyuApp, {
       if (result.success) {
         console.log('✅ [saveManualBackup] 备份成功，更新同步状态')
         UIManager.showMessage(`✅ 备份已保存到服务器 (${result.recordCount} 条记录)`, 'success', 2000)
-        AuthUI.updateSyncStatus()
+        await AuthUI.updateSyncStatus()
         return result
       } else {
         console.warn('⚠️ [saveManualBackup] 备份失败:', result.error)
@@ -615,34 +615,44 @@ Object.assign(window.YanyuApp, {
    */
   async restoreManualBackup() {
     // 从服务器获取备份列表
+    console.log('📝 [restoreManualBackup] 开始获取备份列表...')
     const backupListResult = await ApiClient.getBackupList()
+    console.log('📥 [restoreManualBackup] 备份列表结果:', backupListResult)
     
     if (!backupListResult.success || !backupListResult.backups || backupListResult.backups.length === 0) {
+      console.warn('⚠️ [restoreManualBackup] 没有可用的备份')
       UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
       return { success: false, error: '没有备份' }
     }
     
     // 查找最新的手动备份
     const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
+    console.log('📋 [restoreManualBackup] 找到的手动备份:', manualBackup)
     
     if (!manualBackup) {
+      console.warn('⚠️ [restoreManualBackup] 没有手动备份')
       UIManager.showMessage('⚠️ 没有手动备份', 'warning', 2000)
       return { success: false, error: '没有手动备份' }
     }
 
     // 显示确认对话框
     const backupDate = new Date(manualBackup.timestamp).toLocaleString('zh-CN')
+    console.log('📝 [restoreManualBackup] 显示恢复确认对话框:', { backupDate, recordCount: manualBackup.recordCount })
     if (confirm(`确认恢复手动备份吗？\n时间: ${backupDate}\n记录数: ${manualBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
+      console.log('📝 [restoreManualBackup] 用户确认，开始恢复...')
       const result = await ApiClient.restoreBackup(manualBackup.id)
+      console.log('📥 [restoreManualBackup] 恢复结果:', result)
       if (result.success) {
         UIManager.showMessage('✅ 备份已恢复，页面将刷新', 'success', 1500)
         setTimeout(() => location.reload(), 1500)
         return result
       } else {
+        console.error('❌ [restoreManualBackup] 恢复失败:', result.error)
         UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
         return result
       }
     }
+    console.log('📝 [restoreManualBackup] 用户取消恢复')
     return { success: false, error: '用户取消' }
   },
 
