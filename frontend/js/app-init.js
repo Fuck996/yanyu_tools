@@ -8,11 +8,11 @@
  */
 
 // ⚠️ 最优先：立即定义版本号到 window 对象
-window.__FRONTEND_VERSION__ = '4.8.2'
+window.__FRONTEND_VERSION__ = '1.0.1'
 window.__FRONTEND_BUILD_DATE__ = '2026-02-25'
 
 // 版本号定义 - 也在模块中备份
-const FRONTEND_VERSION = '4.8.2'
+const FRONTEND_VERSION = '1.0.1'
 const FRONTEND_BUILD_DATE = '2026-02-25'
 
 // 暴露到 window（备用）
@@ -798,9 +798,28 @@ async function initializeApp() {
     window.YanyuApp.FRONTEND_VERSION = frontendVersion
     window.YanyuApp.FRONTEND_BUILD_DATE = window.__FRONTEND_BUILD_DATE__ || window.FRONTEND_BUILD_DATE || FRONTEND_BUILD_DATE || 'unknown'
     
-    // 显示前端版本
-    if (beVersionEl) {
-      beVersionEl.textContent = '后端'  // 简化显示
+    // 获取并显示后端版本号
+    try {
+      const versionResponse = await fetch('/api/version')
+      if (versionResponse.ok) {
+        const versionData = await versionResponse.json()
+        if (beVersionEl && versionData.backend) {
+          beVersionEl.textContent = versionData.backend
+          
+          // 检查版本是否一致
+          if (versionData.backend !== frontendVersion) {
+            console.warn(`⚠️ 前后端版本不一致: 前端=${frontendVersion}, 后端=${versionData.backend}`)
+          } else {
+            console.log(`✅ 版本一致: ${frontendVersion}`)
+          }
+        }
+      } else {
+        if (beVersionEl) beVersionEl.textContent = '版本查询失败'
+        console.warn('⚠️ 后端版本查询失败，状态码:', versionResponse.status)
+      }
+    } catch (err) {
+      console.warn('⚠️ 无法获取后端版本号:', err.message)
+      if (beVersionEl) beVersionEl.textContent = '版本获取失败'
     }
 
     console.log('✅ 应用初始化完成')

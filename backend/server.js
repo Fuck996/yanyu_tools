@@ -6,6 +6,7 @@ import { Strategy as GitHubStrategy } from 'passport-github2'
 import cors from 'cors'
 import { fileURLToPath } from 'url'
 import { dirname } from 'path'
+import fs from 'fs'
 
 import { githubOAuthConfig, sessionConfig, corsConfig } from './config/oauth.js'
 import { initDatabase } from './config/database.js'
@@ -16,6 +17,10 @@ import equipmentRoutes from './routes/equipment.js'
 const app = express()
 const PORT = process.env.PORT || 3000
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// 读取版本号
+const packageJson = JSON.parse(fs.readFileSync(`${__dirname}/package.json`, 'utf-8'))
+const BACKEND_VERSION = packageJson.version || '1.0.0'
 
 // 中间件
 app.use(express.json())
@@ -54,6 +59,14 @@ app.use(passport.session())
 // 健康检查
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' })
+})
+
+// 版本信息端点
+app.get('/api/version', (req, res) => {
+  res.json({ 
+    backend: BACKEND_VERSION,
+    buildDate: new Date().toISOString().split('T')[0]
+  })
 })
 
 // API 路由
