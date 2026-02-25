@@ -329,7 +329,7 @@ const AuthUI = {
         syncStatusText.textContent = `正在同步 (${status.syncedRecords}/${status.totalRecords})`
       } else {
         syncStatusIcon.textContent = backendOnline ? '🟢' : '🔴'
-        syncStatusText.textContent = backendOnline ? `已连接 | 共${recordCount}条` : `连接失败`
+        syncStatusText.textContent = backendOnline ? `已连接` : `连接失败`
       }
 
       // 获取并显示备份状态
