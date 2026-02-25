@@ -1,22 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <!-- 最优先：在最开始设置版本号 -->
-    <script>
-        // 设置全局版本号
-        window.__APP_VERSION__ = {
-            frontend: '4.8.2',
-            frontend_build_date: '2026-02-25',
-            backend: '4.8.2',
-            backend_build_date: '2026-02-25'
-        };
-        console.log('✅✅✅ [HEAD SCRIPT] App version initialized:', window.__APP_VERSION__);
-        // 立即更新 footer（如果文档已加载）
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('📝 DOM loaded, updating version footer...');
-            document.getElementById('fe-version').textContent = '4.8.2';
-        });
-    </script>
+    <!-- 版本号由 app-init.js 动态设置 -->
 
     <script>
         // 自动注入后端 API 地址（部署时覆盖默认本地地址）
@@ -35,7 +20,7 @@
     </script>
 
     <meta charset="UTF-8">
-    <title>烟雨江湖 - 装备录入工具 V4.8.2</title>
+    <title>烟雨江湖 - 装备录入工具</title>
     <style>
         :root {
             --bg: #0f0f0f; --card: #1a1a1a; --text: #e0e0e0; --border: #2a2a2a;
@@ -401,7 +386,7 @@
 <input type="file" id="fileInput" style="display:none">
 <div class="loc-grid" id="mainGrid"></div>
 
-<div class="version-footer">版本号：V4.8.2 <span>修改日期：2026-02-25</span> | 前端版本 <span id="fe-version">-</span> | 后端版本 <span id="be-version">-</span></div>
+<div class="version-footer">前端版本 <span id="fe-version">-</span> | 后端版本 <span id="be-version">-</span></div>
 
 <div class="mask" id="mask" onclick="closeAllModals()"></div>
 

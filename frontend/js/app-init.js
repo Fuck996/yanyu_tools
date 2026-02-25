@@ -800,7 +800,8 @@ async function initializeApp() {
     
     // 获取并显示后端版本号
     try {
-      const versionResponse = await fetch('/api/version')
+      const apiUrl = window.__API_URL__ || '/api'
+      const versionResponse = await fetch(`${apiUrl}/version`)
       if (versionResponse.ok) {
         const versionData = await versionResponse.json()
         if (beVersionEl && versionData.backend) {
@@ -808,18 +809,18 @@ async function initializeApp() {
           
           // 检查版本是否一致
           if (versionData.backend !== frontendVersion) {
-            console.warn(`⚠️ 前后端版本不一致: 前端=${frontendVersion}, 后端=${versionData.backend}`)
+            console.warn(`⚠️ 版本不一致: 前端=${frontendVersion}, 后端=${versionData.backend}`)
           } else {
             console.log(`✅ 版本一致: ${frontendVersion}`)
           }
         }
       } else {
-        if (beVersionEl) beVersionEl.textContent = '版本查询失败'
-        console.warn('⚠️ 后端版本查询失败，状态码:', versionResponse.status)
+        if (beVersionEl) beVersionEl.textContent = '未连接'
+        console.error('后端版本查询失败，状态码:', versionResponse.status)
       }
     } catch (err) {
-      console.warn('⚠️ 无法获取后端版本号:', err.message)
-      if (beVersionEl) beVersionEl.textContent = '版本获取失败'
+      if (beVersionEl) beVersionEl.textContent = '未连接'
+      console.error('无法获取后端版本号:', err.message)
     }
 
     console.log('✅ 应用初始化完成')
