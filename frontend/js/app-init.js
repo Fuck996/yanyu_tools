@@ -7,14 +7,9 @@
  * <script type="module" src="js/app-init.js"></script>
  */
 
-console.log('🟢🟢🟢 [app-init.js] 模块化脚本开始加载!')
-
 // ⚠️ 最优先：立即定义版本号到 window 对象
 window.__FRONTEND_VERSION__ = '4.8.2'
 window.__FRONTEND_BUILD_DATE__ = '2026-02-25'
-console.log(`✅ [app-init.js TOP] 版本号已设置到 window: ${window.__FRONTEND_VERSION__}`)
-
-console.log('📝 [app-init.js] 开始导入模块...')
 
 // 版本号定义 - 也在模块中备份
 const FRONTEND_VERSION = '4.8.2'
@@ -23,7 +18,6 @@ const FRONTEND_BUILD_DATE = '2026-02-25'
 // 暴露到 window（备用）
 window.FRONTEND_VERSION = FRONTEND_VERSION
 window.FRONTEND_BUILD_DATE = FRONTEND_BUILD_DATE
-console.log(`✅ [app-init.js] 版本号也已暴露到 window.FRONTEND_VERSION: ${FRONTEND_VERSION}`)
 
 import { AuthHandler } from './auth-handler.js'
 import { LocalStorageManager } from './local-storage-manager.js'
@@ -31,11 +25,7 @@ import { DataSync } from './data-sync.js'
 import { ApiClient } from './api-client.js'
 import { UIManager } from './ui-manager.js'
 
-console.log('✅ [app-init.js] 所有模块导入完成')
-
 // ✅ 立即暴露全局对象（即使初始化未完成）
-console.log('📝 [app-init.js] 最顶层：准备暴露 window.YanyuApp')
-
 // 暂时使用空对象，后面会填充
 if (!window.YanyuApp) {
   window.YanyuApp = {
@@ -43,7 +33,6 @@ if (!window.YanyuApp) {
     FRONTEND_BUILD_DATE,
     backendStatus: null,  // 后端状态
   }
-  console.log('✅ [app-init.js] window.YanyuApp 已初始化为空对象')
 }
 
 // ========== 认证 UI 管理器 ==========
@@ -58,13 +47,11 @@ const AuthUI = {
    * 检查 OAuth 回调和本地存储的用户信息
    */
   async init() {
-    console.log('🔐 [AuthUI] 初始化认证界面...')
-    
     // 第一步：检查是否有 OAuth 回调（用户刚刚登录）
     const user = AuthHandler.handleOAuthCallback()
     
     if (user) {
-      console.log('✅ [AuthUI] GitHub 登录成功:', user.username)
+      console.log('✅ 已登录:', user.username)
       this.updateUI(user)
       // 登录成功后更新备份状态
       await this.updateSyncStatus()
@@ -75,12 +62,10 @@ const AuthUI = {
     const savedUser = AuthHandler.getUser()
     
     if (savedUser) {
-      console.log('✅ [AuthUI] 使用保存的用户信息:', savedUser.username)
       this.updateUI(savedUser)
       return
     }
     
-    console.log('👤 [AuthUI] 未登录，显示登录按钮')
     this.updateUI(null)
   },
 
@@ -88,8 +73,6 @@ const AuthUI = {
    * 登录
    */
   login() {
-    console.log('📝 [AuthUI] login() 方法被调用')
-    console.log('📝 [AuthUI] 调用 AuthHandler.loginWithGitHub()')
     AuthHandler.loginWithGitHub()
   },
 
@@ -99,6 +82,7 @@ const AuthUI = {
   async logout() {
     if (confirm('确定要退出登录吗？')) {
       AuthHandler.logout()
+      this.stopPolling()
       this.updateUI(null)
       location.reload()
     }
@@ -119,7 +103,6 @@ const AuthUI = {
       this.closeUserDropdown()
     }
     dropdown.classList.toggle('active', this.dropdownOpen)
-    console.log('🔄 [AuthUI] 下拉菜单已切换:', this.dropdownOpen ? '打开' : '关闭')
   },
 
   /**
@@ -128,12 +111,10 @@ const AuthUI = {
   closeDropdown() {
     const dropdown = document.getElementById('authDropdown')
     if (!dropdown) {
-      console.error('❌ [AuthUI] 找不到下拉菜单元素')
       return
     }
     this.dropdownOpen = false
     dropdown.classList.remove('active')
-    console.log('✖️ [AuthUI] 下拉菜单已关闭')
   },
 
   /**
@@ -142,7 +123,6 @@ const AuthUI = {
   toggleUserDropdown() {
     const dropdown = document.getElementById('userDropdown')
     if (!dropdown) {
-      console.error('❌ [AuthUI] 找不到用户下拉菜单元素')
       return
     }
     this.userDropdownOpen = !this.userDropdownOpen
@@ -151,7 +131,6 @@ const AuthUI = {
       this.closeDropdown()
     }
     dropdown.classList.toggle('active', this.userDropdownOpen)
-    console.log('🔄 [AuthUI] 用户下拉已切换:', this.userDropdownOpen ? '打开' : '关闭')
   },
 
   /**
@@ -160,12 +139,10 @@ const AuthUI = {
   closeUserDropdown() {
     const dropdown = document.getElementById('userDropdown')
     if (!dropdown) {
-      console.error('❌ [AuthUI] 找不到用户下拉菜单元素')
       return
     }
     this.userDropdownOpen = false
     dropdown.classList.remove('active')
-    console.log('✖️ [AuthUI] 用户下拉已关闭')
   },
 
   /**
@@ -329,7 +306,6 @@ const AuthUI = {
       clearInterval(this.pollingTimer)
       this.pollingTimer = null
       this.pollingStarted = false
-      console.log('⏹️ [AuthUI] 轮询已停止')
     }
   },
 
@@ -341,12 +317,10 @@ const AuthUI = {
       return
     }
     this.pollingStarted = true
-    console.log('▶️ [AuthUI] 启动10分钟轮询机制')
     
     // 设置10分钟后的下一次检查
     this.pollingTimer = setInterval(() => {
       if (AuthHandler.isAuthenticated()) {
-        console.log('⏱️ [AuthUI] 触发定时检查备份数据')
         this.updateSyncStatus().catch(err => console.warn('轮询更新失败:', err.message))
       }
     }, 10 * 60 * 1000)  // 10分钟
@@ -744,50 +718,32 @@ async function initializeApp() {
     console.log('✅ [initializeApp] window.YanyuApp 已就位:', !!window.YanyuApp)
 
     // 1. 注册同步状态回调（仅用于本地数据变化）
-    console.log('📝 [initializeApp] 注册同步状态回调...')
+    console.log('� [initializeApp] 注册同步状态回调...')
     DataSync.setSyncStatusCallback(() => {
       // 仅在数据实际同步变化时显示同步状态
       AuthUI.updateSyncStatus().catch(err => console.warn('同步状态更新失败:', err))
     })
-    console.log('✅ [initializeApp] 同步回调已注册')
 
     // 2. 初始化认证 UI
-    console.log('📦 初始化认证系统...')
+    console.log('🔐 初始化认证系统...')
     await AuthUI.init()
-    console.log('✅ [initializeApp] 认证系统初始化完成')
 
     // 3. 初始化数据同步系统
     console.log('📦 初始化数据同步...')
     await DataSync.initialize()
-    console.log('✅ [initializeApp] 数据同步初始化完成')
-
-    // 3.5 初始化时获取一次备份状态
-    console.log('📝 [initializeApp] 初始化备份状态...')
-    await AuthUI.updateSyncStatus()
-    console.log('✅ [initializeApp] 备份状态初始化完成')
 
     // 3.6 启动自动备份机制
     console.log('📦 启动自动备份机制...')
-    // 页面加载时立即进行一次自动备份
-    if (AuthHandler.isAuthenticated()) {
-      console.log('📝 [initializeApp] 页面加载时进行首次自动备份')
-      setTimeout(() => {
-        window.YanyuApp.autoBackup()
-      }, 1000)
-    }
     // 设置定时自动备份（每10分钟）
     setInterval(() => {
       if (AuthHandler.isAuthenticated()) {
-        console.log('⏱️ [initializeApp] 触发定时自动备份')
         window.YanyuApp.autoBackup()
       }
     }, 10 * 60 * 1000)  // 10分钟
-    console.log('✅ [initializeApp] 自动备份机制已启动（每10分钟一次）')
 
     // 页面卸载前进行自动备份
     window.addEventListener('beforeunload', () => {
       if (AuthHandler.isAuthenticated()) {
-        console.log('📝 [initializeApp] 页面卸载前进行自动备份')
         // 使用 navigator.sendBeacon 以确保请求在页面卸载前完成
         const token = AuthHandler.getToken()
         if (token) {
@@ -803,7 +759,6 @@ async function initializeApp() {
         }
       }
     })
-    console.log('✅ [initializeApp] 页面卸载前自动备份已注册')
 
     // 4. 检查存储警告
     if (LocalStorageManager.checkStorageWarning()) {
@@ -814,12 +769,9 @@ async function initializeApp() {
     const status = DataSync.getSyncStatus()
     if (status.authenticated) {
       console.log(`✅ 已认证为: ${status.user.username}`)
-    } else {
-      console.log('👤 未登录，使用本地缓存')
     }
 
     // 5.5 显示版本号
-    console.log('📝 [initializeApp] 更新版本号显示...')
     const feVersionEl = document.getElementById('fe-version')
     const beVersionEl = document.getElementById('be-version')
     
