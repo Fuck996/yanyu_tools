@@ -294,7 +294,11 @@ const AuthUI = {
    * 更新同步状态显示
    */
   async updateSyncStatus() {
-    const syncStatus = document.getElementById('syncStatus')
+    const statusBackupContainer = document.getElementById('statusBackupContainer')
+    const syncStatusSection = document.getElementById('syncStatusSection')
+    const syncStatusIcon = document.getElementById('syncStatusIcon')
+    const syncStatusText = document.getElementById('syncStatusText')
+    const userSyncInfo = document.getElementById('userSyncInfo')
     const status = DataSync.getSyncStatus()
 
     if (status.authenticated) {
@@ -302,39 +306,36 @@ const AuthUI = {
       const backendOnline = await this.checkBackendHealth()
       window.YanyuApp.backendStatus = backendOnline
 
-      if (status.isSyncing) {
-        syncStatus.className = 'sync-status syncing'
-        syncStatus.innerHTML = `
-          <div class="sync-status-text">
-            <span class="sync-spinner"></span>
-            正在同步 (${status.syncedRecords}/${status.totalRecords})
-          </div>
-        `
-      } else {
-        syncStatus.className = 'sync-status'
-        const statusIndicator = backendOnline ? '🟢 已连接' : '🔴 连接失败'
-        
-        // 从服务器获取最新的记录数（而不仅依赖本地缓存）
-        let recordCount = status.syncedRecords // 默认使用本地缓存
-        try {
-          if (backendOnline) {
-            const statsResult = await ApiClient.getStats()
-            if (statsResult.success) {
-              recordCount = statsResult.recordCount
-            }
+      // 从服务器获取最新的记录数（而不仅依赖本地缓存）
+      let recordCount = status.syncedRecords // 默认使用本地缓存
+      try {
+        if (backendOnline) {
+          const statsResult = await ApiClient.getStats()
+          if (statsResult.success) {
+            recordCount = statsResult.recordCount
           }
-        } catch (err) {
-          console.warn('获取服务器统计信息失败，使用本地数据:', err)
         }
-        
-        let html = `<div class="sync-status-text">${statusIndicator} | 共 ${recordCount} 条记录</div>`
-        if (status.lastSyncTime) {
-          const syncDate = new Date(status.lastSyncTime)
-          const dateStr = syncDate.toLocaleDateString('zh-CN')
-          const timeStr = syncDate.toLocaleTimeString('zh-CN')
-          html += `<div style="font-size: 11px; margin-top: 6px; color: var(--nav-text);">${dateStr} ${timeStr}</div>`
-        }
-        syncStatus.innerHTML = html
+      } catch (err) {
+        console.warn('获取服务器统计信息失败，使用本地数据:', err)
+      }
+
+      // 更新主容器显示和同步状态
+      statusBackupContainer.style.display = 'block'
+      
+      if (status.isSyncing) {
+        syncStatusSection.style.display = 'flex'
+        syncStatusIcon.textContent = '⏳'
+        syncStatusText.textContent = `正在同步 (${status.syncedRecords}/${status.totalRecords})`
+        userSyncInfo.textContent = `正在同步...`
+        userSyncInfo.style.display = 'block'
+      } else {
+        syncStatusSection.style.display = 'flex'
+        const statusIndicator = backendOnline ? '🟢' : '🔴'
+        const statusText = backendOnline ? `已连接 | 共 ${recordCount} 条记录` : `连接失败`
+        syncStatusIcon.textContent = statusIndicator
+        syncStatusText.textContent = statusText
+        userSyncInfo.textContent = backendOnline ? '🟢 已连接' : '🔴 连接失败'
+        userSyncInfo.style.display = 'block'
       }
 
       // 更新备份状态显示（显示手动备份和自动备份信息）
@@ -388,14 +389,14 @@ const AuthUI = {
             manualBackupItem.style.display = 'none'
             autoBackupItem.style.display = 'none'
           }
-          
-          // 备份状态盒子显示/隐藏
-          backupStatusBox.style.display = hasBackup ? 'block' : 'none'
         } catch (err) {
           console.error('❌ [updateSyncStatus] 获取备份列表失败:', err.message)
-          backupStatusBox.style.display = 'none'
         }
       }
+    } else {
+      // 未认证状态
+      statusBackupContainer.style.display = 'none'
+      userSyncInfo.style.display = 'none'
     }
   }
 }
