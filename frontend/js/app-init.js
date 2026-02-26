@@ -424,9 +424,17 @@ const AuthUI = {
     if (headerStatusCard) {
       headerStatusCard.style.display = 'flex'
     }
-    
+
+    // 工具函数：切换状态卡片 CSS 状态类
+    const setCardState = (state) => {
+      if (!headerStatusCard) return
+      headerStatusCard.classList.remove('state-ok', 'state-error', 'state-pending', 'state-offline')
+      if (state) headerStatusCard.classList.add(state)
+    }
+
     // 正在同步时只更新顶部状态栏
     if (status.isSyncing) {
+      setCardState('state-pending')
       if (headerStatusIcon) headerStatusIcon.textContent = '⏳'
       if (headerStatusText) headerStatusText.textContent = '正在同步中'
       if (headerStatusExtra) headerStatusExtra.textContent = `${status.syncedRecords}/${status.totalRecords}`
@@ -439,7 +447,8 @@ const AuthUI = {
       if (failureIndicator) failureIndicator.style.display = 'none'
       if (manualBackupItem) manualBackupItem.style.display = 'none'
       if (autoBackupItem) autoBackupItem.style.display = 'none'
-      // 顶部先显示"检查中"
+      // 顶部先显示"连接中"（蓝色）
+      setCardState('state-pending')
       if (headerStatusIcon) headerStatusIcon.textContent = '⏳'
       if (headerStatusText) headerStatusText.textContent = '连接中'
       if (headerStatusExtra) headerStatusExtra.textContent = ''
@@ -453,6 +462,7 @@ const AuthUI = {
         window.YanyuApp.backendStatus = backendOnline
 
         // 更新顶部连接状态
+        setCardState(backendOnline ? 'state-ok' : 'state-error')
         if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
         if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
 
@@ -505,6 +515,7 @@ const AuthUI = {
       } catch (err) {
         console.warn('获取备份列表失败:', err.message)
         window.YanyuApp.backendStatus = false
+        setCardState('state-error')
         if (headerStatusIcon) headerStatusIcon.textContent = '✖'
         if (headerStatusText) headerStatusText.textContent = '连接失败'
         if (loadingIndicator) loadingIndicator.style.display = 'none'
@@ -514,6 +525,7 @@ const AuthUI = {
     } else {
       // 未认证：不主动连接后端，显示未登录提示
       window.YanyuApp.backendStatus = false
+      setCardState('state-offline')
       if (headerStatusIcon) headerStatusIcon.textContent = '🔒'
       if (headerStatusText) headerStatusText.textContent = '未登录'
       if (headerStatusExtra) headerStatusExtra.textContent = ''
