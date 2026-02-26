@@ -651,26 +651,16 @@ Object.assign(window.YanyuApp, {
         const result = LocalStorageManager.importData(importData)
 
         if (result.success) {
-          // 导入数据后，清除冲突检测标志，以便下次同步时重新检测
-          LocalStorageManager.clearConflictCheckFlag()
-          
           // 刷新UI
           if (typeof window.renderNav === 'function') window.renderNav()
           if (typeof window.renderMain === 'function') window.renderMain()
-          
+
           UIManager.showMessage('✅ 数据导入成功', 'success', 5000)
-          
-          // 导入完成后触发自动备份，而不是直接刷新
+
+          // 导入属于大操作，立即触发备份（会取消任何挂起的渐进式计时器）
           if (AuthHandler.isAuthenticated()) {
-            console.log('💾 导入完成，启动自动备份...')
-            window.YanyuApp.autoBackup().then((backupResult) => {
-              if (backupResult.success) {
-                console.log(`✅ 导入后自动备份成功: ${backupResult.recordCount} 条`)
-                UIManager.showMessage(`✅ 已备份 ${backupResult.recordCount} 条数据`, 'success', 5000)
-              } else {
-                console.warn(`⚠️ 导入后自动备份失败: ${backupResult.error}`)
-              }
-            }).catch((err) => {
+            console.log('💾 导入完成，立即触发备份...')
+            window.YanyuApp.notifyDataChange('immediate').catch((err) => {
               console.error('❌ 导入后自动备份异常:', err.message)
             })
           } else {
@@ -831,14 +821,13 @@ Object.assign(window.YanyuApp, {
           console.log(successMsg)
           UIManager.showMessage(successMsg, 'success', 5000)
           
-          // 恢复完成后立即执行自动备份，确保后端保持两份历史
-          console.log('💾 启动自动备份...')
+          // 恢复属于大操作，立即触发备份（会取消任何挂起的渐进式计时器）
+          console.log('💾 启动备份...')
           try {
-            const backupResult = await window.YanyuApp.autoBackup()
-            if (backupResult.success) {
+            const backupResult = await window.YanyuApp.notifyDataChange('immediate')
+            if (backupResult?.success) {
               console.log(`✅ 自动备份成功: ${backupResult.recordCount} 条`)
-              // autoBackup 已经显示过成功消息，这里只需记录日志
-            } else {
+            } else if (backupResult?.error) {
               console.warn(`⚠️ 自动备份失败: ${backupResult.error}`)
             }
           } catch (backupErr) {
@@ -874,6 +863,42 @@ Object.assign(window.YanyuApp, {
    * 自动备份（静默备份，但显示浮动提示）
    * 在定时任务或页面卸载时调用
    */
+  // 本地数据变化检测定时器（渐进式操作，1分钟后备份）
+  dataChangeTimer: null,
+
+  /**
+   * 通知数据已发生变化，触发备份逻辑
+   * @param {'progressive'|'immediate'} type
+   *   - 'progressive'：渐进式操作（新增/修改/删除/收藏/序号），若无计时器则新建1分钟定时备份，已有则忽略
+   *   - 'immediate'：大操作（导入/恢复），取消挂起的渐进式计时器并立即备份
+   */
+  notifyDataChange(type) {
+    if (!AuthHandler.isAuthenticated()) return Promise.resolve({ skip: true })
+
+    if (type === 'immediate') {
+      if (this.dataChangeTimer) {
+        clearTimeout(this.dataChangeTimer)
+        this.dataChangeTimer = null
+        console.log('⏱️ 立即备份：已取消待执行的渐进式计时器')
+      }
+      return this.autoBackup()
+    }
+
+    // 渐进式：已有计时器则忽略，否则新建1分钟定时器
+    if (this.dataChangeTimer !== null) {
+      console.log('⏱️ 备份计时器已运行，忽略新变化')
+      return Promise.resolve({ queued: true })
+    }
+
+    console.log('⏱️ 检测到数据变化，1分钟后自动备份...')
+    this.dataChangeTimer = setTimeout(() => {
+      this.dataChangeTimer = null
+      console.log('⏱️ 1分钟计时器到期，执行自动备份')
+      this.autoBackup().catch(err => console.error('定时自动备份失败:', err))
+    }, 60 * 1000)
+    return Promise.resolve({ queued: true })
+  },
+
   async autoBackup() {
     try {
       if (!AuthHandler.isAuthenticated()) {
@@ -962,15 +987,7 @@ async function initializeApp() {
     if (AuthHandler.isAuthenticated()) {
       console.log('📦 已登录，初始化数据同步（含冲突检测）...')
       await DataSync.initialize()
-      // syncFromCloud 完成后两端数据已一致，无需单独首次备份
-
-      // 设置定时自动备份（每10分钟）
-      // 注意：此备份是后台定时任务，数据变更完成后才真正有意义
-      setInterval(() => {
-        if (AuthHandler.isAuthenticated()) {
-          window.YanyuApp.autoBackup()
-        }
-      }, 10 * 60 * 1000)  // 10分钟
+      // syncFromCloud 完成后两端数据已一致，后续备份由 notifyDataChange 事件驱动触发
     } else {
       console.log('👤 未登录，跳过数据同步初始化')
     }

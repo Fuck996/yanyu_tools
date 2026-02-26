@@ -133,11 +133,13 @@ graph TD
 
     IDLE --> OP{"检测到数据变化<br/>（操作触发）"}
 
-    OP -->|"渐进式操作<br/>手动新增 / 修改 / 删除"| P_LOCAL["💾 更新本地存储"]
-    OP -->|"大操作<br/>在线恢复 / 本地导入 / 清空"| R_LOCAL["💾 更新本地存储"]
+    OP -->|"渐进式操作<br/>手动新增 / 修改 / 删除<br/>收藏标记 / 起始序号"| P_LOCAL["💾 更新本地存储"]
+    OP -->|"大操作(触发备份)<br/>在线恢复 / 本地导入"| R_LOCAL["💾 更新本地存储"]
+    OP -->|"大操作(不备份)<br/>清空数据"| C_LOCAL["💾 更新本地存储"]
 
     P_LOCAL --> P_UI["🎨 立即刷新界面<br/>renderNav + renderMain"]
     R_LOCAL --> R_UI["🎨 立即刷新界面<br/>renderNav + renderMain"]
+    C_LOCAL --> C_UI["🎨 立即刷新界面<br/>renderNav + renderMain"]
 
     P_UI --> TIMER{"已有1分钟<br/>延迟备份定时器?"}
     TIMER -->|"有 → 忽略，让计时继续"| IDLE
@@ -146,6 +148,10 @@ graph TD
     WAIT --> BACKUP
 
     R_UI --> BACKUP["🚀 执行全量自动备份<br/>autoBackup"]
+
+    C_UI --> CLEAR_BACKEND["📡 清空后端数据<br/>ApiClient.clearBackendData"]
+    CLEAR_BACKEND --> CLEAR_STATUS["📊 刷新状态展示<br/>updateSyncStatus"]
+    CLEAR_STATUS --> IDLE
 
     BACKUP --> SYNC["⬆️ 上传最新数据到云端<br/>syncToCloud"]
     SYNC --> SAVE_BK["💾 保存备份快照<br/>ApiClient.saveBackup"]
@@ -158,10 +164,13 @@ graph TD
     style OP fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
     style P_LOCAL fill:#4a2c00,stroke:#ff9800,stroke-width:2px,color:#fff
     style R_LOCAL fill:#6b0000,stroke:#f44336,stroke-width:2px,color:#fff
+    style C_LOCAL fill:#2a0a2a,stroke:#9c27b0,stroke-width:2px,color:#fff
     style P_UI fill:#4a2c00,stroke:#ff9800,stroke-width:2px,color:#fff
     style R_UI fill:#6b0000,stroke:#f44336,stroke-width:2px,color:#fff
+    style C_UI fill:#2a0a2a,stroke:#9c27b0,stroke-width:2px,color:#fff
     style WAIT fill:#3c2a00,stroke:#ffc107,stroke-width:1px,color:#aaa
     style BACKUP fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style CLEAR_BACKEND fill:#2a0a2a,stroke:#9c27b0,stroke-width:2px,color:#fff
     style NOTIFY fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
@@ -169,8 +178,9 @@ graph TD
 >
 > | 操作类型 | 触发操作 | 备份时机 |
 > |---------|---------|---------|
-> | 渐进式 | 手动新增装备、修改装备、删除装备 | 1分钟后（计时期间新操作不重置，到期统一备份） |
-> | 大操作 | 在线恢复备份、本地文件导入、清空数据 | 立即备份（数据量大，不能延迟） |
+ | 渐进式 | 手动新增装备、修改装备、删除装备、收藏标记、起始序号调整 | 1分钟后（计时期间新操作不重置，到期统一备份） |
+ | 大操作(备份) | 在线恢复备份、本地文件导入 | 立即备份 |
+ | 大操作(不备份) | 清空数据 | 不做备份，仅清空后端+刷新状态展示 |
 >
 > **关键原则：**
 > - 本地存储更新 → **立即刷新界面** → 再进行后端操作（用户操作反馈不等网络）
@@ -285,8 +295,9 @@ mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
      - 云端有数据 → 弹冲突对话框
 
 4. **数据变化事件驱动（替代轮询）**
-   - ✅ **渐进式操作**（新增/修改/删除）：本地变更 → 刷新界面 → 1分钟延迟备份（计时期间再有同类操作**不重置计时**，到期统一备份）
-   - ✅ **大操作**（在线恢复/本地导入/清空）：本地变更 → 刷新界面 → 立即备份
+   - ✅ **渐进式操作**（新增/修改/删除/收藏标记/起始序号）：本地变更 → 刷新界面 → 1分钟延迟备份（计时期间再有同类操作**不重置计时**，到期统一备份）
+   - ✅ **大操作-触发备份**（在线恢复/本地导入）：本地变更 → 刷新界面 → 立即备份
+   - ✅ **大操作-不备份**（清空数据）：清空本地 → 刷新界面 → 清空后端数据 → 刷新状态展示
    - ❌ **不再使用** 5分钟轮询检测 和 10分钟定时备份任务
 
 5. **本地操作优先，网络操作靠后**

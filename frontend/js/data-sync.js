@@ -426,44 +426,12 @@ export const DataSync = {
   },
 
   /**
-   * 启用自动同步
+   * 启用本地数据变化检测
+   * 已切换为事件驱动模式，由 window.YanyuApp.notifyDataChange() 负责触发备份
+   * 不再使用定时轮询
    */
   enableAutoSync() {
-    if (this.syncInterval) return
-
-    console.log(`🔄 启用自动同步（间隔：${this.autoSyncIntervalSeconds}秒）`)
-
-    // 只有在下列情况下才立即触发一次同步：
-    // - 最近通过 OAuth 回调刚登录（handleOAuthCallback 会单独触发）
-    // - 本地最后同步时间不存在或已超过自动同步间隔
-    try {
-      const lastLocalTimestamp = LocalStorageManager.getEquipmentDataTimestamp()
-      const lastSyncMillis = lastLocalTimestamp ? new Date(lastLocalTimestamp).getTime() : null
-      const ageSeconds = lastSyncMillis ? ((Date.now() - lastSyncMillis) / 1000) : Infinity
-
-      if (!lastLocalTimestamp || ageSeconds > this.autoSyncIntervalSeconds) {
-        // 仅当本地没有同步记录或已超时才立即同步一次
-        this.syncFromCloud().catch(err => {
-          console.warn('首次自动同步失败:', err)
-        })
-      } else {
-        console.log('ℹ️ 本地数据最近已同步，首次自动同步被跳过')
-      }
-    } catch (err) {
-      console.warn('检查本地同步时间失败，仍尝试立即同步一次', err)
-      this.syncFromCloud().catch(err2 => {
-        console.warn('首次自动同步失败:', err2)
-      })
-    }
-
-    // 定期同步（仅启动定时器，实际执行前会再检查认证）
-    this.syncInterval = setInterval(() => {
-      if (AuthHandler.isAuthenticated()) {
-        this.syncFromCloud().catch(err => {
-          console.warn('自动同步失败:', err)
-        })
-      }
-    }, this.autoSyncIntervalSeconds * 1000)
+    console.log('✅ 本地数据变化检测已启动（事件驱动，非轮询）')
   },
 
   /**
