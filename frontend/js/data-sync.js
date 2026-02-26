@@ -109,10 +109,13 @@ export const DataSync = {
     // 调用方已保证此处已认证，直接执行云端同步和冲突检测
     // 无论是新登录还是恢复会话，都应执行冲突检测以确保数据一致
     console.log('📥 执行云端同步（含冲突检测）...')
-    await this.syncFromCloud()
+    const syncResult = await this.syncFromCloud()
 
-    // 同步完成后启用自动同步（5分钟轮询，检测数据变化）
+    // 同步完成后启用自动同步（事件驱动）
     this.enableAutoSync()
+
+    // 返回同步结果，供调用方判断是否需要触发备份
+    return syncResult
   },
 
   /**

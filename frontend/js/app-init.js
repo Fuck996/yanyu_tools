@@ -988,8 +988,12 @@ async function initializeApp() {
     // 3. 仅在已认证时才初始化数据同步系统
     if (AuthHandler.isAuthenticated()) {
       console.log('📦 已登录，初始化数据同步（含冲突检测）...')
-      await DataSync.initialize()
-      // syncFromCloud 完成后两端数据已一致，后续备份由 notifyDataChange 事件驱动触发
+      const syncResult = await DataSync.initialize()
+      // syncFromCloud 完成后，若数据实际发生了变化（上传或下载），立即触发一次自动备份
+      if (syncResult && syncResult.success && !syncResult.noChange) {
+        console.log('💾 同步检测到数据变化，立即触发自动备份...')
+        window.YanyuApp.notifyDataChange('immediate').catch(err => console.warn('初始化备份失败:', err))
+      }
     } else {
       console.log('👤 未登录，跳过数据同步初始化')
     }

@@ -47,9 +47,12 @@ graph TD
 
     I --> J["数据迁移<br/>migrateOldData"]
     J --> K["syncFromCloud<br/>含冲突检测"]
-    K --> L["同步完成<br/>两端数据已一致"]
+    K --> KC{syncResult.noChange?}
+    KC -->|"是（无变更）"| M
+    KC -->|"否（有数据变化）"| KB["notifyDataChange('immediate')<br/>立即创建自动备份<br/>并刷新备份面板"]
+    KB --> M
 
-    L --> M["启动本地数据变化检测<br/>（事件驱动，非轮询）"]
+    M["启动本地数据变化检测<br/>（事件驱动，非轮询）"]
     M --> O["✨ 系统就绪"]
 
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
@@ -57,14 +60,15 @@ graph TD
     style Z fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
     style G fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
     style K fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
-    style L fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style KB fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style KC fill:#2a2a00,stroke:#ffeb3b,stroke-width:2px,color:#fff
     style M fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
     style O fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
 > **要点说明：**
 > - 轮询（服务器可用性检测）在登录时立即启动，不等同步完成
-> - `syncFromCloud` 完成后两端数据已一致，无需首次自动备份
+> - `syncFromCloud` 返回 `syncResult`；若 `noChange=true`（两端已一致）跳过备份；否则立即调用 `notifyDataChange('immediate')` 创建 auto backup 并刷新备份面板
 > - 无论新登录还是恢复会话，均执行冲突检测
 > - 系统就绪后采用**事件驱动**的数据变化检测，不依赖定时轮询
 

@@ -202,23 +202,32 @@ export const UIManager = {
         50% { opacity: 0.5; }
       }
 
-      /* 消息提示框 - 左下角浮动 */
-      .yanyu-status-message {
+      /* Toast 容器 - 左下角固定，向上堆叠 */
+      #yanyu-toast-container {
         position: fixed;
-        bottom: 20px;
-        left: 20px;
+        bottom: max(20px, env(safe-area-inset-bottom, 20px));
+        left: max(20px, env(safe-area-inset-left, 20px));
         z-index: 9998;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: min(300px, calc(100vw - 40px));
+        pointer-events: none;
+      }
+
+      /* 消息提示框 - 在容器内堆叠 */
+      .yanyu-status-message {
         padding: 12px 16px;
         background: rgb(26, 26, 26);
         border: 1px solid rgb(42, 42, 42);
         border-radius: 8px;
         font-size: 13px;
         color: rgb(224, 224, 224);
-        animation: slideInLeft 0.3s ease-out, slideOutLeft 0.3s ease-in 4.7s;
-        max-width: min(300px, calc(100vw - 40px));
+        animation: slideInLeft 0.3s ease-out;
         box-sizing: border-box;
         word-break: break-word;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        pointer-events: auto;
       }
 
       .yanyu-status-message.info {
@@ -457,12 +466,25 @@ export const UIManager = {
    * @param {string} type - 消息类型 ('info', 'success', 'error', 'warning')
    * @param {number} duration - 显示时长（毫秒），0 表示不自动隐藏
    */
+  /**
+   * 获取或创建 toast 容器（懒初始化）
+   */
+  getToastContainer() {
+    let container = document.getElementById('yanyu-toast-container')
+    if (!container) {
+      container = document.createElement('div')
+      container.id = 'yanyu-toast-container'
+      document.body.appendChild(container)
+    }
+    return container
+  },
+
   showMessage(message, type = 'info', duration = 5000) {
     const messageEl = document.createElement('div')
     messageEl.className = `yanyu-status-message ${type}`
     messageEl.textContent = message
 
-    document.body.appendChild(messageEl)
+    this.getToastContainer().appendChild(messageEl)
 
     if (duration > 0) {
       setTimeout(() => {
@@ -487,7 +509,7 @@ export const UIManager = {
     progressEl.className = 'yanyu-status-message info'
     progressEl.textContent = message
 
-    document.body.appendChild(progressEl)
+    this.getToastContainer().appendChild(progressEl)
     return progressEl
   },
 
