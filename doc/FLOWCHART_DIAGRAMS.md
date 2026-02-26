@@ -31,91 +31,103 @@ mmdc -i diagram.mmd -o diagram.png -s 2
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 graph TD
-    A["▶️ 页面加载"] --> B["初始化应用<br/>initializeApp"]
+    A["▶️ 页面加载<br/>DOMContentLoaded"] --> B["注册同步状态回调<br/>DataSync.setSyncStatusCallback"]
     B --> C["认证初始化<br/>AuthUI.init"]
-    C --> D{是否已登录?}
-    
-    D -->|是| E["数据同步初始化<br/>DataSync.init"]
-    D -->|否| E
-    
-    E --> F["OAuth回调处理"]
-    F --> G{新登录?}
-    
-    G -->|是| G1["清除冲突标记"]
-    G1 --> G2["云端同步<br/>syncFromCloud"]
-    G -->|否| E1["启用自动同步"]
-    G2 --> E1
-    
-    E1 --> H["首次自动备份<br/>autoBackup"]
-    H --> I["启动10分钟定时器"]
-    I --> J["绑定页面卸载事件"]
-    J --> K["✨ 系统就绪"]
-    
+
+    C --> D{OAuth回调?<br/>handleOAuthCallback}
+    D -->|"✅ 有回调(新登录)"| E["更新UI显示<br/>设置 newLogin=true"]
+    D -->|"无回调"| F{本地已有<br/>用户信息?}
+
+    F -->|"✅ 有"| G["更新UI显示<br/>恢复登录状态"]
+    F -->|"❌ 无"| H["🔒 未登录<br/>显示登录按钮"]
+    H --> H1["updateSyncStatus<br/>显示未登录提示"]
+    H1 --> END["🏁 结束初始化<br/>不进入同步流程"]
+
+    E --> SYNC_START["进入数据同步<br/>DataSync.initialize"]
+    G --> SYNC_START
+
+    SYNC_START --> I{newLogin=true?}
+    I -->|"✅ 是"| J["进入 syncFromCloud<br/>触发冲突检测"]
+    I -->|"❌ 否(恢复会话)"| K["进入 syncFromCloud<br/>⚠️ 此会话已检测过, 跳过冲突"]
+
+    J --> SYNC_DONE
+    K --> SYNC_DONE
+
+    SYNC_DONE["同步完成"] --> L["enableAutoSync<br/>启动5分钟轮询"]
+    L --> M["首次 autoBackup"]
+    M --> N["设置10分钟定时备份"]
+    N --> O["绑定 beforeunload<br/>页面卸载前备份"]
+    O --> P["✨ 系统就绪"]
+
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-    style K fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style G2 fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
-    style E1 fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style H fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
+    style END fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
+    style SYNC_DONE fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style P fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style J fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## 📊 图表2：syncFromCloud 决策树
+## 📊 图表2：syncFromCloud 决策树（修正版）
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 graph TD
-    A["▶️ 开始云端同步<br/>syncFromCloud"] --> B{已认证?}
-    B -->|否| C["❌ 返回失败"]
-    B -->|是| D["📥 获取云端数据<br/>ApiClient.getRecords"]
-    
-    D --> E{正在同步中?<br/>syncInProgress=true}
-    E -->|是| F["⏳ 返回等待中"]
-    E -->|否| G["🔒 标记同步进行中"]
-    
-    G --> H["🔍 对比数据哈希<br/>本地 vs 云端"]
-    H --> I{哈希相同?}
-    
-    I -->|是| J["✨ 跳过同步<br/>返回无变化"]
-    
-    I -->|否| K{云端为空<br/>且本地有数据?}
-    K -->|是| K1["📤 反向上传"] 
-    K1 --> K2["→ 进入合并阶段"]
-    
-    K -->|否| L{冲突检测<br/>标记已设置?}
-    L -->|已检查| M["☁️ 使用云端数据"]
-    
-    L -->|未检查| N{两侧都有<br/>数据且不同?}
-    N -->|是| N1["⚠️ 设置冲突标记"]
-    N1 --> N2["💬 显示冲突对话框"]
-    N2 --> N3{用户选择?}
-    
-    N3 -->|保留本地| N4["📤 上传到云端"]
-    N4 --> N5["→ 进入合并阶段"]
-    
-    N3 -->|使用云端| N6["→ 进入合并阶段"]
-    N -->|否| M
-    
-    M --> O["🔄 合并阶段<br/>mergeCloudData"]
-    O --> P["💾 保存到本地存储"]
-    P --> Q["🎨 刷新界面<br/>renderNav + renderMain"]
-    Q --> R["⏰ 更新同步时间"]
-    R --> S["✅ 显示成功提示"]
-    S --> T["🔓 标记同步完成"]
-    T --> U["✨ 返回成功"]
-    
-    J --> V["🔓 标记同步完成"]
-    V --> J
-    F --> F
-    C --> C
-    
+    A["▶️ 开始<br/>syncFromCloud"] --> B{已认证?}
+    B -->|"❌ 否"| FAIL["返回 FAILED<br/>错误: 未认证"]
+    B -->|"✅ 是"| C["📥 获取云端数据<br/>ApiClient.getRecords"]
+
+    C --> D["🔍 检查本地数据<br/>getEquipmentData"]
+    D --> E{本地有数据?}
+
+    E -->|"❌ 本地为空"| F{云端<br/>有数据?}
+    F -->|"❌ 云端也为空"| G["✨ 无需操作<br/>返回 NO_CHANGE"]
+    F -->|"✅ 云端有数据"| H["⬇️ 直接下载<br/>mergeCloudData<br/>保存本地"]
+    H --> H1["🎨 刷新界面<br/>renderNav / renderMain"]
+    H1 --> H2["✅ 返回 SUCCESS<br/>recordCount=N"]
+
+    E -->|"✅ 本地有数据"| I["⚖️ 哈希对比<br/>提示: 数据比较中..."]
+    I --> J{云端<br/>有数据?}
+
+    J -->|"❌ 云端为空"| K["⬆️ 上传本地数据<br/>保护本地不丢失<br/>syncToCloud"]
+    K --> K1["✅ 返回 SUCCESS<br/>本地已备份到云端"]
+
+    J -->|"✅ 云端有数据"| L{哈希<br/>是否一致?}
+    L -->|"✅ 一致"| M["✨ 数据相同<br/>返回 NO_CHANGE"]
+
+    L -->|"❌ 不一致"| N{本会话已<br/>处理过冲突?}
+    N -->|"✅ 已处理"| O["⬇️ 使用云端数据<br/>mergeCloudData<br/>保存本地"]
+    O --> O1["🎨 刷新界面"]
+    O1 --> O2["✅ 返回 SUCCESS"]
+
+    N -->|"❌ 首次冲突"| P["⚠️ 提示用户解决冲突<br/>本地N条 vs 云端M条"]
+    P --> Q{用户选择}
+
+    Q -->|"保留本地"| R["⬆️ 上传本地数据<br/>syncToCloud"]
+    R --> R1["🔒 标记冲突已处理<br/>setConflictCheckFlag"]
+    R1 --> R2["✅ 返回 SUCCESS"]
+
+    Q -->|"使用云端"| S["⬇️ 下载云端数据<br/>mergeCloudData<br/>保存本地"]
+    S --> S1["🎨 刷新界面<br/>renderNav / renderMain"]
+    S1 --> S2["🔒 标记冲突已处理<br/>setConflictCheckFlag"]
+    S2 --> S3["✅ 返回 SUCCESS"]
+
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-    style U fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style C fill:#5d0000,stroke:#ff5544,stroke-width:2px,color:#fff
-    style F fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
-    style J fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
-    style M fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style N2 fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style FAIL fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
+    style G fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style M fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style K fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style H fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style P fill:#6b3a00,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style R1 fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style S2 fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
+
+> **⚠️ 关键说明**：  
+> - 冲突标记 (`conflictCheckFlag`) 只在 **syncFromCloud内冲突解决后** 才标记，不在外部清除  
+> - 未登录不进入此流程  
+> - 哈希比对只发生在本地有数据时
 
 ---
 
@@ -288,21 +300,35 @@ mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
 
 ## ⚠️ 关键数据流程注意点
 
-1. **还原数据时的时序**
+1. **未登录时不进入同步流程**
+   - `AuthUI.init()` 检测登录状态后，若未登录直接返回
+   - 不调用 `DataSync.initialize()`，不访问后端
+
+2. **冲突标记的正确生命周期**
+   - ❌ **错误做法**：在初始化时或同步前清除冲突标志（会导致每次页面刷新都弹冲突框）
+   - ✅ **正确做法**：冲突标志只在 `syncFromCloud` 内，冲突解决完成 **之后** 才设置（`setConflictCheckFlag`）
+   - 一旦设置，本会话内不再弹冲突框；新登录会话则重新触发
+
+3. **syncFromCloud 的判断顺序（重要）**
+   - 先检查**本地是否有数据**，为空则直接下载云端
+   - 本地有数据时，再检查**云端是否有数据**
+     - 云端无数据 → 上传本地（保护本地不丢失）
+     - 云端有数据 → 哈希比对 → 相同则结束，不同则冲突解决
+
+4. **还原数据时的时序**
    - ✅ 先 `restoreBackup` API 恢复后端
    - ✅ 再 `getRecords` 获取最新数据并合并
    - ✅ 最后 `autoBackup` 执行自动备份
-   - ❌ **不能在merge前就执行backup**
+   - ❌ **不能在merge前就执行backup**（否则备份的是0条数据）
 
-2. **缓存失效必须点**
-   - 清空数据需要重置：`cachedBackupList = null` + `cachedBackupListTime = 0`
-   - 同步成功后需要更新缓存时间戳
-   - UI刷新前必须执行缓存失效
+5. **缓存失效必须点**
+   - 清空/备份/还原完成后：`cachedBackupList = null` + `cachedBackupListTime = 0`
+   - UI刷新前必须执行缓存失效，确保显示最新备份状态
 
-3. **浮动提示机制**
-   - 所有数据操作（备份/还原/清空）完成后显示浮动提示
+6. **浮动提示机制**
+   - 所有数据操作（备份/还原/清空/同步）完成后显示浮动提示
    - 位置：左下角，5秒自动消失
-   - 格式：统一的成功/失败/警告样式
+   - 格式：统一的 success / error / warning 颜色分类
 
 ---
 
