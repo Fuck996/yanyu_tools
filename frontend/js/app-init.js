@@ -585,12 +585,13 @@ Object.assign(window.YanyuApp, {
     if (result.success) {
       UIManager.showMessage(
         `✅ 云端数据同步完成 (${result.recordCount} 条记录)`,
-        'success'
+        'success',
+        5000
       )
     } else if (result.offline) {
-      UIManager.showMessage('💾 后端离线，使用本地缓存', 'warning')
+      UIManager.showMessage('💾 后端离线，使用本地缓存', 'warning', 5000)
     } else {
-      UIManager.showMessage('❌ 同步失败: ' + result.error, 'error')
+      UIManager.showMessage('❌ 同步失败: ' + result.error, 'error', 5000)
     }
 
     return result
@@ -601,7 +602,7 @@ Object.assign(window.YanyuApp, {
    */
   async syncToCloud() {
     if (!AuthHandler.isAuthenticated()) {
-      UIManager.showMessage('❌ 请先登录 GitHub', 'error')
+      UIManager.showMessage('❌ 请先登录 GitHub', 'error', 5000)
       return { success: false, error: '未认证' }
     }
 
@@ -610,11 +611,11 @@ Object.assign(window.YanyuApp, {
     UIManager.hideSyncProgress()
 
     if (result.success) {
-      UIManager.showMessage('✅ 数据已上传到云端', 'success')
+      UIManager.showMessage('✅ 数据已上传到云端', 'success', 5000)
     } else if (result.offline) {
-      UIManager.showMessage('💾 后端离线，请稍后重试', 'warning')
+      UIManager.showMessage('💾 后端离线，请稍后重试', 'warning', 5000)
     } else {
-      UIManager.showMessage('❌ 上传失败: ' + result.error, 'error')
+      UIManager.showMessage('❌ 上传失败: ' + result.error, 'error', 5000)
     }
 
     return result
@@ -635,7 +636,7 @@ Object.assign(window.YanyuApp, {
     a.click()
     URL.revokeObjectURL(url)
 
-    UIManager.showMessage('✅ 数据已导出', 'success')
+    UIManager.showMessage('✅ 数据已导出', 'success', 5000)
   },
 
   /**
@@ -656,7 +657,7 @@ Object.assign(window.YanyuApp, {
           if (typeof window.renderNav === 'function') window.renderNav()
           if (typeof window.renderMain === 'function') window.renderMain()
           
-          UIManager.showMessage('✅ 数据导入成功', 'success', 1500)
+          UIManager.showMessage('✅ 数据导入成功', 'success', 5000)
           
           // 导入完成后触发自动备份，而不是直接刷新
           if (AuthHandler.isAuthenticated()) {
@@ -664,7 +665,7 @@ Object.assign(window.YanyuApp, {
             window.YanyuApp.autoBackup().then((backupResult) => {
               if (backupResult.success) {
                 console.log(`✅ 导入后自动备份成功: ${backupResult.recordCount} 条`)
-                UIManager.showMessage(`✅ 已备份 ${backupResult.recordCount} 条数据`, 'success', 2000)
+                UIManager.showMessage(`✅ 已备份 ${backupResult.recordCount} 条数据`, 'success', 5000)
               } else {
                 console.warn(`⚠️ 导入后自动备份失败: ${backupResult.error}`)
               }
@@ -672,17 +673,17 @@ Object.assign(window.YanyuApp, {
               console.error('❌ 导入后自动备份异常:', err.message)
             })
           } else {
-            UIManager.showMessage('⚠️ 未登录，数据仅保存本地', 'warning', 2000)
+            UIManager.showMessage('⚠️ 未登录，数据仅保存本地', 'warning', 5000)
           }
         } else {
-          UIManager.showMessage('❌ 导入失败: ' + result.error, 'error', 3000)
+          UIManager.showMessage('❌ 导入失败: ' + result.error, 'error', 5000)
         }
       } catch (err) {
-        UIManager.showMessage('❌ 文件格式错误: ' + err.message, 'error', 3000)
+        UIManager.showMessage('❌ 文件格式错误: ' + err.message, 'error', 5000)
       }
     }
     reader.onerror = (err) => {
-      UIManager.showMessage('❌ 文件读取失败: ' + err.message, 'error', 3000)
+      UIManager.showMessage('❌ 文件读取失败: ' + err.message, 'error', 5000)
     }
     reader.readAsText(file)
   },
@@ -703,7 +704,7 @@ Object.assign(window.YanyuApp, {
       LocalStorageManager.clearEquipmentData()
       if (typeof window.renderNav === 'function') window.renderNav()
       if (typeof window.renderMain === 'function') window.renderMain()
-      UIManager.showMessage('✅ 装备数据已清空', 'success', 1000)
+      UIManager.showMessage('✅ 装备数据已清空', 'success', 5000)
 
       // 2. 异步清空后端数据，完成后刷新备份状态面板
       if (AuthHandler.isAuthenticated()) {
@@ -715,10 +716,10 @@ Object.assign(window.YanyuApp, {
           return AuthUI.updateSyncStatus()
         }).then(() => {
           console.log('✅ 备份状态已刷新')
-          UIManager.showMessage('✅ 数据清空完成', 'success', 1500)
+          UIManager.showMessage('✅ 数据清空完成', 'success', 5000)
         }).catch((err) => {
           console.error('❌ 清空操作失败:', err)
-          UIManager.showMessage(`❌ 清空失败: ${err.message}`, 'error', 2000)
+          UIManager.showMessage(`❌ 清空失败: ${err.message}`, 'error', 5000)
         })
       }
       return { success: true }
@@ -726,12 +727,9 @@ Object.assign(window.YanyuApp, {
     return { success: false, error: '用户取消' }
   },
 
-  /**
-   * 保存手动备份（同时保存到本地和服务器）
-   */
   async saveManualBackup() {
     if (!AuthHandler.isAuthenticated()) {
-      UIManager.showMessage('❌ 请先登录 GitHub', 'error', 2000)
+      UIManager.showMessage('❌ 请先登录 GitHub', 'error', 5000)
       return { success: false, error: '未认证' }
     }
 
@@ -747,20 +745,22 @@ Object.assign(window.YanyuApp, {
     try {
       const result = await ApiClient.saveBackup('manual')
       if (result.success) {
-        UIManager.showMessage(`✅ 备份已保存 (${result.recordCount} 条)`, 'success', 2000)
-        // 强制刷新备份显示（绕过并发限制）
+        UIManager.showMessage(`✅ 备份已保存 (${result.recordCount} 条)`, 'success', 5000)
+        // 清除缓存，强制刷新备份显示
+        AuthUI.cachedBackupList = null
+        AuthUI.cachedBackupListTime = 0
         const wasUpdating = AuthUI.isUpdatingStatus
         AuthUI.isUpdatingStatus = false
         await AuthUI.updateSyncStatus()
         if (!wasUpdating) AuthUI.isUpdatingStatus = false
         return result
       } else {
-        UIManager.showMessage(`❌ 备份失败: ${result.error}`, 'error', 3000)
+        UIManager.showMessage(`❌ 备份失败: ${result.error}`, 'error', 5000)
         return { success: false, error: result.error }
       }
     } catch (err) {
       console.error('❌ 备份异常:', err.message)
-      UIManager.showMessage(`❌ 备份失败: ${err.message}`, 'error', 3000)
+      UIManager.showMessage(`❌ 备份失败: ${err.message}`, 'error', 5000)
       return { success: false, error: err.message }
     }
   },
@@ -785,7 +785,7 @@ Object.assign(window.YanyuApp, {
     }
 
     if (!backupListResult.success || !backupListResult.backups || backupListResult.backups.length === 0) {
-      UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 2000)
+      UIManager.showMessage('⚠️ 没有可用的备份', 'warning', 5000)
       return { success: false, error: '没有备份' }
     }
     
@@ -793,7 +793,7 @@ Object.assign(window.YanyuApp, {
     const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
     
     if (!manualBackup) {
-      UIManager.showMessage('⚠️ 没有手动备份', 'warning', 2000)
+      UIManager.showMessage('⚠️ 没有手动备份', 'warning', 5000)
       return { success: false, error: '没有手动备份' }
     }
 
@@ -802,12 +802,14 @@ Object.assign(window.YanyuApp, {
     if (confirm(`确认恢复手动备份吗？\n时间: ${backupDate}\n记录数: ${manualBackup.recordCount}\n\n这会覆盖当前的本地数据。`)) {
       const result = await ApiClient.restoreBackup(manualBackup.id)
       if (!result.success) {
-        UIManager.showMessage(`❌ 恢复失败: ${result.error}`, 'error', 3000)
+        const errMsg = `❌ 恢复失败: ${result.error}`
+        console.error(errMsg)
+        UIManager.showMessage(errMsg, 'error', 5000)
         return result
       }
 
       // 后端已恢复，拉取数据写入本地 localStorage，然后刷新 UI，无需整页重载
-      UIManager.showMessage('⏳ 正在加载恢复数据...', 'info', 1500)
+      UIManager.showMessage('⏳ 正在加载恢复数据...', 'info', 5000)
       try {
         const recordsResult = await ApiClient.getRecords()
         if (recordsResult.success) {
@@ -818,11 +820,15 @@ Object.assign(window.YanyuApp, {
           if (typeof window.renderNav === 'function') window.renderNav()
           if (typeof window.renderMain === 'function') window.renderMain()
 
-          // 刷新备份状态面板
-          this.isUpdatingStatus = false
+          // 清除缓存，刷新备份状态面板
+          AuthUI.cachedBackupList = null
+          AuthUI.cachedBackupListTime = 0
+          AuthUI.isUpdatingStatus = false
           await AuthUI.updateSyncStatus()
 
-          UIManager.showMessage(`✅ 已恢复 ${recordsResult.records.length} 条数据`, 'success', 2000)
+          const successMsg = `✅ 已恢复 ${recordsResult.records.length} 条数据`
+          console.log(successMsg)
+          UIManager.showMessage(successMsg, 'success', 5000)
           
           // 恢复完成后立即执行自动备份，确保后端保持两份历史
           console.log('💾 启动自动备份...')
@@ -830,6 +836,7 @@ Object.assign(window.YanyuApp, {
             const backupResult = await window.YanyuApp.autoBackup()
             if (backupResult.success) {
               console.log(`✅ 自动备份成功: ${backupResult.recordCount} 条`)
+              // autoBackup 已经显示过成功消息，这里只需记录日志
             } else {
               console.warn(`⚠️ 自动备份失败: ${backupResult.error}`)
             }
@@ -837,11 +844,14 @@ Object.assign(window.YanyuApp, {
             console.error('❌ 自动备份异常:', backupErr.message)
           }
         } else {
-          UIManager.showMessage('⚠️ 后端已恢复，但拉取数据失败，请手动刷新页面', 'warning', 4000)
+          const warnMsg = '⚠️ 后端已恢复，但拉取数据失败，请手动刷新页面'
+          console.warn(warnMsg)
+          UIManager.showMessage(warnMsg, 'warning', 5000)
         }
       } catch (err) {
-        console.warn('恢复后拉取数据失败:', err.message)
-        UIManager.showMessage('⚠️ 后端已恢复，但加载数据失败，请手动刷新页面', 'warning', 4000)
+        const warnMsg = '⚠️ 后端已恢复，但加载数据失败，请手动刷新页面'
+        console.warn(warnMsg, err.message)
+        UIManager.showMessage(warnMsg, 'warning', 5000)
       }
 
       return result
@@ -860,7 +870,7 @@ Object.assign(window.YanyuApp, {
   },
 
   /**
-   * 自动备份（静默备份，不显示提示）
+   * 自动备份（静默备份，但显示浮动提示）
    * 在定时任务或页面卸载时调用
    */
   async autoBackup() {
@@ -872,7 +882,10 @@ Object.assign(window.YanyuApp, {
       const result = await ApiClient.saveBackup('auto')
       
       if (result.success) {
-        console.log('✅ 自动备份: ' + result.recordCount + ' 条')
+        const msg = `✅ 自动备份: ${result.recordCount} 条`
+        console.log(msg)
+        UIManager.showMessage(msg, 'success', 5000)
+        
         // 强制刷新备份显示：清除缓存以确保显示最新数据
         AuthUI.cachedBackupList = null
         AuthUI.cachedBackupListTime = 0
@@ -882,11 +895,15 @@ Object.assign(window.YanyuApp, {
         if (!wasUpdating) this.isUpdatingStatus = false
         return result
       } else {
-        console.warn('⚠️ [autoBackup] 自动备份失败:', result.error)
+        const warnMsg = `⚠️ 自动备份失败: ${result.error}`
+        console.warn(warnMsg)
+        UIManager.showMessage(warnMsg, 'warning', 5000)
         return { success: false, error: result.error }
       }
     } catch (err) {
-      console.error('❌ [autoBackup] 自动备份异常:', err.message)
+      const errMsg = `❌ 自动备份异常: ${err.message}`
+      console.error(errMsg)
+      UIManager.showMessage(errMsg, 'error', 5000)
       return { success: false, error: err.message }
     }
   },

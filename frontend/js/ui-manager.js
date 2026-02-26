@@ -201,11 +201,11 @@ export const UIManager = {
         50% { opacity: 0.5; }
       }
 
-      /* 消息提示框 */
+      /* 消息提示框 - 左下角浮动 */
       .yanyu-status-message {
         position: fixed;
-        top: 70px;
-        right: 15px;
+        bottom: 20px;
+        left: 20px;
         z-index: 9998;
         padding: 12px 16px;
         background: rgb(26, 26, 26);
@@ -213,8 +213,9 @@ export const UIManager = {
         border-radius: 8px;
         font-size: 13px;
         color: rgb(224, 224, 224);
-        animation: slideIn 0.3s;
+        animation: slideInLeft 0.3s ease-out, slideOutLeft 0.3s ease-in 4.7s;
         max-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
       .yanyu-status-message.info {
@@ -241,14 +242,25 @@ export const UIManager = {
         color: rgb(241, 196, 15);
       }
 
-      @keyframes slideIn {
+      @keyframes slideInLeft {
         from {
           opacity: 0;
-          transform: translateX(20px);
+          transform: translateX(-20px);
         }
         to {
           opacity: 1;
           transform: translateX(0);
+        }
+      }
+
+      @keyframes slideOutLeft {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(-20px);
         }
       }
 
@@ -443,7 +455,7 @@ export const UIManager = {
    * @param {string} type - 消息类型 ('info', 'success', 'error', 'warning')
    * @param {number} duration - 显示时长（毫秒），0 表示不自动隐藏
    */
-  showMessage(message, type = 'info', duration = 3000) {
+  showMessage(message, type = 'info', duration = 5000) {
     const messageEl = document.createElement('div')
     messageEl.className = `yanyu-status-message ${type}`
     messageEl.textContent = message

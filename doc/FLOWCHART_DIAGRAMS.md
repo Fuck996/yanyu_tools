@@ -26,278 +26,294 @@ mmdc -i diagram.mmd -o diagram.png -s 2
 
 ---
 
-## 📊 图表1：系统初始化流程 (英文清晰版)
-
-**建议**: 复制下方代码到 https://mermaid.live
+## 📊 图表1：系统初始化流程
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 graph TD
-    A["START: Page Load"] --> B["initializeApp"]
-    B --> C["AuthUI.init"]
-    C --> D{Authenticated?}
+    A["▶️ 页面加载"] --> B["初始化应用<br/>initializeApp"]
+    B --> C["认证初始化<br/>AuthUI.init"]
+    C --> D{是否已登录?}
     
-    D -->|Yes| E["DataSync.init"]
-    D -->|No| E
+    D -->|是| E["数据同步初始化<br/>DataSync.init"]
+    D -->|否| E
     
-    E --> F["OAuth Callback"]
-    F --> G{New Login?}
+    E --> F["OAuth回调处理"]
+    F --> G{新登录?}
     
-    G -->|Yes| G1["Clear Conflict Flag"]
-    G1 --> G2["syncFromCloud"]
-    G -->|No| E1["Enable AutoSync"]
+    G -->|是| G1["清除冲突标记"]
+    G1 --> G2["云端同步<br/>syncFromCloud"]
+    G -->|否| E1["启用自动同步"]
     G2 --> E1
     
-    E1 --> H["First autoBackup"]
-    H --> I["Start 10min Timer"]
-    I --> J["Attach beforeunload"]
-    J --> K["READY"]
+    E1 --> H["首次自动备份<br/>autoBackup"]
+    H --> I["启动10分钟定时器"]
+    I --> J["绑定页面卸载事件"]
+    J --> K["✨ 系统就绪"]
     
-    style A fill:#B3E5FC
-    style K fill:#C8E6C9
-    style G2 fill:#FFE0B2
-    style E1 fill:#E1BEE7
+    style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style K fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style G2 fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style E1 fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## 📊 图表2：syncFromCloud() 决策树 (英文清晰版)
-
-**建议**: 复制下方代码到 https://mermaid.live
+## 📊 图表2：syncFromCloud 决策树
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 graph TD
-    A["START<br/>syncFromCloud"] --> B{Authenticated?}
-    B -->|No| C["Return FAILED"]
-    B -->|Yes| D["Fetch CloudData<br/>ApiClient.getRecords"]
+    A["▶️ 开始云端同步<br/>syncFromCloud"] --> B{已认证?}
+    B -->|否| C["❌ 返回失败"]
+    B -->|是| D["📥 获取云端数据<br/>ApiClient.getRecords"]
     
-    D --> E{Already Syncing?<br/>syncInProgress=true}
-    E -->|Yes| F["Return WAITING"]
-    E -->|No| G["Set syncInProgress=true"]
+    D --> E{正在同步中?<br/>syncInProgress=true}
+    E -->|是| F["⏳ 返回等待中"]
+    E -->|否| G["🔒 标记同步进行中"]
     
-    G --> H["Compare Hash<br/>local vs cloud"]
-    H --> I{Hash Same?}
+    G --> H["🔍 对比数据哈希<br/>本地 vs 云端"]
+    H --> I{哈希相同?}
     
-    I -->|Yes| J["Return NO_CHANGE"]
+    I -->|是| J["✨ 跳过同步<br/>返回无变化"]
     
-    I -->|No| K{Cloud Empty<br/>AND Local Has Data?}
-    K -->|Yes| K1["Upload Local<br/>syncToCloud"]
-    K1 --> K2["Goto: Merge Phase"]
+    I -->|否| K{云端为空<br/>且本地有数据?}
+    K -->|是| K1["📤 反向上传"] 
+    K1 --> K2["→ 进入合并阶段"]
     
-    K -->|No| L{Conflict Check<br/>Flag Set?}
-    L -->|Already Checked| M["Use CloudData<br/>Override Local"]
+    K -->|否| L{冲突检测<br/>标记已设置?}
+    L -->|已检查| M["☁️ 使用云端数据"]
     
-    L -->|Not Checked| N{Both Have Data<br/>AND Different?}
-    N -->|Yes| N1["Set Flag=checked"]
-    N1 --> N2["Show Conflict<br/>Dialog to User"]
-    N2 --> N3{User Choice?}
+    L -->|未检查| N{两侧都有<br/>数据且不同?}
+    N -->|是| N1["⚠️ 设置冲突标记"]
+    N1 --> N2["💬 显示冲突对话框"]
+    N2 --> N3{用户选择?}
     
-    N3 -->|Keep Local| N4["Upload Local<br/>syncToCloud"]
-    N4 --> N5["Goto: Merge Phase"]
+    N3 -->|保留本地| N4["📤 上传到云端"]
+    N4 --> N5["→ 进入合并阶段"]
     
-    N3 -->|Use Cloud| N6["Goto: Merge Phase"]
-    N -->|No| M
+    N3 -->|使用云端| N6["→ 进入合并阶段"]
+    N -->|否| M
     
-    M --> O["MERGE PHASE<br/>mergeCloudData"]
-    O --> P["Save to LocalStorage"]
-    P --> Q["Render UI<br/>renderNav + renderMain"]
-    Q --> R["Update SyncTime"]
-    R --> S["Show Success Toast"]
-    S --> T["Set syncInProgress=false"]
-    T --> U["Return SUCCESS"]
+    M --> O["🔄 合并阶段<br/>mergeCloudData"]
+    O --> P["💾 保存到本地存储"]
+    P --> Q["🎨 刷新界面<br/>renderNav + renderMain"]
+    Q --> R["⏰ 更新同步时间"]
+    R --> S["✅ 显示成功提示"]
+    S --> T["🔓 标记同步完成"]
+    T --> U["✨ 返回成功"]
     
-    J --> V["Set syncInProgress=false"]
+    J --> V["🔓 标记同步完成"]
     V --> J
     F --> F
     C --> C
     
-    style A fill:#B3E5FC
-    style U fill:#C8E6C9
-    style C fill:#FFCDD2
-    style F fill:#FFF9C4
-    style J fill:#E1BEE7
-    style M fill:#C8E6C9
-    style N2 fill:#FFE0B2
+    style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style U fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style C fill:#5d0000,stroke:#ff5544,stroke-width:2px,color:#fff
+    style F fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
+    style J fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style M fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style N2 fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## 📊 图表3：备份/恢复/清空流程 (英文清晰版)
-
-**建议**: 复制下方代码到 https://mermaid.live
+## 📊 图表3：备份/恢复/清空流程
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 graph TD
-    subgraph BACKUP["saveManualBackup()"]
-        B1["START"] --> B2{Authenticated?}
-        B2 -->|No| B3["Show Error"]
-        B2 -->|Yes| B4["Get Local Data"]
-        B4 --> B5{Has Data?}
-        B5 -->|Yes| B6["syncToCloud<br/>First"]
-        B5 -->|No| B7["Continue"]
+    subgraph BACKUP["💾 手动备份 saveManualBackup"]
+        B1["▶️ 开始"] --> B2{已认证?}
+        B2 -->|否| B3["❌ 显示错误"]
+        B2 -->|是| B4["📊 获取本地数据"]
+        B4 --> B5{有数据?}
+        B5 -->|是| B6["📤 先同步到云端<br/>syncToCloud"]
+        B5 -->|否| B7["继续执行"]
         B6 --> B7
-        B7 --> B8["saveBackup API"]
-        B8 --> B9{Success?}
-        B9 -->|Yes| B10["Update Display"]
-        B9 -->|No| B11["Show Error"]
-        B10 --> B12["Complete"]
+        B7 --> B8["💾 保存备份<br/>ApiClient.saveBackup"]
+        B8 --> B9{成功?}
+        B9 -->|是| B10["📊 更新显示"]
+        B9 -->|否| B11["❌ 显示错误"]
+        B10 --> B12["✨ 完成"]
         B11 --> B12
         B3 --> B12
     end
     
-    subgraph RESTORE["restoreManualBackup()"]
-        R1["START"] --> R2["Get Backup List<br/>5min cache"]
-        R2 --> R3{List Valid?}
-        R3 -->|No| R4["Show 'None'"]
-        R3 -->|Yes| R5["Find Manual<br/>Backup"]
-        R5 --> R6{Found?}
-        R6 -->|No| R4
-        R6 -->|Yes| R7["Confirm<br/>Dialog"]
-        R7 --> R8{Confirm?}
-        R8 -->|No| R9["Cancel"]
-        R8 -->|Yes| R10["restoreBackup<br/>API"]
-        R10 --> R11["Show Loading"]
-        R11 --> R12["getRecords<br/>Fetch Data"]
-        R12 --> R13{Success?}
-        R13 -->|No| R14["Show Error"]
-        R13 -->|Yes| R15["mergeCloudData"]
-        R15 --> R16["Save Local"]
-        R16 --> R17["Render UI"]
-        R17 --> R18["autoBackup"]
-        R18 --> R19["Update Display"]
-        R19 --> R20["Complete"]
+    subgraph RESTORE["♻️ 手动恢复 restoreManualBackup"]
+        R1["▶️ 开始"] --> R2["📋 获取备份列表<br/>5分钟缓存"]
+        R2 --> R3{列表有效<br/>有备份?}
+        R3 -->|否| R4["⚠️ 显示无备份"]
+        R3 -->|是| R5["🔍 查找手动备份"]
+        R5 --> R6{找到?}
+        R6 -->|否| R4
+        R6 -->|是| R7["💬 显示确认<br/>对话框"]
+        R7 --> R8{用户确认?}
+        R8 -->|否| R9["❌ 取消"]
+        R8 -->|是| R10["🔄 恢复备份<br/>ApiClient.restoreBackup"]
+        R10 --> R11["⏳ 显示加载中"]
+        R11 --> R12["📥 获取最新数据<br/>ApiClient.getRecords"]
+        R12 --> R13{成功?}
+        R13 -->|否| R14["❌ 显示错误"]
+        R13 -->|是| R15["🔀 合并数据<br/>mergeCloudData"]
+        R15 --> R16["💾 保存本地"]
+        R16 --> R17["🎨 刷新界面"]
+        R17 --> R18["🚀 执行自动备份<br/>autoBackup"]
+        R18 --> R19["📊 更新显示<br/>⚠️ 关键:先验证数据再备份"]
+        R19 --> R20["✨ 完成"]
         R14 --> R20
         R9 --> R20
         R4 --> R20
     end
     
-    subgraph CLEAR["clearAllData()"]
-        C1["START"] --> C2["Confirm<br/>Dialog"]
-        C2 --> C3{Confirm?}
-        C3 -->|No| C4["Cancel"]
-        C3 -->|Yes| C5["Clear Local<br/>Storage"]
-        C5 --> C6["Refresh UI"]
-        C6 --> C7{Authenticated?}
-        C7 -->|No| C8["Complete"]
-        C7 -->|Yes| C9["clearBackendData<br/>API"]
-        C9 --> C10{Success?}
-        C10 -->|Yes| C11["Log Success"]
-        C10 -->|No| C12["Log Warning<br/>Continue"]
-        C11 --> C13["Invalidate Cache"]
+    subgraph CLEAR["🗑️ 清空数据 clearAllData"]
+        C1["▶️ 开始"] --> C2["💬 确认对话框"]
+        C2 --> C3{用户确认?}
+        C3 -->|否| C4["❌ 取消"]
+        C3 -->|是| C5["🔄 清空本地<br/>LocalStorage"]
+        C5 --> C6["🎨 立即刷新界面"]
+        C6 --> C7{已认证?}
+        C7 -->|否| C8["✨ 完成"]
+        C7 -->|是| C9["📡 清空后端数据<br/>ApiClient.clearBackendData"]
+        C9 --> C10{成功?}
+        C10 -->|是| C11["✅ 记录成功"]
+        C10 -->|否| C12["⚠️ 记录警告<br/>继续"]
+        C11 --> C13["🔄 缓存失效<br/>cachedBackupList = null<br/>cachedBackupListTime = 0"]
         C12 --> C13
-        C13 --> C14["updateSyncStatus"]
+        C13 --> C14["🔄 重新更新状态<br/>updateSyncStatus"]
         C14 --> C8
         C4 --> C8
     end
     
-    BACKUP --> AFTER["→ updateSyncStatus"]
+    BACKUP --> AFTER["→ 更新备份状态<br/>updateSyncStatus"]
     RESTORE --> AFTER
     CLEAR --> AFTER
     
-    style BACKUP fill:#FFE0B2,stroke:#E65100,stroke-width:2px
-    style RESTORE fill:#C5CAE9,stroke:#283593,stroke-width:2px
-    style CLEAR fill:#FFCCBC,stroke:#D84315,stroke-width:2px
-    style AFTER fill:#C8E6C9,stroke:#1B5E20,stroke-width:2px
+    style BACKUP fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style RESTORE fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
+    style CLEAR fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff
+    style AFTER fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
 ---
 
-## 📊 图表4：数据清空的缓存失效机制 (英文清晰版)
-
-**建议**: 复制下方代码到 https://mermaid.live
+## 📊 图表4：缓存失效与UI刷新机制
 
 ```mermaid
+%%{init: {'theme':'dark'}}%%
 graph TD
-    A["User Clicks 'Clear'"] --> B["Confirm Dialog"]
-    B --> C{Confirm?}
-    C -->|No| D["Return"]
+    A["👤 用户点击'清空'"] --> B["💬 确认对话框"]
+    B --> C{用户确认?}
+    C -->|否| D["↩️ 返回"]
     
-    C -->|Yes| E["Clear Local<br/>Storage"]
-    E --> F["Refresh UI<br/>Immediate"]
-    F --> G["Show Success<br/>Toast"]
+    C -->|是| E["🔄 清空本地<br/>存储"]
+    E --> F["🎨 立即刷新界面<br/>renderNav + renderMain"]
+    F --> G["✅ 显示成功<br/>浮动提示"]
     
-    G --> H{Authenticated?}
-    H -->|No| I["End"]
+    G --> H{已认证?}
+    H -->|否| I["🏁 结束"]
     
-    H -->|Yes| J["Call Backend<br/>clearBackendData API"]
-    J --> K{Success?}
-    K -->|Failed| L["Log Warning<br/>Continue"]
-    K -->|Success| M["Log Success"]
+    H -->|是| J["📡 调用后端清空<br/>ApiClient.clearBackendData"]
+    J --> K{成功?}
+    K -->|失败| L["⚠️ 记录警告<br/>继续进行"]
+    K -->|成功| M["✅ 记录成功"]
     
-    L --> N["Invalidate Cache:<br/>cachedBackupList=null<br/>cachedBackupListTime=0"]
+    L --> N["🔄 缓存失效<br/>① cachedBackupList = null<br/>② cachedBackupListTime = 0"]
     M --> N
     
-    N --> O["Reset Status<br/>isUpdatingStatus=false"]
-    O --> P["Fetch Fresh<br/>updateSyncStatus"]
-    P --> Q["getBackupList<br/>API Call"]
+    N --> O["🔓 重置状态<br/>isUpdatingStatus = false"]
+    O --> P["🔄 重新获取<br/>updateSyncStatus"]
+    P --> Q["📥 查询备份列表<br/>ApiClient.getBackupList"]
     
-    Q --> R{Any Backups?}
-    R -->|Yes| S["Update Display<br/>Count"]
-    R -->|No| T["Show '—'<br/>None"]
+    Q --> R{有备份记录?}
+    R -->|有| S["📊 更新显示数量"]
+    R -->|无| T["显示 '—'<br/>无备份"]
     
-    S --> U["Refresh PC Card<br/>autoBackupItem"]
+    S --> U["🎨 刷新PC端卡片<br/>autoBackupItem<br/>manualBackupItem"]
     T --> U
     
-    U --> V["Refresh Mobile<br/>Card"]
-    V --> W["Final Complete<br/>Toast"]
+    U --> V["📱 刷新移动端卡片<br/>mAutoBackupTime<br/>mManualBackupTime"]
+    V --> W["✨ 显示完成<br/>浮动提示"]
     W --> I
     
-    style A fill:#FFCDD2,stroke:#B71C1C
-    style E fill:#FFF9C4,stroke:#F57F17
-    style F fill:#FFF9C4,stroke:#F57F17
-    style N fill:#E8F5E9,stroke:#1B5E20,stroke-width:2px
-    style P fill:#BBDEFB,stroke:#1565C0,stroke-width:2px
-    style W fill:#C8E6C9,stroke:#1B5E20
-    style I fill:#C8E6C9,stroke:#1B5E20
+    style A fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff
+    style E fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
+    style F fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
+    style N fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style P fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style W fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style I fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
 ---
 
 ## 📋 推荐使用方式
 
-### 最佳实践：在线查看
-访问 [mermaid.live](https://mermaid.live) 并复制上方任一英文代码块，享受：
-- ✅ 字体清晰易读
-- ✅ 实时预览
+### 👍 最佳选择：在线查看
+访问 [mermaid.live](https://mermaid.live) 并复制上方任一代码块，享受：
+- ✅ 黑底白字，清晰易读
+- ✅ 实时预览，即时反馈
 - ✅ 一键导出PNG/SVG
-- ✅ 无需安装工具
+- ✅ 无需安装任何工具
 
-### 导出为静态图片
+### 📦 导出本地图片
 ```bash
-# 安装(一次性)
+# 一次性安装
 npm install -g @mermaid-js/mermaid-cli
 
 # 导出此文件中的所有图表
 mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
 ```
 
-### VS Code 内预览
-1. 安装插件：Markdown Preview Mermaid Support
+### 🖥️ VS Code 内预览
+1. 安装插件：**Markdown Preview Mermaid Support**
 2. 打开此文件，按 `Ctrl+Shift+V` 预览
-3. 右键图表可导出
+3. 右键图表导出为PNG
 
 ---
 
-## 🎯 图表快速参考
+## 🎯 图表速查表
 
-| # | 名称 | 重点 | 用途 |
-|----|------|------|------|
-| 1️⃣ | App Init Flow | 系统启动 | 了解初始化流程和定时备份 |
-| 2️⃣ | syncFromCloud | 冲突检测 | 理解云端同步的决策逻辑 |
-| 3️⃣ | Backup/Restore | 操作流程 | 追踪备份、恢复、清空的完整链路 |
-| 4️⃣ | Cache Invalidation | 刷新机制 | 深入缓存失效和UI更新的细节 |
+| # | 名称 | 重点关注 | 用途 |
+|----|------|----------|------|
+| 1️⃣ | 系统初始化流程 | 启动顺序和定时器 | 了解应用如何启动及备份策略 |
+| 2️⃣ | syncFromCloud决策树 | 冲突检测和数据保护 | 理解云端同步的完整逻辑 |
+| 3️⃣ | 备份/恢复/清空流程 | 操作顺序和缓存处理 | 追踪数据相关操作的完整链路 |
+| 4️⃣ | 缓存失效与UI刷新 | 缓存清理时机 | 深入理解数据一致性的保障 |
 
-**建议阅读顺序**：图1 → 图2 → 图3 → 图4
+**建议阅读顺序**：图1 → 图2 → 图3 → 图4（从全景到细节）
+
+---
+
+## ⚠️ 关键数据流程注意点
+
+1. **还原数据时的时序**
+   - ✅ 先 `restoreBackup` API 恢复后端
+   - ✅ 再 `getRecords` 获取最新数据并合并
+   - ✅ 最后 `autoBackup` 执行自动备份
+   - ❌ **不能在merge前就执行backup**
+
+2. **缓存失效必须点**
+   - 清空数据需要重置：`cachedBackupList = null` + `cachedBackupListTime = 0`
+   - 同步成功后需要更新缓存时间戳
+   - UI刷新前必须执行缓存失效
+
+3. **浮动提示机制**
+   - 所有数据操作（备份/还原/清空）完成后显示浮动提示
+   - 位置：左下角，5秒自动消失
+   - 格式：统一的成功/失败/警告样式
 
 ---
 
 ## 🔗 相关文档
 
-- [sync_flowchart_guide.md](sync_flowchart_guide.md) - 文字版详解
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - 系统设计
-- [code_requirements.md](code_requirements.md) - 代码规范
+- [sync_flowchart_guide.md](sync_flowchart_guide.md) - 详细文字说明和代码位置
+- [ARCHITECTURE.md](../ARCHITECTURE.md) - 系统整体架构
+- [code_requirements.md](code_requirements.md) - 代码规范和标准
 
 ---
 
 **最后更新**: 2026年2月26日  
 **版本**: 前端1.2.0 / 后端1.2.0  
-**状态**: ✅ 所有图表已英文化，清晰易读
+**样式**: ✨ 中文黑底白字，高对比度易阅读
