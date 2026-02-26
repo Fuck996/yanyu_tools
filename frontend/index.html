@@ -1295,8 +1295,26 @@
                     e.target.value = '';
                     // 通知模块层数据已变更（更新备份面板等）
                     window.YanyuApp?.LocalStorageManager?.clearConflictCheckFlag?.();
-                    window.YanyuApp?.AuthUI?.updateSyncStatus?.().catch(() => {});
-                    alert('数据还原成功！');
+                    
+                    // 导入完成后触发自动备份（如果已认证）
+                    if (window.YanyuApp?.AuthHandler?.isAuthenticated?.()) {
+                        console.log('💾 数据导入完成，启动自动备份...');
+                        window.YanyuApp.autoBackup().then((backupResult) => {
+                            if (backupResult.success) {
+                                console.log(`✅ 导入后自动备份成功: ${backupResult.recordCount} 条`);
+                                alert(`数据还原成功！已备份 ${backupResult.recordCount} 条`);
+                            } else {
+                                console.warn(`⚠️ 导入后自动备份失败: ${backupResult.error}`);
+                                alert('数据还原成功，但备份失败！');
+                            }
+                        }).catch((err) => {
+                            console.error('❌ 导入后自动备份异常:', err.message);
+                            alert('数据还原成功，但备份异常！');
+                        });
+                    } else {
+                        window.YanyuApp?.AuthUI?.updateSyncStatus?.().catch(() => {});
+                        alert('数据还原成功！');
+                    }
                 } else {
                     throw new Error('无效的 JSON 结构');
                 }

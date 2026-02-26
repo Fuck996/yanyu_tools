@@ -651,8 +651,29 @@ Object.assign(window.YanyuApp, {
         if (result.success) {
           // 导入数据后，清除冲突检测标志，以便下次同步时重新检测
           LocalStorageManager.clearConflictCheckFlag()
-          UIManager.showMessage('✅ 数据导入成功，页面将刷新', 'success', 1500)
-          setTimeout(() => location.reload(), 1500)
+          
+          // 刷新UI
+          if (typeof window.renderNav === 'function') window.renderNav()
+          if (typeof window.renderMain === 'function') window.renderMain()
+          
+          UIManager.showMessage('✅ 数据导入成功', 'success', 1500)
+          
+          // 导入完成后触发自动备份，而不是直接刷新
+          if (AuthHandler.isAuthenticated()) {
+            console.log('💾 导入完成，启动自动备份...')
+            window.YanyuApp.autoBackup().then((backupResult) => {
+              if (backupResult.success) {
+                console.log(`✅ 导入后自动备份成功: ${backupResult.recordCount} 条`)
+                UIManager.showMessage(`✅ 已备份 ${backupResult.recordCount} 条数据`, 'success', 2000)
+              } else {
+                console.warn(`⚠️ 导入后自动备份失败: ${backupResult.error}`)
+              }
+            }).catch((err) => {
+              console.error('❌ 导入后自动备份异常:', err.message)
+            })
+          } else {
+            UIManager.showMessage('⚠️ 未登录，数据仅保存本地', 'warning', 2000)
+          }
         } else {
           UIManager.showMessage('❌ 导入失败: ' + result.error, 'error', 3000)
         }
@@ -852,7 +873,9 @@ Object.assign(window.YanyuApp, {
       
       if (result.success) {
         console.log('✅ 自动备份: ' + result.recordCount + ' 条')
-        // 强制刷新备份显示
+        // 强制刷新备份显示：清除缓存以确保显示最新数据
+        AuthUI.cachedBackupList = null
+        AuthUI.cachedBackupListTime = 0
         const wasUpdating = this.isUpdatingStatus
         this.isUpdatingStatus = false
         await AuthUI.updateSyncStatus()
