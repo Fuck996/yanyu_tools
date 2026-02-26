@@ -73,6 +73,8 @@ const AuthUI = {
     
     // 第三步：未登录，显示登录按钮；不主动连接后端
     this.updateUI(null)
+    // 更新状态面板，显示"未登录"提示（updateSyncStatus 内部不会发起后端请求）
+    await this.updateSyncStatus()
   },
 
   /**
