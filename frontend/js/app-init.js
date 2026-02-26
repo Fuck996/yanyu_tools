@@ -71,9 +71,8 @@ const AuthUI = {
       return
     }
     
-    // 第三步：未登录，显示登录按钮但也要显示连接状态
+    // 第三步：未登录，显示登录按钮；不主动连接后端
     this.updateUI(null)
-    await this.updateSyncStatus()
   },
 
   /**
@@ -476,25 +475,18 @@ const AuthUI = {
         this.startRetry()  // 连接失败，启动后台重试
       }
     } else {
-      // 未认证：health check 判断连接状态
-      const backendOnline = await this.checkBackendHealth()
-      window.YanyuApp.backendStatus = backendOnline
-      if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
-      // 未登录时若检查失败显示“未登录”，否则显示已连接（告知后端可用）
-      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '未登录'
+      // 未认证：不主动连接后端，显示未登录提示
+      window.YanyuApp.backendStatus = false
+      if (headerStatusIcon) headerStatusIcon.textContent = '🔒'
+      if (headerStatusText) headerStatusText.textContent = '未登录'
       if (headerStatusExtra) headerStatusExtra.textContent = ''
       if (manualBackupItem) manualBackupItem.style.display = 'none'
       if (autoBackupItem) autoBackupItem.style.display = 'none'
-      // 控制 loading/failure/未登录 三种占位显示
+      // 显示未登录占位，隐藏加载与失败占位
       const notLogged = document.getElementById('notLoggedIndicator')
       if (loadingIndicator) loadingIndicator.style.display = 'none'
       if (failureIndicator) failureIndicator.style.display = 'none'
-      if (notLogged) notLogged.style.display = backendOnline ? 'none' : 'flex'
-      if (backendOnline) {
-        this.stopRetry()  // 连接成功，取消重试
-      } else {
-        this.startRetry()  // 连接失败，启动后台重试
-      }
+      if (notLogged) notLogged.style.display = 'flex'
     }
     } finally {
       this.isUpdatingStatus = false
