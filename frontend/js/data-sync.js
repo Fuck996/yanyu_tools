@@ -495,20 +495,12 @@ export const DataSync = {
   },
 
   /**
-   * 清空数据（同时清空本地和云端，需谨慎）
+   * 清空后端数据（本地清空由调用方负责）
    * @returns {Promise<Object>}
    */
   async clearAllData() {
-    if (!confirm('确实要清空所有数据吗？此操作不可撤销！')) {
-      return { success: false, error: '操作已取消' }
-    }
-
     try {
-      // 清空本地
-      LocalStorageManager.clearEquipmentData()
-      console.log('✅ 本地数据已清空')
-
-      // 如果已认证，也清空后端数据
+      // 本地数据由 clearEquipmentDataOnly 已清空，这里只清空后端
       if (AuthHandler.isAuthenticated()) {
         try {
           const result = await ApiClient.clearBackendData()
@@ -521,7 +513,6 @@ export const DataSync = {
           console.warn('⚠️ 后端清空异常:', err.message)
         }
       }
-
       return { success: true, message: '数据已清空' }
     } catch (err) {
       return { success: false, error: err.message }

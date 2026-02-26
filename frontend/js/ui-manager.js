@@ -11,6 +11,7 @@ import { ApiClient } from './api-client.js'
 
 const PANEL_ID = 'yanyu-auth-panel'
 const STATUS_ID = 'yanyu-status-message'
+const DEFAULT_AVATAR = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>')
 
 export const UIManager = {
   /**
@@ -214,7 +215,9 @@ export const UIManager = {
         font-size: 13px;
         color: rgb(224, 224, 224);
         animation: slideInLeft 0.3s ease-out, slideOutLeft 0.3s ease-in 4.7s;
-        max-width: 300px;
+        max-width: min(300px, calc(100vw - 40px));
+        box-sizing: border-box;
+        word-break: break-word;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
       }
 
@@ -358,7 +361,7 @@ export const UIManager = {
 
     const profileHTML = `
       <div style="text-align: center;">
-        <img src="${user.avatar_url}" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
+        <img src="${user.avatar_url || DEFAULT_AVATAR}" onerror="this.src='${DEFAULT_AVATAR}';this.onerror=null" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;">
         <p style="margin: 5px 0;"><strong>${user.username || user.login}</strong></p>
         <p style="margin: 5px 0; font-size: 12px;">${user.email || '(未公开)'}</p>
         <p style="margin: 8px 0; font-size: 11px; color: #888;">
@@ -388,9 +391,8 @@ export const UIManager = {
         const avatar = document.getElementById('yanyu-user-avatar')
         const username = document.getElementById('yanyu-user-name')
 
-        if (user.avatar_url) {
-          avatar.src = user.avatar_url
-        }
+        avatar.src = user.avatar_url || DEFAULT_AVATAR
+        avatar.onerror = () => { avatar.src = DEFAULT_AVATAR; avatar.onerror = null }
         username.textContent = user.username || user.login || 'User'
       }
     } else {

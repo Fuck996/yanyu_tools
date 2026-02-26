@@ -258,13 +258,15 @@ const AuthUI = {
       if (defaultAvatar) defaultAvatar.style.display = 'none'
 
       // 设置头部用户信息
-      const avatar = user.avatar || user.avatar_url || 'https://avatars.githubusercontent.com/u/1?v=4'
-      
+      const DEFAULT_AVATAR = 'data:image/svg+xml;base64,' + btoa('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#888" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>')
+      const avatar = user.avatar || user.avatar_url || DEFAULT_AVATAR
+
       if (userAvatar) {
         userAvatar.src = avatar
         userAvatar.alt = user.username
         userAvatar.onerror = () => {
-          userAvatar.src = 'https://avatars.githubusercontent.com/u/1?v=4'
+          userAvatar.src = DEFAULT_AVATAR
+          userAvatar.onerror = null
         }
       }
       
