@@ -414,7 +414,9 @@ export const UIManager = {
       indicator.classList.add('offline')
     }
 
-    // 额外检测后端可用性：若已认证但后端不可用，则强制显示红点（error）
+    // 额外检测后端可用性：仅在已认证时调用后端检查，避免未登录时产生网络请求
+    if (!AuthHandler.isAuthenticated()) return
+
     try {
       ApiClient.isBackendEnabled().then((available) => {
         if (!available && AuthHandler.isAuthenticated()) {
