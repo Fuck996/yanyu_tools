@@ -130,6 +130,7 @@
         .modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:var(--card); border:1px solid var(--border); border-radius:20px; padding:25px; z-index:1100; box-shadow:0 20px 60px rgba(0,0,0,0.5); width:360px; }
         .mask { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1099; backdrop-filter: blur(4px); }
         .selection-preview { background: rgba(0,0,0,0.2); border: 1px dashed var(--border); border-radius: 12px; padding: 12px; min-height: 40px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-bottom: 10px; }
+        body.mobile-view .selection-preview { padding: 6px 8px; min-height: 24px; max-height: 52px; overflow-y: auto; gap: 3px; margin-bottom: 6px; }
         [data-theme="light"] .selection-preview { background: #f9f9f9; }
         .modal-label { font-size: 12px; color: var(--nav-text); margin-bottom: 10px; margin-top: 15px; display: flex; justify-content: space-between; }
         .version-footer { text-align: center; padding: 15px 0 5px 0; font-size: 12px; color: var(--nav-text); }
@@ -189,6 +190,7 @@
 
         /* 收藏统计弹窗 */
         .stats-modal { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:var(--card); border:1px solid var(--border); border-radius:16px; padding:24px; z-index:1100; box-shadow:0 20px 60px rgba(0,0,0,0.5); width:440px; max-height:80vh; overflow-y:auto; }
+        body.mobile-view .stats-modal { width:calc(100vw - 32px); max-width:calc(100vw - 32px); padding:16px; max-height:85svh; }
         .stats-modal h3 { margin:0 0 16px 0; font-size:16px; color:var(--title-color); }
         .stats-system { margin-bottom:20px; }
         .stats-system-title { font-size:13px; font-weight:bold; color:var(--accent); margin-bottom:10px; padding-bottom:6px; border-bottom:1px solid var(--border); }

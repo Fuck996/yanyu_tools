@@ -697,6 +697,19 @@ Object.assign(window.YanyuApp, {
    * 保存手动备份（同时保存到本地和服务器）
    */
   async saveManualBackup() {
+    if (!AuthHandler.isAuthenticated()) {
+      UIManager.showMessage('❌ 请先登录 GitHub', 'error', 2000)
+      return { success: false, error: '未认证' }
+    }
+
+    // 若本地有数据，先同步到云端，确保备份内容与本地一致
+    const localData = LocalStorageManager.getEquipmentData()
+    if (localData && Object.keys(localData).length > 0) {
+      UIManager.showSyncProgress('📤 上传本地数据...')
+      await DataSync.syncToCloud()
+      UIManager.hideSyncProgress()
+    }
+
     // 直接保存到后端服务器（不保存本地副本）
     try {
       const result = await ApiClient.saveBackup('manual')
