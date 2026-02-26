@@ -488,8 +488,13 @@ const AuthUI = {
             if (autoHeaderEl) autoHeaderEl.textContent = `⏱️ 自动备份(${autoBackup.recordCount}条)`
             const autoTimeEl = document.getElementById('autoBackupTime')
             if (autoTimeEl) autoTimeEl.textContent = formatTime(autoBackup.timestamp)
+            // PC 端备份时间已带条数，现在更新移动端显示
+            const mAutoTimeEl = document.getElementById('mAutoBackupTime')
+            if (mAutoTimeEl) mAutoTimeEl.textContent = `${autoBackup.recordCount}条 · ${formatTime(autoBackup.timestamp)}`
           } else {
             if (autoBackupItem) autoBackupItem.style.display = 'none'
+            const mAutoTimeEl = document.getElementById('mAutoBackupTime')
+            if (mAutoTimeEl) mAutoTimeEl.textContent = '—'
           }
 
           const manualBackup = backupListResult.backups.find(b => b.backupType === 'manual')
@@ -501,8 +506,13 @@ const AuthUI = {
             if (manualHeaderEl) manualHeaderEl.textContent = `📪 手动备份(${manualBackup.recordCount}条)`
             const manualTimeEl = document.getElementById('manualBackupTime')
             if (manualTimeEl) manualTimeEl.textContent = formatTime(manualBackup.timestamp)
+            // 移动端也显示条数
+            const mManualTimeEl = document.getElementById('mManualBackupTime')
+            if (mManualTimeEl) mManualTimeEl.textContent = `${manualBackup.recordCount}条 · ${formatTime(manualBackup.timestamp)}`
           } else {
             if (manualBackupItem) manualBackupItem.style.display = 'none'
+            const mManualTimeEl = document.getElementById('mManualBackupTime')
+            if (mManualTimeEl) mManualTimeEl.textContent = '—'
           }
         } else {
           // 连接成功但无备份，或连接失败
@@ -790,6 +800,10 @@ Object.assign(window.YanyuApp, {
           await AuthUI.updateSyncStatus()
 
           UIManager.showMessage(`✅ 已恢复 ${recordsResult.records.length} 条数据`, 'success', 2000)
+          
+          // 恢复完成后立即执行自动备份，确保后端保持两份历史
+          console.log('💾 启动自动备份...')
+          await window.YanyuApp.autoBackup()
         } else {
           UIManager.showMessage('⚠️ 后端已恢复，但拉取数据失败，请手动刷新页面', 'warning', 4000)
         }

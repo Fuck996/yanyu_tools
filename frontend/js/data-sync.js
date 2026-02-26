@@ -550,17 +550,25 @@ export const DataSync = {
       LocalStorageManager.clearEquipmentData()
       console.log('✅ 本地数据已清空')
 
-      // 如果已认证且后端可用，也清空云端
+      // 如果已认证，也清空后端数据
       if (AuthHandler.isAuthenticated()) {
-        // TODO: 调用后端的批量删除接口
-        console.log('⚠️ 云端数据清空功能待实现')
+        try {
+          const result = await ApiClient.clearBackendData()
+          if (result.success) {
+            console.log('✅ 后端数据已清空')
+          } else {
+            console.warn('⚠️ 后端清空失败:', result.error)
+          }
+        } catch (err) {
+          console.warn('⚠️ 后端清空异常:', err.message)
+        }
       }
 
       return { success: true, message: '数据已清空' }
     } catch (err) {
       return { success: false, error: err.message }
     }
-  },
+  }
 }
 
 export default DataSync
