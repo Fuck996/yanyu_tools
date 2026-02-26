@@ -988,13 +988,41 @@ async function initializeApp() {
 
     // 3. 仅在已认证时才初始化数据同步系统
     if (AuthHandler.isAuthenticated()) {
-      console.log('📦 已登录，初始化数据同步（含冲突检测）...')
-      const syncResult = await DataSync.initialize()
-      // syncFromCloud 完成后，若数据实际发生了变化（上传或下载），立即触发一次自动备份
-      if (syncResult && syncResult.success && !syncResult.noChange) {
-        console.log('💾 同步检测到数据变化，立即触发自动备份...')
-        window.YanyuApp.notifyDataChange('immediate').catch(err => console.warn('初始化备份失败:', err))
+      // 3.1 获取并显示版本号（认证确认后、数据同步前）
+      const feVersionEl = document.getElementById('fe-version')
+      const beVersionEl = document.getElementById('be-version')
+      const frontendVersion = window.__FRONTEND_VERSION__ || window.FRONTEND_VERSION || FRONTEND_VERSION || 'unknown'
+      if (feVersionEl) {
+        feVersionEl.textContent = frontendVersion
+        console.log(`✅ 前端版本已显示: ${frontendVersion}`)
       }
+      window.YanyuApp.FRONTEND_VERSION = frontendVersion
+      window.YanyuApp.FRONTEND_BUILD_DATE = window.__FRONTEND_BUILD_DATE__ || window.FRONTEND_BUILD_DATE || FRONTEND_BUILD_DATE || 'unknown'
+      try {
+        const apiUrl = window.__API_URL__ || '/api'
+        const versionResponse = await fetch(`${apiUrl}/version`)
+        if (versionResponse.ok) {
+          const versionData = await versionResponse.json()
+          if (beVersionEl && versionData.backend) {
+            beVersionEl.textContent = versionData.backend
+            if (versionData.backend !== frontendVersion) {
+              console.warn(`⚠️ 版本不一致: 前端=${frontendVersion}, 后端=${versionData.backend}`)
+            } else {
+              console.log(`✅ 版本一致: ${frontendVersion}`)
+            }
+          }
+        } else {
+          if (beVersionEl) beVersionEl.textContent = '未连接'
+          console.error('后端版本查询失败，状态码:', versionResponse.status)
+        }
+      } catch (err) {
+        if (beVersionEl) beVersionEl.textContent = '未连接'
+        console.error('无法获取后端版本号:', err.message)
+      }
+
+      // 3.2 执行数据同步（含冲突检测，界面刷新和备份均由 syncFromCloud 内部处理）
+      console.log('📦 已登录，初始化数据同步（含冲突检测）...')
+      await DataSync.initialize()
     } else {
       console.log('👤 未登录，跳过数据同步初始化')
     }
@@ -1008,47 +1036,6 @@ async function initializeApp() {
     const status = DataSync.getSyncStatus()
     if (status.authenticated) {
       console.log(`✅ 已认证为: ${status.user.username}`)
-    }
-
-    // 5.5 显示版本号
-    const feVersionEl = document.getElementById('fe-version')
-    const beVersionEl = document.getElementById('be-version')
-    
-    // 从 window 对象获取版本号（确保是全局的）
-    const frontendVersion = window.__FRONTEND_VERSION__ || window.FRONTEND_VERSION || FRONTEND_VERSION || 'unknown'
-    
-    if (feVersionEl) {
-      feVersionEl.textContent = frontendVersion
-      console.log(`✅ 前端版本已显示: ${frontendVersion}`)
-    }
-    
-    // 暴露到 YanyuApp
-    window.YanyuApp.FRONTEND_VERSION = frontendVersion
-    window.YanyuApp.FRONTEND_BUILD_DATE = window.__FRONTEND_BUILD_DATE__ || window.FRONTEND_BUILD_DATE || FRONTEND_BUILD_DATE || 'unknown'
-    
-    // 获取并显示后端版本号
-    try {
-      const apiUrl = window.__API_URL__ || '/api'
-      const versionResponse = await fetch(`${apiUrl}/version`)
-      if (versionResponse.ok) {
-        const versionData = await versionResponse.json()
-        if (beVersionEl && versionData.backend) {
-          beVersionEl.textContent = versionData.backend
-          
-          // 检查版本是否一致
-          if (versionData.backend !== frontendVersion) {
-            console.warn(`⚠️ 版本不一致: 前端=${frontendVersion}, 后端=${versionData.backend}`)
-          } else {
-            console.log(`✅ 版本一致: ${frontendVersion}`)
-          }
-        }
-      } else {
-        if (beVersionEl) beVersionEl.textContent = '未连接'
-        console.error('后端版本查询失败，状态码:', versionResponse.status)
-      }
-    } catch (err) {
-      if (beVersionEl) beVersionEl.textContent = '未连接'
-      console.error('无法获取后端版本号:', err.message)
     }
 
     console.log('✅ 应用初始化完成')

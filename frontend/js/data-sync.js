@@ -114,7 +114,7 @@ export const DataSync = {
     // 同步完成后启用自动同步（事件驱动）
     this.enableAutoSync()
 
-    // 返回同步结果，供调用方判断是否需要触发备份
+    // syncFromCloud 内部已处理界面刷新，调用方无需额外触发备份
     return syncResult
   },
 
