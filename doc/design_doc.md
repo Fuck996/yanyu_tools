@@ -1,4 +1,4 @@
-# 《烟雨江湖》装备录入工具设计文档 (V4.7.30)
+# 《烟雨江湖》装备录入工具设计文档 (V1.2.1)
 
 ## 1. 项目概述
 本工具是一个基于 Web 的单页面应用（SPA），旨在帮助《烟雨江湖》玩家记录和对比不同地点（如剑王阁、铸剑山庄等）的装备锻造/缝纫序列，以便优化资源分配。
@@ -7,6 +7,11 @@
 - **前端技术栈**: 原生 HTML5, CSS3 (使用变量实现主题切换), Vanilla JavaScript (无第三方库依赖)。
 - **持久化方案**: 使用浏览器 `localStorage` 存储用户数据（键名为 `yanyu_v24_db`）。
 - **部署方式**: 纯静态页面，可直接离线运行。
+
+## 2.1 近期更新（摘要）
+- **云端同步 & OAuth**: 增加了可选的 GitHub OAuth 登录和云端同步，登陆用户的数据会保存在后端数据库，并在多设备间同步。
+- **离线优先**: 保持完全离线可用，采用本地缓存优先，网络可用时自动与云端合并。
+- **组件化前端**: 将核心逻辑拆分为 `app-init.js`、`local-storage-manager.js`、`data-sync.js`、`ui-manager.js` 等模块，便于维护与扩展。
 
 ## 3. 核心功能模块
 
@@ -60,3 +65,24 @@
 - **滚动锁定**: 录入或编辑后，页面会自动滚动到对应的行（`focusScroll` 逻辑），提升连续录入的体验。
 - **兼容性逻辑**: `fixOldData` 函数负责处理旧版本数据中的词条名称差异（如“剑伤”转换为“剑法”）。
 - **自适应布局**: 使用 CSS Grid (`loc-grid`) 实现响应式布局，保证在不同分辨率下的对比体验。
+
+## 6. 云端同步与 API 交互
+1. 登录流程: 前端通过 `/api/auth/github` 发起 OAuth，后端返回 Session Cookie + Token，后续请求带 Cookie 进行鉴权。
+2. 同步策略:
+  - 未登录: 仅使用 `localStorage`，用户可导出 JSON 备份。
+  - 已登录: 前端在本地变更后推送到 `POST /api/equipment/records`，后端返回合并后的最新状态。
+  - 离线更改: 记录变更队列，恢复网络后按顺序同步并处理冲突（最后写入优先，带时间戳）。
+3. 主要后端接口:
+  - `GET /api/equipment/records` - 获取当前用户的所有记录
+  - `POST /api/equipment/records` - 创建或批量上传记录
+  - `PUT /api/equipment/records/:id` - 更新记录
+  - `DELETE /api/equipment/records/:id` - 删除记录
+
+## 7. 部署与发布
+- 前端: 可直接部署 `frontend/` 目录到 Vercel/GitHub Pages；静态文件包含 `index.html`、`preview.html`、`mobile-preview.html`。
+- 后端: 使用 Node.js + Express，推荐部署到 Railway 或 Render；生产环境使用 SQLite 或可替换为托管数据库。
+- 版本与发布: 采用 `Major.Minor.Patch` 语义化版本，发布时更新根目录 `package.json` 的 `version` 字段并生成发布包（zip）。
+
+---
+
+以上为 1.2.1 版本的设计补充，文档中其余部分保留原有细节并作为参考实现说明。

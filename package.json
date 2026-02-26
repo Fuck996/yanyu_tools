@@ -1,10 +1,11 @@
 {
   "name": "yanyu-tools",
-  "version": "4.8.1",
+  "version": "1.2.1",
   "description": "烟雨江湖装备录入工具 - 前后端分离版本",
   "type": "module",
   "scripts": {
     "install:all": "npm install && cd backend && npm install && cd ..",
+    "sync-version": "node scripts/sync-version.cjs",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && python -m http.server 5173",
     "dev": "npm run dev:backend & npm run dev:frontend",

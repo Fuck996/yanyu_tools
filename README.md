@@ -1,6 +1,6 @@
 # 烟雨江湖装备录入工具 - 前后端分离版本
 
-> V4.8.1 | 完全前后端分离 + GitHub OAuth 认证 + 云端数据同步
+> V1.2.1 | 完全前后端分离 + GitHub OAuth 认证 + 云端数据同步
 
 ## ✨ 核心特性
 
@@ -132,6 +132,24 @@ npm run dev
 ```
 
 ## 📚 文档
+
+## 界面预览
+- **PC 端主要界面**
+
+- 预览图：[点击打开 PC 预览](./preview.html)
+
+  
+    ![PC 预览](assets/preview-desktop.svg)
+
+- **移动端主要界面**
+
+- 预览图：[点击打开移动端预览](./mobile-preview.html)
+
+  
+    ![移动端预览](assets/preview-mobile.svg)
+
+（如果需要真实截图，请替换 `assets/preview-desktop.svg` 与 `assets/preview-mobile.svg` 为实际 PNG/JPG 文件）
+
 
 **快速开始**:
 - ⚡ [快速参考卡片](./QUICK-REFERENCE.md) - 1分钟快速查阅
@@ -365,4 +383,4 @@ MIT License - 详见 LICENSE 文件
 
 ---
 
-**Version**: 4.8.0 | **Last Updated**: 2026-02-24 | **Status**: 生产就绪
+**Version**: 1.2.1 | **Last Updated**: 2026-02-26 | **Status**: 生产就绪

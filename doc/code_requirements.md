@@ -28,6 +28,18 @@
 - **更新要求**: **每次代码或文档更新，无论大小，都必须至少递增修订号。**
 - **同步位置**: `index.html` 中 `title` 和 `version-footer` 的版本号必须与实际版本保持一致。
 
+### 5.1 前后端版本一致规则
+
+- **单一来源 (Single Source of Truth)**: 仓库根目录的 `package.json` 的 `version` 字段作为本仓库的“整体版本号”。任何需要展示或使用项目版本号的前端页面或后端 `package.json` 应与根目录 `package.json` 保持一致或通过发布脚本自动同步。
+- **前后端对应**: 后端 `package.json` 中的 `version` 字段应与根目录 `package.json` 完全一致（例如：根为 `1.2.1`，后端也应为 `1.2.1`）。前端页面（`index.html` 的 title、`version-footer`、各文档页的 Footer）应展示相同的版本号或从根目录自动注入。
+- **禁止硬编码多处版本号**: 禁止在多个文件中手动维护不同版本号（例如 README、doc 文件、HTML footer 等）。若确有需要展示历史/组件版本，应明确标注为组件版本而非项目整体版本。
+- **变更流程**: 发布新版本时应执行下列步骤：
+  1. 在 `CHANGELOG.md` 中添加条目并写明版本号。
+  2. 更新根目录 `package.json` 的 `version` 字段。
+  3. 运行 `scripts/sync-version.js`（或手动脚本）同步后端 `package.json` 和需要注入版本号的文档/页面。
+  4. 生成发布包并在 Git 中打 tag（如 `v1.2.1`）。
+- **自动化建议**: 推荐添加一个简单的同步脚本 `scripts/sync-version.js`，读取根目录 `package.json` 并把 `version` 写入 `backend/package.json`、README footer（或生成 README），以及注入到 `index.html` 的 `version-footer`，以避免人工出错。
+
 ## 6. 移动端兼容规范 (Mobile Compatibility)
 
 ### 6.1 断点触发条件

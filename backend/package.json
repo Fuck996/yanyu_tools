@@ -1,6 +1,6 @@
 {
   "name": "yanyu-tools-backend",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "烟雨江湖装备录入工具 - 后端服务",
   "main": "server.js",
   "type": "module",
@@ -9,7 +9,11 @@
     "dev": "nodemon server.js",
     "migrate": "node migrate.js"
   },
-  "keywords": ["yanyu", "equipment", "tool"],
+  "keywords": [
+    "yanyu",
+    "equipment",
+    "tool"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
