@@ -981,10 +981,24 @@
         });
         // 移动端：同步品质 Chip 高亮状态
         if (document.body.classList.contains('mobile-view')) {
+            const isLocked = tempEntry.baseAttrs.length > 0 || tempEntry.specialAttr !== "";
             document.querySelectorAll('.m-q-chip').forEach(chip => {
                 const cq = chip.classList.contains('g') ? 'green'
                          : chip.classList.contains('b') ? 'blue' : 'purple';
                 chip.classList.toggle('active', cq === tempEntry.q);
+                
+                // 如果已选属性，锁定非选中品质的点击并降低透明度
+                if (isLocked && cq !== tempEntry.q) {
+                    chip.style.pointerEvents = 'none';
+                    chip.style.opacity = '0.15';
+                } else if (!tempEntry.q) {
+                    // 未选品质时，所有品质均高亮显示以提示选择
+                    chip.style.pointerEvents = 'auto';
+                    chip.style.opacity = '1';
+                } else {
+                    chip.style.pointerEvents = 'auto';
+                    chip.style.opacity = cq === tempEntry.q ? '1' : '0.45';
+                }
             });
             // 品质未选时禁用属性按钮
             document.getElementById('baseAttrGrid').style.opacity = tempEntry.q ? '' : '0.3';
@@ -992,10 +1006,18 @@
         }
     }
 
-    function checkAutoSave() { if (tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") saveFinal(); }
+    function checkAutoSave() { 
+        if (tempEntry.q && tempEntry.baseAttrs.length === tempEntry.limit && tempEntry.specialAttr !== "") {
+            saveFinal(); 
+        }
+    }
     function resetPicker() { tempEntry.baseAttrs = []; tempEntry.specialAttr = ""; renderPicker(); }
 
     function saveFinal() {
+        if (!tempEntry.q) {
+            alert('请先选择品质');
+            return;
+        }
         const db = JSON.parse(localStorage.getItem('yanyu_v24_db') || '{}');
         const ens = curSystem==='forge'?FORGE_CONFIG[curType]:SEW_CONFIG[curType];
         const en = ens[tempEntry.equipIdx];
@@ -1528,6 +1550,10 @@
     /** 移动端品质 Chip 点击：更新品质并刷新属性池 */
     function mSelectQuality(q) {
         if (!tempEntry) return;
+        // 如果已经选择了基础属性或特殊属性，且当前点击的不是已选品质，则禁止切换
+        if (q !== tempEntry.q && (tempEntry.baseAttrs.length > 0 || tempEntry.specialAttr !== "")) {
+            return; 
+        }
         tempEntry.q = q;
         tempEntry.limit = q === 'green' ? 1 : q === 'blue' ? 2 : 3;
         renderPicker();
