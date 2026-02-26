@@ -37,8 +37,9 @@ export const corsConfig = {
     const devAliases = ['http://127.0.0.1:5500', 'http://localhost:5500', 'http://127.0.0.1:5173']
     if (devAliases.includes(origin)) return callback(null, true)
 
-    // 否则拒绝
-    return callback(new Error('Not allowed by CORS'))
+    // 否则静默拒绝（不加 CORS 头），避免 callback(Error) 触发 Express 500
+    console.warn(`[CORS] 拒绝来源: ${origin}，当前允许列表: ${allowed.join(', ')}`)
+    return callback(null, false)
   },
   credentials: true,
 }
