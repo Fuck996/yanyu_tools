@@ -49,9 +49,8 @@ graph TD
     J --> K["syncFromCloud<br/>含冲突检测"]
     K --> L["同步完成<br/>两端数据已一致"]
 
-    L --> M["启动 enableAutoSync<br/>5分钟数据变化轮询"]
-    M --> N["设置10分钟定时备份任务<br/>每10min autoBackup"]
-    N --> O["✨ 系统就绪"]
+    L --> M["启动本地数据变化检测<br/>（事件驱动，非轮询）"]
+    M --> O["✨ 系统就绪"]
 
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
     style F fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
@@ -59,6 +58,7 @@ graph TD
     style G fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
     style K fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
     style L fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style M fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
     style O fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
@@ -66,6 +66,7 @@ graph TD
 > - 轮询（服务器可用性检测）在登录时立即启动，不等同步完成
 > - `syncFromCloud` 完成后两端数据已一致，无需首次自动备份
 > - 无论新登录还是恢复会话，均执行冲突检测
+> - 系统就绪后采用**事件驱动**的数据变化检测，不依赖定时轮询
 
 ---
 
@@ -123,132 +124,108 @@ graph TD
 
 ---
 
-## 📊 图表3：备份/恢复/清空流程
+## 📊 图表3：本地数据变化处理流程（统一视图）
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 graph TD
-    subgraph BACKUP["💾 手动备份 saveManualBackup"]
-        B1["▶️ 开始"] --> B2{已认证?}
-        B2 -->|否| B3["❌ 显示错误"]
-        B2 -->|是| B4["📊 获取本地数据"]
-        B4 --> B5{有数据?}
-        B5 -->|是| B6["📤 先同步到云端<br/>syncToCloud"]
-        B5 -->|否| B7["继续执行"]
-        B6 --> B7
-        B7 --> B8["💾 保存备份<br/>ApiClient.saveBackup"]
-        B8 --> B9{成功?}
-        B9 -->|是| B10["📊 更新显示"]
-        B9 -->|否| B11["❌ 显示错误"]
-        B10 --> B12["✨ 完成"]
-        B11 --> B12
-        B3 --> B12
-    end
-    
-    subgraph RESTORE["♻️ 手动恢复 restoreManualBackup"]
-        R1["▶️ 开始"] --> R2["📋 获取备份列表<br/>5分钟缓存"]
-        R2 --> R3{列表有效<br/>有备份?}
-        R3 -->|否| R4["⚠️ 显示无备份"]
-        R3 -->|是| R5["🔍 查找手动备份"]
-        R5 --> R6{找到?}
-        R6 -->|否| R4
-        R6 -->|是| R7["💬 显示确认<br/>对话框"]
-        R7 --> R8{用户确认?}
-        R8 -->|否| R9["❌ 取消"]
-        R8 -->|是| R10["🔄 恢复备份<br/>ApiClient.restoreBackup"]
-        R10 --> R11["⏳ 显示加载中"]
-        R11 --> R12["📥 获取最新数据<br/>ApiClient.getRecords"]
-        R12 --> R13{成功?}
-        R13 -->|否| R14["❌ 显示错误"]
-        R13 -->|是| R15["🔀 合并数据<br/>mergeCloudData"]
-        R15 --> R16["💾 保存本地"]
-        R16 --> R17["🎨 刷新界面"]
-        R17 --> R18["🚀 执行自动备份<br/>autoBackup"]
-        R18 --> R19["📊 更新显示<br/>⚠️ 关键:先验证数据再备份"]
-        R19 --> R20["✨ 完成"]
-        R14 --> R20
-        R9 --> R20
-        R4 --> R20
-    end
-    
-    subgraph CLEAR["🗑️ 清空数据 clearAllData"]
-        C1["▶️ 开始"] --> C2["💬 确认对话框"]
-        C2 --> C3{用户确认?}
-        C3 -->|否| C4["❌ 取消"]
-        C3 -->|是| C5["🔄 清空本地<br/>LocalStorage"]
-        C5 --> C6["🎨 立即刷新界面"]
-        C6 --> C7{已认证?}
-        C7 -->|否| C8["✨ 完成"]
-        C7 -->|是| C9["📡 清空后端数据<br/>ApiClient.clearBackendData"]
-        C9 --> C10{成功?}
-        C10 -->|是| C11["✅ 记录成功"]
-        C10 -->|否| C12["⚠️ 记录警告<br/>继续"]
-        C11 --> C13["🔄 缓存失效<br/>cachedBackupList = null<br/>cachedBackupListTime = 0"]
-        C12 --> C13
-        C13 --> C14["🔄 重新更新状态<br/>updateSyncStatus"]
-        C14 --> C8
-        C4 --> C8
-    end
-    
-    BACKUP --> AFTER["→ 更新备份状态<br/>updateSyncStatus"]
-    RESTORE --> AFTER
-    CLEAR --> AFTER
-    
-    style BACKUP fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
-    style RESTORE fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
-    style CLEAR fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff
-    style AFTER fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    IDLE["🔍 待机<br/>本地数据变化检测（事件驱动）"]
+
+    IDLE --> OP{"检测到数据变化<br/>（操作触发）"}
+
+    OP -->|"渐进式操作<br/>手动新增 / 修改 / 删除"| P_LOCAL["💾 更新本地存储"]
+    OP -->|"大操作<br/>在线恢复 / 本地导入 / 清空"| R_LOCAL["💾 更新本地存储"]
+
+    P_LOCAL --> P_UI["🎨 立即刷新界面<br/>renderNav + renderMain"]
+    R_LOCAL --> R_UI["🎨 立即刷新界面<br/>renderNav + renderMain"]
+
+    P_UI --> TIMER{"已有1分钟<br/>延迟备份定时器?"}
+    TIMER -->|"有 → 重置计时"| RESET["🔄 清除旧定时器"]
+    TIMER -->|"无"| SET
+    RESET --> SET["⏱️ 新建1分钟延迟任务"]
+    SET --> WAIT["⏳ 等待1分钟<br/>（期间若再有渐进式变化则重置计时）"]
+    WAIT --> BACKUP
+
+    R_UI --> BACKUP["🚀 执行全量自动备份<br/>autoBackup"]
+
+    BACKUP --> SYNC["⬆️ 上传最新数据到云端<br/>syncToCloud"]
+    SYNC --> SAVE_BK["💾 保存备份快照<br/>ApiClient.saveBackup"]
+    SAVE_BK --> INVAL["🔄 使缓存失效<br/>cachedBackupList = null"]
+    INVAL --> STATUS["📊 更新备份状态显示<br/>updateSyncStatus"]
+    STATUS --> NOTIFY["✅ 浮动提示：备份成功"]
+    NOTIFY --> IDLE
+
+    style IDLE fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
+    style OP fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style P_LOCAL fill:#4a2c00,stroke:#ff9800,stroke-width:2px,color:#fff
+    style R_LOCAL fill:#6b0000,stroke:#f44336,stroke-width:2px,color:#fff
+    style P_UI fill:#4a2c00,stroke:#ff9800,stroke-width:2px,color:#fff
+    style R_UI fill:#6b0000,stroke:#f44336,stroke-width:2px,color:#fff
+    style WAIT fill:#3c2a00,stroke:#ffc107,stroke-width:1px,color:#aaa
+    style BACKUP fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style NOTIFY fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
+
+> **操作分类说明：**
+>
+> | 操作类型 | 触发操作 | 备份时机 |
+> |---------|---------|---------|
+> | 渐进式 | 手动新增装备、修改装备、删除装备 | 1分钟后（防频繁备份） |
+> | 大操作 | 在线恢复备份、本地文件导入、清空数据 | 立即备份（数据量大，不能延迟） |
+>
+> **关键原则：**
+> - 本地存储更新 → **立即刷新界面** → 再进行后端操作（用户操作反馈不等网络）
+> - 渐进式操作的定时器在1分钟内重复触发时**重置计时**，避免每步都备份
+> - 大操作直接旁路定时器，走立即备份路径
 
 ---
 
-## 📊 图表4：缓存失效与UI刷新机制
+## 📊 图表4：全量自动备份（autoBackup）执行细节
 
 ```mermaid
 %%{init: {'theme':'dark'}}%%
 graph TD
-    A["👤 用户点击'清空'"] --> B["💬 确认对话框"]
-    B --> C{用户确认?}
-    C -->|否| D["↩️ 返回"]
-    
-    C -->|是| E["🔄 清空本地<br/>存储"]
-    E --> F["🎨 立即刷新界面<br/>renderNav + renderMain"]
-    F --> G["✅ 显示成功<br/>浮动提示"]
-    
-    G --> H{已认证?}
-    H -->|否| I["🏁 结束"]
-    
-    H -->|是| J["📡 调用后端清空<br/>ApiClient.clearBackendData"]
-    J --> K{成功?}
-    K -->|失败| L["⚠️ 记录警告<br/>继续进行"]
-    K -->|成功| M["✅ 记录成功"]
-    
-    L --> N["🔄 缓存失效<br/>① cachedBackupList = null<br/>② cachedBackupListTime = 0"]
-    M --> N
-    
-    N --> O["🔓 重置状态<br/>isUpdatingStatus = false"]
-    O --> P["🔄 重新获取<br/>updateSyncStatus"]
-    P --> Q["📥 查询备份列表<br/>ApiClient.getBackupList"]
-    
-    Q --> R{有备份记录?}
-    R -->|有| S["📊 更新显示数量"]
-    R -->|无| T["显示 '—'<br/>无备份"]
-    
-    S --> U["🎨 刷新PC端卡片<br/>autoBackupItem<br/>manualBackupItem"]
-    T --> U
-    
-    U --> V["📱 刷新移动端卡片<br/>mAutoBackupTime<br/>mManualBackupTime"]
-    V --> W["✨ 显示完成<br/>浮动提示"]
-    W --> I
-    
-    style A fill:#b71c1c,stroke:#ff5252,stroke-width:2px,color:#fff
-    style E fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
-    style F fill:#6b5104,stroke:#ffb300,stroke-width:2px,color:#fff
-    style N fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style P fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-    style W fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style I fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    A["🚀 触发 autoBackup<br/>（来自渐进式1分钟定时器 或 大操作立即调用）"]
+
+    A --> AUTH{已认证?}
+    AUTH -->|"❌ 否"| SKIP["⏭️ 跳过备份<br/>记录日志"]
+    SKIP --> END["🏁 结束"]
+
+    AUTH -->|"✅ 是"| LOCAL["📊 获取当前本地数据<br/>LocalStorageManager.getEquipmentData"]
+
+    LOCAL --> SYNC["⬆️ 上传到云端<br/>DataSync.syncToCloud"]
+    SYNC --> SYNC_OK{上传成功?}
+    SYNC_OK -->|"❌ 失败"| SYNC_WARN["⚠️ 记录警告<br/>继续尝试备份"]
+    SYNC_OK -->|"✅ 成功"| SAVE
+
+    SYNC_WARN --> SAVE["💾 保存备份快照<br/>ApiClient.saveBackup"]
+
+    SAVE --> SAVE_OK{备份成功?}
+    SAVE_OK -->|"❌ 失败"| ERR["❌ 显示失败提示<br/>showMessage error"]
+    SAVE_OK -->|"✅ 成功"| INVAL["🔄 缓存失效<br/>cachedBackupList = null<br/>cachedBackupListTime = 0"]
+
+    INVAL --> STATUS["📊 刷新备份状态显示<br/>updateSyncStatus<br/>（显示最新自动备份时间）"]
+    STATUS --> OK["✅ 显示成功提示<br/>showMessage success"]
+
+    OK --> END
+    ERR --> END
+
+    style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style AUTH fill:#3c2a00,stroke:#ffc107,stroke-width:2px,color:#fff
+    style SKIP fill:#3c1515,stroke:#ff4444,stroke-width:1px,color:#aaa
+    style SYNC fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style SAVE fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style INVAL fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
+    style STATUS fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
+    style OK fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
+    style ERR fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
 ```
+
+> **autoBackup 被以下场景调用：**  
+> - 渐进式操作（新增/修改/删除）：1分钟定时器到期后调用  
+> - 大操作（在线恢复/本地导入/清空）：操作完成、界面刷新后立即调用  
+>
+> **缓存失效必须在 saveBackup 成功后执行**，确保 `updateSyncStatus` 拿到最新备份列表
 
 ---
 
@@ -281,10 +258,10 @@ mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
 
 | # | 名称 | 重点关注 | 用途 |
 |----|------|----------|------|
-| 1️⃣ | 系统初始化流程 | 启动顺序和定时器 | 了解应用如何启动及备份策略 |
-| 2️⃣ | syncFromCloud决策树 | 冲突检测和数据保护 | 理解云端同步的完整逻辑 |
-| 3️⃣ | 备份/恢复/清空流程 | 操作顺序和缓存处理 | 追踪数据相关操作的完整链路 |
-| 4️⃣ | 缓存失效与UI刷新 | 缓存清理时机 | 深入理解数据一致性的保障 |
+| 1️⃣ | 系统初始化流程 | 启动顺序、轮询、数据变化检测启动时机 | 了解应用如何启动 |
+| 2️⃣ | syncFromCloud决策树 | 冲突检测和数据保护判断顺序 | 理解云端同步的完整逻辑 |
+| 3️⃣ | 本地数据变化处理流程 | 渐进式vs大操作的备份触发策略 | 理解备份的触发机制 |
+| 4️⃣ | autoBackup执行细节 | syncToCloud→saveBackup→缓存失效顺序 | 深入理解备份一致性保障 |
 
 **建议阅读顺序**：图1 → 图2 → 图3 → 图4（从全景到细节）
 
@@ -297,27 +274,34 @@ mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
    - 不调用 `DataSync.initialize()`，不访问后端
 
 2. **冲突标记的正确生命周期**
-   - ❌ **错误做法**：在初始化时或同步前清除冲突标志（会导致每次页面刷新都弹冲突框）
-   - ✅ **正确做法**：冲突标志只在 `syncFromCloud` 内，冲突解决完成 **之后** 才设置（`setConflictCheckFlag`）
-   - 一旦设置，本会话内不再弹冲突框；新登录会话则重新触发
+   - ✅ **正确做法**：`syncFromCloud` 内部，两端哈希不同时弹冲突对话框；解决后两端哈希匹配，下次同步自然走 NO_CHANGE 分支，不再弹框
+   - ❌ **不再需要** `conflictCheckFlag`：冲突解决后数据一致，本身就不会再冲突
 
 3. **syncFromCloud 的判断顺序（重要）**
-   - 先检查**本地是否有数据**，为空则直接下载云端
-   - 本地有数据时，再检查**云端是否有数据**
+   - 先检查**两边是否都为空** → 是则直接结束
+   - 再做**哈希对比** → 相同则直接结束
+   - 哈希不同时，检查**本地是否有数据** → 为空则直接下载云端
+   - 本地有数据时，检查**云端是否有数据**
      - 云端无数据 → 上传本地（保护本地不丢失）
-     - 云端有数据 → 哈希比对 → 相同则结束，不同则冲突解决
+     - 云端有数据 → 弹冲突对话框
 
-4. **还原数据时的时序**
-   - ✅ 先 `restoreBackup` API 恢复后端
-   - ✅ 再 `getRecords` 获取最新数据并合并
-   - ✅ 最后 `autoBackup` 执行自动备份
-   - ❌ **不能在merge前就执行backup**（否则备份的是0条数据）
+4. **数据变化事件驱动（替代轮询）**
+   - ✅ **渐进式操作**（新增/修改/删除）：本地变更 → 刷新界面 → 1分钟延迟备份（重复触发则重置计时）
+   - ✅ **大操作**（在线恢复/本地导入/清空）：本地变更 → 刷新界面 → 立即备份
+   - ❌ **不再使用** 5分钟轮询检测 和 10分钟定时备份任务
 
-5. **缓存失效必须点**
-   - 清空/备份/还原完成后：`cachedBackupList = null` + `cachedBackupListTime = 0`
-   - UI刷新前必须执行缓存失效，确保显示最新备份状态
+5. **本地操作优先，网络操作靠后**
+   - 数据变化后**先更新本地存储**，**再立即刷新界面**，最后才做后端上传/备份
+   - 用户看到界面变化不需要等待网络完成
 
-6. **浮动提示机制**
+6. **autoBackup 执行时序**
+   - ✅ 先 `syncToCloud` 将最新数据上传
+   - ✅ 再 `saveBackup` 创建备份快照
+   - ✅ 成功后 `cachedBackupList = null` 使缓存失效
+   - ✅ 最后 `updateSyncStatus` 刷新显示
+   - ❌ **不能在 syncToCloud 前就 saveBackup**（否则备份的是旧数据）
+
+7. **浮动提示机制**
    - 所有数据操作（备份/还原/清空/同步）完成后显示浮动提示
    - 位置：左下角，5秒自动消失
    - 格式：统一的 success / error / warning 颜色分类
@@ -326,12 +310,11 @@ mmdc -i FLOWCHART_DIAGRAMS.md -o ./diagrams/
 
 ## 🔗 相关文档
 
-- [sync_flowchart_guide.md](sync_flowchart_guide.md) - 详细文字说明和代码位置
 - [ARCHITECTURE.md](../ARCHITECTURE.md) - 系统整体架构
 - [code_requirements.md](code_requirements.md) - 代码规范和标准
 
 ---
 
-**最后更新**: 2026年2月26日  
-**版本**: 前端1.2.0 / 后端1.2.0  
+**最后更新**: 2026年2月26日
+**版本**: 前端1.2.0 / 后端1.2.0
 **样式**: ✨ 中文黑底白字，高对比度易阅读
