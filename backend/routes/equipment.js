@@ -494,7 +494,15 @@ router.post('/clear-data', requireAuth, async (req, res) => {
       })
     })
 
-    console.log(`✅ Cleared all equipment data for user: ${userId}`)
+    // 同步删除 auto 自动备份（manual 手动备份由用户管理，保留不动）
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM export_history WHERE user_id = ? AND backup_type = ?', [userId, 'auto'], (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+
+    console.log(`✅ Cleared all equipment data and auto backup for user: ${userId}`)
     res.json({
       success: true,
       message: 'All equipment data cleared successfully',

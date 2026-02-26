@@ -149,7 +149,7 @@ graph TD
 
     R_UI --> BACKUP["🚀 执行全量自动备份<br/>autoBackup"]
 
-    C_UI --> CLEAR_BACKEND["📡 清空后端数据<br/>ApiClient.clearBackendData"]
+    C_UI --> CLEAR_BACKEND["📡 清空后端数据 + 删除Auto备份<br/>ApiClient.clearBackendData"]
     CLEAR_BACKEND --> CLEAR_STATUS["📊 刷新状态展示<br/>updateSyncStatus"]
     CLEAR_STATUS --> IDLE
 
@@ -180,7 +180,7 @@ graph TD
 > |---------|---------|---------|
  | 渐进式 | 手动新增装备、修改装备、删除装备、收藏标记、起始序号调整 | 1分钟后（计时期间新操作不重置，到期统一备份） |
  | 大操作(备份) | 在线恢复备份、本地文件导入 | 立即备份 |
- | 大操作(不备份) | 清空数据 | 不做备份，仅清空后端+刷新状态展示 |
+ | 大操作(不备份) | 清空数据 | 不做备份，清空后端数据+删除auto备份+刷新状态展示 |
 >
 > **关键原则：**
 > - 本地存储更新 → **立即刷新界面** → 再进行后端操作（用户操作反馈不等网络）
