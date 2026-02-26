@@ -41,6 +41,7 @@ const AuthUI = {
   pollingTimer: null,       // 10 分钟刷新定时器
   pollingStarted: false,     // 轮询是否已启动
   retryTimer: null,          // 连接失败后的重试定时器（30 秒间隔）
+  retryCountdown: null,      // 重试倒计时（1 秒间隔更新文字）
   isUpdatingStatus: false,   // 防止并发调用 updateSyncStatus
   cachedBackupList: null,    // updateSyncStatus 获取的备份列表缓存
   cachedBackupListTime: 0,   // 缓存时间戳
@@ -312,7 +313,37 @@ const AuthUI = {
   startRetry() {
     if (this.retryTimer) return  // 已在重试中，不重复启动
     console.log('🔄 后端连接失败，将每 30 秒自动重试...')
+
+    // 启动倒计时显示
+    let countdown = 30
+    const retryText = document.getElementById('failureRetryText')
+    if (retryText) retryText.textContent = `无法连接到服务器（${countdown}秒后自动重试）`
+
+    this.retryCountdown = setInterval(() => {
+      countdown -= 1
+      if (countdown <= 0) {
+        clearInterval(this.retryCountdown)
+        this.retryCountdown = null
+        if (retryText) retryText.textContent = '正在重试...'
+      } else {
+        if (retryText) retryText.textContent = `无法连接到服务器（${countdown}秒后自动重试）`
+      }
+    }, 1000)
+
     this.retryTimer = setInterval(() => {
+      // 每次重试前重置倒计时
+      clearInterval(this.retryCountdown)
+      countdown = 30
+      this.retryCountdown = setInterval(() => {
+        countdown -= 1
+        if (countdown <= 0) {
+          clearInterval(this.retryCountdown)
+          this.retryCountdown = null
+          if (retryText) retryText.textContent = '正在重试...'
+        } else {
+          if (retryText) retryText.textContent = `无法连接到服务器（${countdown}秒后自动重试）`
+        }
+      }, 1000)
       this.updateSyncStatus().catch(err => console.warn('重试连接失败:', err.message))
     }, 30 * 1000)
   },
@@ -325,6 +356,10 @@ const AuthUI = {
       clearInterval(this.retryTimer)
       this.retryTimer = null
       console.log('✅ 后端已恢复，停止重试')
+    }
+    if (this.retryCountdown) {
+      clearInterval(this.retryCountdown)
+      this.retryCountdown = null
     }
   },
 

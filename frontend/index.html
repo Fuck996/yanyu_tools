@@ -642,8 +642,9 @@
             </div>
             <!-- 连接失败提示 -->
             <div class="backup-item" id="failureIndicator" style="display:none;">
-                <div class="backup-item-header" style="color:#ff4757;">❌ 数据获取失败</div>
-                <div class="backup-item-time" style="color:#ff4757;">无法连接到服务器</div>
+                <div class="backup-item-header" style="color:#ff4757;">❌ 连接失败</div>
+                <div class="backup-item-time" id="failureRetryText" style="color:#ff4757;">无法连接到服务器</div>
+                <button id="failureRetryBtn" style="margin-top:6px;padding:4px 12px;font-size:12px;border:1px solid #ff4757;border-radius:6px;background:transparent;color:#ff4757;cursor:pointer;" onclick="window.YanyuApp?.AuthUI && (window.YanyuApp.AuthUI.isUpdatingStatus=false, window.YanyuApp.AuthUI.updateSyncStatus())">立即重试</button>
             </div>
             <!-- 未登录提示 -->
             <div class="backup-item" id="notLoggedIndicator" style="display:none;">
