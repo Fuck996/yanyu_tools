@@ -689,9 +689,11 @@ Object.assign(window.YanyuApp, {
         window.YanyuApp.clearAllData().then(() => {
           console.log('✅ 本地和后端数据都已清空')
           AuthUI.cachedBackupList = null  // 使备份列表缓存失效
+          AuthUI.cachedBackupListTime = 0  // 重置缓存时间戳
           AuthUI.isUpdatingStatus = false
           return AuthUI.updateSyncStatus()
         }).then(() => {
+          console.log('✅ 备份状态已刷新')
           UIManager.showMessage('✅ 数据清空完成', 'success', 1500)
         }).catch((err) => {
           console.error('❌ 清空操作失败:', err)
@@ -803,7 +805,16 @@ Object.assign(window.YanyuApp, {
           
           // 恢复完成后立即执行自动备份，确保后端保持两份历史
           console.log('💾 启动自动备份...')
-          await window.YanyuApp.autoBackup()
+          try {
+            const backupResult = await window.YanyuApp.autoBackup()
+            if (backupResult.success) {
+              console.log(`✅ 自动备份成功: ${backupResult.recordCount} 条`)
+            } else {
+              console.warn(`⚠️ 自动备份失败: ${backupResult.error}`)
+            }
+          } catch (backupErr) {
+            console.error('❌ 自动备份异常:', backupErr.message)
+          }
         } else {
           UIManager.showMessage('⚠️ 后端已恢复，但拉取数据失败，请手动刷新页面', 'warning', 4000)
         }

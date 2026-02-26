@@ -1,6 +1,6 @@
 {
   "name": "yanyu-tools-backend",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "烟雨江湖装备录入工具 - 后端服务",
   "main": "server.js",
   "type": "module",
