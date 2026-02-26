@@ -345,9 +345,10 @@
             transform: none;
             width: 100%; max-width: 100%;
             border-radius: 20px 20px 0 0;
-            max-height: 82svh;
+            max-height: 94svh;
             overflow-y: auto;
             box-sizing: border-box;
+            padding: 16px 16px 24px;
             animation: sheetSlideUp 0.3s ease-out;
         }
 
@@ -770,7 +771,7 @@
                 <div class="m-op-btn" onclick="toggleTheme();renderMobileMenuSheet()">
                     <span class="m-op-icon">🌙</span><span>模式</span>
                 </div>
-                <div class="m-op-btn" onclick="openStatsModal()">
+                <div class="m-op-btn" onclick="closeMobileMenuSheet(); setTimeout(openStatsModal, 280);">
                     <span class="m-op-icon">📊</span><span>收藏统计</span>
                 </div>
                 <div class="m-op-btn" onclick="window.YanyuApp?.saveManualBackup()">
@@ -816,8 +817,9 @@
     <!-- 移动端编辑模式标题行（含收藏/删除图标，桌面端隐藏） -->
     <div id="mPickerTitleRow">
         <div id="mPickerTitle" style="font-weight:bold; color:var(--title-color); font-size:14px;">编辑</div>
-        <div class="m-title-icons">
-            <button class="m-icon-btn star" id="mPickerStarBtn" onclick="mToggleStar()">★</button>
+        <div class="m-title-icons" style="align-items:center; gap:6px;">
+            <span id="mPickerStarLabel" style="display:none; font-size:11px; color:var(--accent); font-weight:bold;">已收藏</span>
+            <button class="m-icon-btn star" id="mPickerStarBtn" onclick="mToggleStar()">☆</button>
             <button class="m-icon-btn del" id="mPickerDelBtn" onclick="mDeleteEntry()">🗑️</button>
         </div>
     </div>
@@ -971,17 +973,20 @@
         renderPicker();
         // 移动端 UI 适配：品质 Chip + 标题行
         if (document.body.classList.contains('mobile-view')) {
-            // 品质未选时（移动端新增模式），limt 设 0 禁止选属性
+            // 品质未选时（移动端新增模式），limit 设 0 禁止选属性
             if (q === null) tempEntry.limit = 0;
             // 品质选择行始终显示
             document.getElementById('mobileQualityRow').style.display = 'block';
-            // 编辑模式：显示标题行（含 ★/🗑️ 图标）
+            // 新增/编辑模式都显示标题行（含 ★ 图标）
             const titleRow = document.getElementById('mPickerTitleRow');
-            titleRow.style.display = mode === 'edit' ? 'flex' : 'none';
-            if (mode === 'edit') {
-                document.getElementById('mPickerTitle').textContent = `编辑 — ${en}`;
-                document.getElementById('mPickerStarBtn').classList.toggle('on', tempEntry.isKeep);
-            }
+            titleRow.style.display = 'flex';
+            const ens2 = curSystem === 'forge' ? FORGE_CONFIG[curType] : SEW_CONFIG[curType];
+            document.getElementById('mPickerTitle').textContent = mode === 'edit' ? `编辑 — ${ens2[idx]}` : `新增 — ${ens2[idx]}`;
+            document.getElementById('mPickerStarBtn').classList.toggle('on', tempEntry.isKeep);
+            updateMobileStarLabel();
+            // 编辑模式才显示删除按钮
+            const delBtn = document.getElementById('mPickerDelBtn');
+            if (delBtn) delBtn.style.display = mode === 'edit' ? '' : 'none';
         }
     }
 
@@ -1281,8 +1286,15 @@
                         });
                     }
                     
+                    // 直接刷新 UI，不走全页重载，保留登录状态
+                    renderNav();
+                    renderMain();
+                    // 清除文件选择（允许再次选同一文件）
+                    e.target.value = '';
+                    // 通知模块层数据已变更（更新备份面板等）
+                    window.YanyuApp?.LocalStorageManager?.clearConflictCheckFlag?.();
+                    window.YanyuApp?.AuthUI?.updateSyncStatus?.().catch(() => {});
                     alert('数据还原成功！');
-                    location.reload(); 
                 } else {
                     throw new Error('无效的 JSON 结构');
                 }
@@ -1595,6 +1607,19 @@
         tempEntry.isKeep = !tempEntry.isKeep;
         const btn = document.getElementById('mPickerStarBtn');
         if (btn) btn.classList.toggle('on', tempEntry.isKeep);
+        updateMobileStarLabel();
+    }
+
+    /** 更新收藏按钮旁的文字提示 */
+    function updateMobileStarLabel() {
+        const btn = document.getElementById('mPickerStarBtn');
+        const lbl = document.getElementById('mPickerStarLabel');
+        const starred = !!(tempEntry && tempEntry.isKeep);
+        if (btn) {
+            btn.textContent = starred ? '★' : '☆';
+            btn.classList.toggle('on', starred);
+        }
+        if (lbl) lbl.style.display = starred ? 'inline' : 'none';
     }
 
     /** 移动端编辑模式删除当前词条 */

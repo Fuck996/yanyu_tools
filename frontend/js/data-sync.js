@@ -175,6 +175,15 @@ export const DataSync = {
         const localRecordCount = this.countLocalRecords(localData)
         const hasCheckedConflict = LocalStorageManager.getConflictCheckFlag()
 
+        // 关键保护：云端无数据但本地有数据 → 反向上传，不覆盖本地
+        if (records.length === 0 && localRecordCount > 0) {
+          console.log(`☁️ 云端无数据，本地有 ${localRecordCount} 条记录，自动上传到云端...`)
+          LocalStorageManager.setConflictCheckFlag()
+          this.syncInProgress = false
+          this.notifySyncStatusUpdate()
+          return await this.syncToCloud()
+        }
+
         if (
           !hasCheckedConflict &&
           localRecordCount > 0 &&
