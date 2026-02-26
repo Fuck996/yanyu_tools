@@ -6,6 +6,7 @@
   "scripts": {
     "install:all": "npm install && cd backend && npm install && cd ..",
     "sync-version": "node scripts/sync-version.cjs",
+    "inject-versions": "node scripts/inject-versions.cjs",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && python -m http.server 5173",
     "dev": "npm run dev:backend & npm run dev:frontend",

@@ -38,7 +38,13 @@
   2. 更新根目录 `package.json` 的 `version` 字段。
   3. 运行 `scripts/sync-version.js`（或手动脚本）同步后端 `package.json` 和需要注入版本号的文档/页面。
   4. 生成发布包并在 Git 中打 tag（如 `v1.2.1`）。
-- **自动化建议**: 推荐添加一个简单的同步脚本 `scripts/sync-version.js`，读取根目录 `package.json` 并把 `version` 写入 `backend/package.json`、README footer（或生成 README），以及注入到 `index.html` 的 `version-footer`，以避免人工出错。
+  - **自动化建议**: 推荐添加一个简单的同步脚本 `scripts/sync-version.js`，读取根目录 `package.json` 并把 `version` 写入 `backend/package.json`、README footer（或生成 README），以避免人工出错。
+
+  - **前/后端独立版本策略（推荐）**：
+    - 前端版本保存在 `frontend/package.json` 中，后端版本保存在 `backend/package.json` 中，允许两者独立递增。
+    - 在前端构建或打包流程中运行 `scripts/inject-versions.cjs`（或等效脚本），该脚本读取 `frontend/package.json` 与 `backend/package.json` 并把版本注入到前端静态页面的占位符（例如 `{{FRONTEND_VERSION}}` / `{{BACKEND_VERSION}}`），从而在页面底部展示两端版本以便对比。
+    - `scripts/sync-version.cjs` 可继续用于同步根目录版本与后端文档，但**不得**覆盖 `frontend/package.json`，避免前端包体版本被外部篡改。
+    - 若需要保证整体一致性，可在 CI 发布流程中统一设置或校验各包的版本，并生成一个包含所有包版本的 manifest 作为发布证明。
 
 ## 6. 移动端兼容规范 (Mobile Compatibility)
 

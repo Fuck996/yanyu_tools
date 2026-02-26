@@ -1,0 +1,9 @@
+{
+  "name": "yanyu-tools-frontend",
+  "version": "1.2.1",
+  "private": true,
+  "description": "前端包：保存前端版本并作为构建入口的包体",
+  "scripts": {
+    "build": "echo 'frontend build placeholder'"
+  }
+}
