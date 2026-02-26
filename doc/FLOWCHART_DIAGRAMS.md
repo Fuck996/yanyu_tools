@@ -42,8 +42,9 @@ graph TD
     F --> Z["🏁 结束<br/>不进行同步流程"]
 
     E --> G["• 即刻启动服务器可用性轮询<br/>startPolling——不等同步完成"]
-    G --> H["调用 updateSyncStatus<br/>显示备份信息"]
-    H --> I["进入 DataSync.initialize"]
+    G --> H["updateSyncStatus<br/>（登录成功即代表后端健康<br/>无需单独健康检查）"]
+    H --> VER["🔢 获取后端版本号<br/>fetch /api/version<br/>→ 显示到页面底部版本栏<br/>（含前后端版本对比）"]
+    VER --> I["进入 DataSync.initialize"]
 
     I --> J["数据迁移<br/>migrateOldData"]
     J --> K["syncFromCloud<br/>含冲突检测"]
@@ -59,6 +60,7 @@ graph TD
     style F fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
     style Z fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
     style G fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style VER fill:#1b3a1b,stroke:#00c853,stroke-width:2px,color:#fff
     style K fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
     style KB fill:#0d3d1f,stroke:#4caf50,stroke-width:2px,color:#fff
     style KC fill:#2a2a00,stroke:#ffeb3b,stroke-width:2px,color:#fff
@@ -66,7 +68,9 @@ graph TD
     style O fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
 
-> **要点说明：**
+> **要点说明（V1.2.1 更新）：**
+> - **无单独健康检查**：登录成功 + `updateSyncStatus` 连通即代表后端健康，不引入额外健康检查接口
+> - **版本号获取时机**：认证确认后、数据同步前 → 调用 `/api/version` 同时展示前端（来自 `frontend/package.json`）与后端（来自 `backend/package.json`）版本，两者独立递增，页面底部可直观对比
 > - 轮询（服务器可用性检测）在登录时立即启动，不等同步完成
 > - `syncFromCloud` 返回 `syncResult`；若 `noChange=true`（两端已一致）跳过备份；否则立即调用 `notifyDataChange('immediate')` 创建 auto backup 并刷新备份面板
 > - 无论新登录还是恢复会话，均执行冲突检测

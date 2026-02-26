@@ -202,17 +202,18 @@ export const UIManager = {
         50% { opacity: 0.5; }
       }
 
-      /* Toast 容器 - 左下角固定，向上堆叠 */
+      /* Toast 容器 - 左下角固定，新条从底部滑入、向上堆叠 */
       #yanyu-toast-container {
         position: fixed;
         bottom: max(20px, env(safe-area-inset-bottom, 20px));
-        left: max(20px, env(safe-area-inset-left, 20px));
+        left: max(16px, env(safe-area-inset-left, 16px));
         z-index: 9998;
         display: flex;
         flex-direction: column;
         gap: 8px;
-        max-width: min(300px, calc(100vw - 40px));
+        max-width: min(320px, calc(100vw - 32px));
         pointer-events: none;
+        /* 新条添加到底部，内部元素从底部顶起如 flex-column */
       }
 
       /* 消息提示框 - 在容器内堆叠 */
@@ -223,11 +224,20 @@ export const UIManager = {
         border-radius: 8px;
         font-size: 13px;
         color: rgb(224, 224, 224);
-        animation: slideInLeft 0.3s ease-out;
+        animation: slideInUp 0.28s ease-out;
         box-sizing: border-box;
         word-break: break-word;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         pointer-events: auto;
+        /* 高度过渡，便于退出动画平滑收起 */
+        overflow: hidden;
+        max-height: 80px;
+        transition: max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+      }
+
+      .yanyu-status-message.hiding {
+        animation: slideOutDown 0.28s ease-in forwards;
+        pointer-events: none;
       }
 
       .yanyu-status-message.info {
@@ -254,25 +264,25 @@ export const UIManager = {
         color: rgb(241, 196, 15);
       }
 
-      @keyframes slideInLeft {
+      @keyframes slideInUp {
         from {
           opacity: 0;
-          transform: translateX(-20px);
+          transform: translateY(16px);
         }
         to {
           opacity: 1;
-          transform: translateX(0);
+          transform: translateY(0);
         }
       }
 
-      @keyframes slideOutLeft {
+      @keyframes slideOutDown {
         from {
           opacity: 1;
-          transform: translateX(0);
+          transform: translateY(0);
         }
         to {
           opacity: 0;
-          transform: translateX(-20px);
+          transform: translateY(16px);
         }
       }
 
@@ -479,17 +489,46 @@ export const UIManager = {
     return container
   },
 
+  /**
+   * 带动画移除一条 toast
+   * @param {HTMLElement} el
+   */
+  _removeToast(el) {
+    if (!el || !el.parentNode) return
+    el.classList.add('hiding')
+    // 等待动画完成后移除 DOM
+    el.addEventListener('animationend', () => {
+      if (el.parentNode) el.remove()
+    }, { once: true })
+    // 保险超时墙防动画没有触发
+    setTimeout(() => { if (el.parentNode) el.remove() }, 400)
+  },
+
+  /**
+   * 显示状态消息（悬浮 toast，左下角，最多 3 条）
+   * @param {string} message - 消息内容
+   * @param {string} type - info / success / error / warning
+   * @param {number} duration - 显示时长 ms，0 表示不自动隐藏
+   */
   showMessage(message, type = 'info', duration = 5000) {
+    const MAX = 3
+    const container = this.getToastContainer()
+
+    // 超出最大数时，立即清除最旧的一条
+    while (container.childElementCount >= MAX) {
+      const oldest = container.firstElementChild
+      if (oldest) this._removeToast(oldest)
+      else break
+    }
+
     const messageEl = document.createElement('div')
     messageEl.className = `yanyu-status-message ${type}`
     messageEl.textContent = message
-
-    this.getToastContainer().appendChild(messageEl)
+    // 新消息添加到底部（appendChild = flex-column 最后）
+    container.appendChild(messageEl)
 
     if (duration > 0) {
-      setTimeout(() => {
-        messageEl.remove()
-      }, duration)
+      setTimeout(() => this._removeToast(messageEl), duration)
     }
 
     return messageEl
