@@ -579,7 +579,7 @@
             <div class="header-status-content">
                 <span class="header-status-icon" id="headerStatusIcon">✔</span>
                 <div>
-                    <div class="header-status-text" id="headerStatusText">已连接</div>
+                    <div class="header-status-text" id="headerStatusText">连接中</div>
                     <div class="header-status-extra" id="headerStatusExtra"></div>
                 </div>
             </div>
@@ -644,6 +644,11 @@
             <div class="backup-item" id="failureIndicator" style="display:none;">
                 <div class="backup-item-header" style="color:#ff4757;">❌ 数据获取失败</div>
                 <div class="backup-item-time" style="color:#ff4757;">无法连接到服务器</div>
+            </div>
+            <!-- 未登录提示 -->
+            <div class="backup-item" id="notLoggedIndicator" style="display:none;">
+                <div class="backup-item-header">🔒 未登录</div>
+                <div class="backup-item-time" style="color:#888;">请登录以同步数据</div>
             </div>
             <!-- 自动备份（先显示） -->
             <div class="backup-item" id="autoBackupItem" style="display:none;">

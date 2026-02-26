@@ -480,18 +480,23 @@ const AuthUI = {
       const backendOnline = await this.checkBackendHealth()
       window.YanyuApp.backendStatus = backendOnline
       if (headerStatusIcon) headerStatusIcon.textContent = backendOnline ? '✔' : '✖'
-      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '连接失败'
+      // 未登录时若检查失败显示“未登录”，否则显示已连接（告知后端可用）
+      if (headerStatusText) headerStatusText.textContent = backendOnline ? '已连接' : '未登录'
       if (headerStatusExtra) headerStatusExtra.textContent = ''
       if (manualBackupItem) manualBackupItem.style.display = 'none'
       if (autoBackupItem) autoBackupItem.style.display = 'none'
-      if (loadingIndicator) loadingIndicator.style.display = backendOnline ? 'flex' : 'none'
-      if (failureIndicator) failureIndicator.style.display = backendOnline ? 'none' : 'flex'
+      // 控制 loading/failure/未登录 三种占位显示
+      const notLogged = document.getElementById('notLoggedIndicator')
+      if (loadingIndicator) loadingIndicator.style.display = 'none'
+      if (failureIndicator) failureIndicator.style.display = 'none'
+      if (notLogged) notLogged.style.display = backendOnline ? 'none' : 'flex'
       if (backendOnline) {
         this.stopRetry()  // 连接成功，取消重试
       } else {
         this.startRetry()  // 连接失败，启动后台重试
       }
-    }    } finally {
+    }
+    } finally {
       this.isUpdatingStatus = false
     }  }
 }
