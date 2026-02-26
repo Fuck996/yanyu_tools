@@ -57,7 +57,8 @@ const AuthUI = {
     if (user) {
       console.log('✅ 已登录:', user.username)
       this.updateUI(user)
-      // 登录成功后更新备份状态
+      // 已登录：立即启动服务器可用性轮询（不等待同步完成）
+      this.startPolling()
       await this.updateSyncStatus()
       return
     }
@@ -67,14 +68,14 @@ const AuthUI = {
     
     if (savedUser) {
       this.updateUI(savedUser)
-      // 恢复登录状态后也要显示备份信息
+      // 已登录：立即启动服务器可用性轮询（不等待同步完成）
+      this.startPolling()
       await this.updateSyncStatus()
       return
     }
     
-    // 第三步：未登录，显示登录按钮；不主动连接后端
+    // 第三步：未登录，显示登录按钮，不连接后端，不启动轮询
     this.updateUI(null)
-    // 更新状态面板，显示"未登录"提示（updateSyncStatus 内部不会发起后端请求）
     await this.updateSyncStatus()
   },
 
@@ -957,41 +958,22 @@ async function initializeApp() {
     console.log('🔐 初始化认证系统...')
     await AuthUI.init()
 
-    // 3. 初始化数据同步系统
-    console.log('📦 初始化数据同步...')
-    await DataSync.initialize()
-
-    // 3.5 初始同步完成后再自动备份
-    // 这确保冲突检测和用户选择已经完成，同步数据已经落定
+    // 3. 仅在已认证时才初始化数据同步系统
     if (AuthHandler.isAuthenticated()) {
-      console.log('📦 初始同步完成，进行首次自动备份...')
-      await window.YanyuApp.autoBackup().catch(err => console.warn('首次自动备份失败:', err))
-    }
-    // 设置定时自动备份（每10分钟）
-    setInterval(() => {
-      if (AuthHandler.isAuthenticated()) {
-        window.YanyuApp.autoBackup()
-      }
-    }, 10 * 60 * 1000)  // 10分钟
+      console.log('📦 已登录，初始化数据同步（含冲突检测）...')
+      await DataSync.initialize()
+      // syncFromCloud 完成后两端数据已一致，无需单独首次备份
 
-    // 页面卸载前进行自动备份
-    window.addEventListener('beforeunload', () => {
-      if (AuthHandler.isAuthenticated()) {
-        // 使用 navigator.sendBeacon 以确保请求在页面卸载前完成
-        const token = AuthHandler.getToken()
-        if (token) {
-          const backendUrl = window.__API_URL__ || 'https://yanyu-tools-backend-production.up.railway.app'
-          try {
-            navigator.sendBeacon(
-              `${backendUrl}/api/equipment/save-backup`,
-              JSON.stringify({ backupType: 'auto' })
-            )
-          } catch (e) {
-            console.warn('⚠️ 页面卸载时自动备份失败:', e.message)
-          }
+      // 设置定时自动备份（每10分钟）
+      // 注意：此备份是后台定时任务，数据变更完成后才真正有意义
+      setInterval(() => {
+        if (AuthHandler.isAuthenticated()) {
+          window.YanyuApp.autoBackup()
         }
-      }
-    })
+      }, 10 * 60 * 1000)  // 10分钟
+    } else {
+      console.log('👤 未登录，跳过数据同步初始化')
+    }
 
     // 4. 检查存储警告
     if (LocalStorageManager.checkStorageWarning()) {

@@ -34,38 +34,38 @@ graph TD
     A["▶️ 页面加载<br/>DOMContentLoaded"] --> B["注册同步状态回调<br/>DataSync.setSyncStatusCallback"]
     B --> C["认证初始化<br/>AuthUI.init"]
 
-    C --> D{OAuth回调?<br/>handleOAuthCallback}
-    D -->|"✅ 有回调(新登录)"| E["更新UI显示<br/>设置 newLogin=true"]
-    D -->|"无回调"| F{本地已有<br/>用户信息?}
+    C --> D{"检测登录状态"}
 
-    F -->|"✅ 有"| G["更新UI显示<br/>恢复登录状态"]
-    F -->|"❌ 无"| H["🔒 未登录<br/>显示登录按钮"]
-    H --> H1["updateSyncStatus<br/>显示未登录提示"]
-    H1 --> END["🏁 结束初始化<br/>不进入同步流程"]
+    D -->|"OAuth回调(OAuth新登录)"| E["更新UI显示"]
+    D -->|"savedUser(恢复会话)"| E
+    D -->|"未登录"| F["🔒 显示登录按钮<br/>updateSyncStatus显示未登录"]
+    F --> Z["🏁 结束<br/>不进行同步流程"]
 
-    E --> SYNC_START["进入数据同步<br/>DataSync.initialize"]
-    G --> SYNC_START
+    E --> G["• 即刻启动服务器可用性轮询<br/>startPolling——不等同步完成"]
+    G --> H["调用 updateSyncStatus<br/>显示备份信息"]
+    H --> I["进入 DataSync.initialize"]
 
-    SYNC_START --> I{newLogin=true?}
-    I -->|"✅ 是"| J["进入 syncFromCloud<br/>触发冲突检测"]
-    I -->|"❌ 否(恢复会话)"| K["进入 syncFromCloud<br/>⚠️ 此会话已检测过, 跳过冲突"]
+    I --> J["数据迁移<br/>migrateOldData"]
+    J --> K["syncFromCloud<br/>含冲突检测"]
+    K --> L["同步完成<br/>两端数据已一致"]
 
-    J --> SYNC_DONE
-    K --> SYNC_DONE
-
-    SYNC_DONE["同步完成"] --> L["enableAutoSync<br/>启动5分钟轮询"]
-    L --> M["首次 autoBackup"]
-    M --> N["设置10分钟定时备份"]
-    N --> O["绑定 beforeunload<br/>页面卸载前备份"]
-    O --> P["✨ 系统就绪"]
+    L --> M["启动 enableAutoSync<br/>5分钟数据变化轮询"]
+    M --> N["设置10分钟定时备份任务<br/>每10min autoBackup"]
+    N --> O["✨ 系统就绪"]
 
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-    style H fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
-    style END fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
-    style SYNC_DONE fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
-    style P fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
-    style J fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style F fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
+    style Z fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
+    style G fill:#5d4037,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style K fill:#1a237e,stroke:#7c4dff,stroke-width:2px,color:#fff
+    style L fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style O fill:#0d6e41,stroke:#4caf50,stroke-width:2px,color:#fff
 ```
+
+> **要点说明：**
+> - 轮询（服务器可用性检测）在登录时立即启动，不等同步完成
+> - `syncFromCloud` 完成后两端数据已一致，无需首次自动备份
+> - 无论新登录还是恢复会话，均执行冲突检测
 
 ---
 
@@ -76,58 +76,50 @@ graph TD
 graph TD
     A["▶️ 开始<br/>syncFromCloud"] --> B{已认证?}
     B -->|"❌ 否"| FAIL["返回 FAILED<br/>错误: 未认证"]
-    B -->|"✅ 是"| C["📥 获取云端数据<br/>ApiClient.getRecords"]
+    B -->|"✅ 是"| FETCH["📥 获取云端数据<br/>ApiClient.getRecords"]
 
-    C --> D["🔍 检查本地数据<br/>getEquipmentData"]
-    D --> E{本地有数据?}
+    FETCH --> LOC["🔍 检查本地数据<br/>getEquipmentData"]
+    LOC --> BOTH_EMPTY{两边都为空?}
+    BOTH_EMPTY -->|"✅ 是"| DONE_EMPTY["✨ 无需操作<br/>返回 NO_CHANGE"]
 
-    E -->|"❌ 本地为空"| F{云端<br/>有数据?}
-    F -->|"❌ 云端也为空"| G["✨ 无需操作<br/>返回 NO_CHANGE"]
-    F -->|"✅ 云端有数据"| H["⬇️ 直接下载<br/>mergeCloudData<br/>保存本地"]
-    H --> H1["🎨 刷新界面<br/>renderNav / renderMain"]
-    H1 --> H2["✅ 返回 SUCCESS<br/>recordCount=N"]
+    BOTH_EMPTY -->|"❌ 否"| HASH_CHECK
+    HASH_CHECK["⚖️ 哈希对比<br/>本地 vs 云端"] --> SAME{哈希相同?}
+    SAME -->|"✅ 一致"| DONE_SAME["✨ 数据相同<br/>返回 NO_CHANGE"]
 
-    E -->|"✅ 本地有数据"| I["⚖️ 哈希对比<br/>提示: 数据比较中..."]
-    I --> J{云端<br/>有数据?}
+    SAME -->|"❌ 不一致"| LOC_HAS{本地有数据?}
 
-    J -->|"❌ 云端为空"| K["⬆️ 上传本地数据<br/>保护本地不丢失<br/>syncToCloud"]
-    K --> K1["✅ 返回 SUCCESS<br/>本地已备份到云端"]
+    LOC_HAS -->|"❌ 本地为空"| DL["⬇️ 直接下载云端<br/>无需冲突处理"]
+    DL --> DL1["🎨 刷新界面<br/>renderNav / renderMain"]
+    DL1 --> DL2["✅ 返回 SUCCESS"]
 
-    J -->|"✅ 云端有数据"| L{哈希<br/>是否一致?}
-    L -->|"✅ 一致"| M["✨ 数据相同<br/>返回 NO_CHANGE"]
+    LOC_HAS -->|"✅ 本地有数据"| CLOUD_HAS{云端有数据?}
 
-    L -->|"❌ 不一致"| N{本会话已<br/>处理过冲突?}
-    N -->|"✅ 已处理"| O["⬇️ 使用云端数据<br/>mergeCloudData<br/>保存本地"]
-    O --> O1["🎨 刷新界面"]
-    O1 --> O2["✅ 返回 SUCCESS"]
+    CLOUD_HAS -->|"❌ 云端为空"| PROTECT["⬆️ 上传本地数据<br/>保护本地不丢失<br/>syncToCloud"]
+    PROTECT --> PROTECT1["✅ 返回 SUCCESS<br/>本地已备份到云端"]
 
-    N -->|"❌ 首次冲突"| P["⚠️ 提示用户解决冲突<br/>本地N条 vs 云端M条"]
-    P --> Q{用户选择}
+    CLOUD_HAS -->|"✅ 云端有数据"| CONFLICT["⚠️ 冲突！展示冲突对话框<br/>本地N条 vs 云端M条<br/>注：每次应用加载都执行"]
+    CONFLICT --> CHOICE{用户选择}
 
-    Q -->|"保留本地"| R["⬆️ 上传本地数据<br/>syncToCloud"]
-    R --> R1["🔒 标记冲突已处理<br/>setConflictCheckFlag"]
-    R1 --> R2["✅ 返回 SUCCESS"]
+    CHOICE -->|"'保留本地'"| KL["⬆️ 上传本地<br/>syncToCloud"]
+    KL --> KL1["✅ 返回 SUCCESS<br/>两端已一致"]
 
-    Q -->|"使用云端"| S["⬇️ 下载云端数据<br/>mergeCloudData<br/>保存本地"]
-    S --> S1["🎨 刷新界面<br/>renderNav / renderMain"]
-    S1 --> S2["🔒 标记冲突已处理<br/>setConflictCheckFlag"]
-    S2 --> S3["✅ 返回 SUCCESS"]
+    CHOICE -->|"'使用云端'"| UC["⬇️ 下载云端<br/>mergeCloudData"]
+    UC --> UC1["🎨 刷新界面<br/>renderNav / renderMain"]
+    UC1 --> UC2["✅ 返回 SUCCESS<br/>两端已一致"]
 
     style A fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
     style FAIL fill:#3c1515,stroke:#ff4444,stroke-width:2px,color:#fff
-    style G fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
-    style M fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
-    style K fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
-    style H fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
-    style P fill:#6b3a00,stroke:#ff6f00,stroke-width:2px,color:#fff
-    style R1 fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
-    style S2 fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style DONE_EMPTY fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style DONE_SAME fill:#4a148c,stroke:#bb86fc,stroke-width:2px,color:#fff
+    style PROTECT fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style CONFLICT fill:#6b3a00,stroke:#ff6f00,stroke-width:2px,color:#fff
+    style KL fill:#1b3a2f,stroke:#4caf50,stroke-width:2px,color:#fff
+    style UC fill:#1e3a5f,stroke:#4a9eff,stroke-width:2px,color:#fff
 ```
 
-> **⚠️ 关键说明**：  
-> - 冲突标记 (`conflictCheckFlag`) 只在 **syncFromCloud内冲突解决后** 才标记，不在外部清除  
-> - 未登录不进入此流程  
-> - 哈希比对只发生在本地有数据时
+> **✔️ 决策顺序：先检本地 → 再检哈希 → 再检云端 → 再处理冲突**
+> **✔️ 冲突检测无条件执行**：无对话标记展开适淳，冲突解决后两端哈希相同，下次自然进 noChange 分支不再弹框
+> **✔️ 冲突解决 = 同步完成**：不需要额外的 autoBackup 步骤
 
 ---
 

@@ -106,26 +106,13 @@ export const DataSync = {
     // 迁移旧版本数据
     LocalStorageManager.migrateOldData()
 
-    // 处理 OAuth 回调
-    const userFromCallback = AuthHandler.handleOAuthCallback()
-    if (userFromCallback) {
-      console.log('✅ OAuth 登录成功:', userFromCallback.username)
-      
-      // 新登录时清除冲突检测标志，以便触发冲突检测
-      LocalStorageManager.clearConflictCheckFlag()
-      console.log('🔄 新登录，已清除冲突检测标志')
-      
-      // 登录后自动从云端同步数据 - 等待同步完成
-      await this.syncFromCloud()
-    }
+    // 调用方已保证此处已认证，直接执行云端同步和冲突检测
+    // 无论是新登录还是恢复会话，都应执行冲突检测以确保数据一致
+    console.log('📥 执行云端同步（含冲突检测）...')
+    await this.syncFromCloud()
 
-    // 检查是否已认证
-    if (AuthHandler.isAuthenticated()) {
-      // 已认证状态，启用自动同步
-      this.enableAutoSync()
-    } else {
-      console.log('👤 未登录，使用本地数据')
-    }
+    // 同步完成后启用自动同步（5分钟轮询，检测数据变化）
+    this.enableAutoSync()
   },
 
   /**
@@ -170,34 +157,36 @@ export const DataSync = {
             console.warn('比较本地与云端数据时发生错误，继续正常同步', err)
           }
 
-          // [改进] 只在首次登录时进行冲突检测
+          // 检查本地数据状态
         const localData = LocalStorageManager.getEquipmentData()
         const localRecordCount = this.countLocalRecords(localData)
-        const hasCheckedConflict = LocalStorageManager.getConflictCheckFlag()
+
+        // ▶ 情况1：本地为空，云端有数据 → 直接下载，无需冲突检测
+        // ▶ 情况2：本地有数据，云端为空 → 反向上传，保护本地
+        // ▶ 情况3：两边都有数据 → 以哈希差异为准进行冲突检测（到这里时哈希已确认不同）
+
+        if (records.length === 0 && localRecordCount === 0) {
+          // 两边都为空，无需操作
+          console.log('ℹ️ 本地和云端都没有数据，跳过同步')
+          return { success: true, recordCount: 0, noChange: true }
+        }
 
         // 关键保护：云端无数据但本地有数据 → 反向上传，不覆盖本地
         if (records.length === 0 && localRecordCount > 0) {
           console.log(`☁️ 云端无数据，本地有 ${localRecordCount} 条记录，自动上传到云端...`)
-          LocalStorageManager.setConflictCheckFlag()
           this.syncInProgress = false
           this.notifySyncStatusUpdate()
           return await this.syncToCloud()
         }
 
-        if (
-          !hasCheckedConflict &&
-          localRecordCount > 0 &&
-          records.length > 0 &&
-          this.detectDataConflict(localData, records)
-        ) {
+        // 两边都有数据，且哈希已确认不同 → 展示冲突对话框
+        // 注意：本地为空时不需要冲突检测，直接下载云端
+        if (localRecordCount > 0 && records.length > 0) {
           console.warn(`⚠️ 检测到数据冲突! 本地: ${localRecordCount} 条, 云端: ${records.length} 条`)
-
-          // 标记已检测过冲突（本次会话中只检测一次）
-          LocalStorageManager.setConflictCheckFlag()
 
           // 获取时间戳信息
           const localTimestamp = LocalStorageManager.getEquipmentDataTimestamp()
-          const cloudTimestamp = new Date()  // 使用当前时间作为云端时间
+          const cloudTimestamp = new Date()
 
           // 显示对话框，让用户选择
           const choice = await window.YanyuApp?.AuthUI?.showConflictDialog(
@@ -209,6 +198,7 @@ export const DataSync = {
 
           if (choice === 'keep-local') {
             console.log('👤 用户选择: 保留本地数据，上传到云端')
+            // 上传完成后两端一致，无需额外操作
             this.syncInProgress = false
             this.notifySyncStatusUpdate()
             return await this.syncToCloud()
